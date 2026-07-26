@@ -1,5 +1,9 @@
 <?php
 
+use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\System\PermissionController;
+use App\Http\Controllers\Admin\System\RoleController;
+use App\Http\Controllers\Admin\System\UserController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Middleware\EnsureAdminAuthenticated;
 use Illuminate\Support\Facades\Route;
@@ -66,13 +70,50 @@ Route::get('/reset-password', function () { return view('auth.reset-password'); 
 
 /*
 |--------------------------------------------------------------------------
-| TG Microfinance ERP - Admin Panel Foundation Routes (Protected)
+| TG Microfinance ERP - Admin Panel Foundation & RBAC Routes (Protected)
 |--------------------------------------------------------------------------
 */
 
 Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(function () {
     Route::get('/', function () { return view('admin.dashboard'); })->name('admin.dashboard');
     Route::get('/dashboard', function () { return view('admin.dashboard'); });
+
+    // Profile Management Routes
+    Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile.show');
+    Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('admin.profile.update');
+    Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('admin.profile.password');
+
+    // System Modules - Real Functional RBAC Routes
+    Route::prefix('system')->group(function () {
+        // User Management CRUD
+        Route::get('/users', [UserController::class, 'index'])->name('admin.system.users.index');
+        Route::get('/users/create', [UserController::class, 'create'])->name('admin.system.users.create');
+        Route::post('/users', [UserController::class, 'store'])->name('admin.system.users.store');
+        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('admin.system.users.edit');
+        Route::put('/users/{user}', [UserController::class, 'update'])->name('admin.system.users.update');
+        Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('admin.system.users.toggle-status');
+        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.system.users.destroy');
+
+        // Role Management CRUD
+        Route::get('/roles', [RoleController::class, 'index'])->name('admin.system.roles.index');
+        Route::get('/roles/create', [RoleController::class, 'create'])->name('admin.system.roles.create');
+        Route::post('/roles', [RoleController::class, 'store'])->name('admin.system.roles.store');
+        Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('admin.system.roles.edit');
+        Route::put('/roles/{role}', [RoleController::class, 'update'])->name('admin.system.roles.update');
+        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('admin.system.roles.destroy');
+
+        // Permissions Matrix
+        Route::get('/permissions', [PermissionController::class, 'index'])->name('admin.system.permissions.index');
+        Route::post('/permissions', [PermissionController::class, 'store'])->name('admin.system.permissions.store');
+        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('admin.system.permissions.destroy');
+
+        // System Placeholder Subpages
+        Route::get('/settings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Settings', 'moduleSlug' => 'system/settings']); });
+        Route::get('/media', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Media Library', 'moduleSlug' => 'system/media']); });
+        Route::get('/notifications', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Notifications', 'moduleSlug' => 'system/notifications']); });
+        Route::get('/audit-logs', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Audit Logs', 'moduleSlug' => 'system/audit-logs']); });
+        Route::get('/backup', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Database Backup', 'moduleSlug' => 'system/backup']); });
+    });
 
     // ERP Core Module Placeholders
     Route::get('/company', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Company Management', 'moduleSlug' => 'company']); });
@@ -99,17 +140,5 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::get('/contact', function () { return view('admin.placeholders.module', ['moduleTitle' => 'CMS Contact Manager', 'moduleSlug' => 'cms/contact']); });
         Route::get('/footer', function () { return view('admin.placeholders.module', ['moduleTitle' => 'CMS Footer Manager', 'moduleSlug' => 'cms/footer']); });
         Route::get('/seo', function () { return view('admin.placeholders.module', ['moduleTitle' => 'CMS SEO Settings', 'moduleSlug' => 'cms/seo']); });
-    });
-
-    // System Module Placeholders
-    Route::prefix('system')->group(function () {
-        Route::get('/users', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Users', 'moduleSlug' => 'system/users']); });
-        Route::get('/roles', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Roles & RBAC', 'moduleSlug' => 'system/roles']); });
-        Route::get('/permissions', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Permissions Matrix', 'moduleSlug' => 'system/permissions']); });
-        Route::get('/settings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Settings', 'moduleSlug' => 'system/settings']); });
-        Route::get('/media', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Media Library', 'moduleSlug' => 'system/media']); });
-        Route::get('/notifications', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Notifications', 'moduleSlug' => 'system/notifications']); });
-        Route::get('/audit-logs', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Audit Logs', 'moduleSlug' => 'system/audit-logs']); });
-        Route::get('/backup', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Database Backup', 'moduleSlug' => 'system/backup']); });
     });
 });

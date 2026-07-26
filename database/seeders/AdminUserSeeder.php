@@ -13,11 +13,16 @@ class AdminUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Super Admin',
-            'email' => 'admin@tgmicrofinance.test',
-            'password' => Hash::make('Admin@123'),
-            'email_verified_at' => now(),
-        ]);
+        $admin = User::firstOrCreate(
+            ['email' => 'admin@tgmicrofinance.test'],
+            [
+                'name' => 'Super Admin',
+                'password' => Hash::make('Admin@123'),
+                'status' => 'active',
+                'email_verified_at' => now(),
+            ]
+        );
+
+        $admin->syncRoles(['Super Admin']);
     }
 }
