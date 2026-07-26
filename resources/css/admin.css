@@ -1,0 +1,174 @@
+/* TG Microfinance ERP - Admin Panel Theme & Layout Styles */
+
+:root {
+    --tg-sidebar-width: 265px;
+    --tg-topbar-height: 64px;
+    --tg-sidebar-bg: #0f172a;
+    --tg-sidebar-color: #94a3b8;
+    --tg-sidebar-active-bg: rgba(13, 110, 253, 0.15);
+    --tg-sidebar-active-color: #38bdf8;
+    --tg-admin-bg: #f8fafc;
+}
+
+body.admin-body {
+    background-color: var(--tg-admin-bg);
+    color: #1e293b;
+    font-family: 'Inter', sans-serif;
+    min-height: 100vh;
+    margin: 0;
+    overflow-x: hidden;
+}
+
+/* Sidebar Wrapper */
+#admin-sidebar {
+    width: var(--tg-sidebar-width);
+    height: 100vh;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 1040;
+    background-color: var(--tg-sidebar-bg);
+    color: var(--tg-sidebar-color);
+    overflow-y: auto;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+}
+
+#admin-sidebar::-webkit-scrollbar {
+    width: 5px;
+}
+
+#admin-sidebar::-webkit-scrollbar-thumb {
+    background: #334155;
+    border-radius: 4px;
+}
+
+/* Sidebar Brand */
+.sidebar-brand {
+    height: var(--tg-topbar-height);
+    display: flex;
+    align-items: center;
+    padding: 0 1.25rem;
+    font-weight: 700;
+    font-size: 1.15rem;
+    color: #ffffff;
+    border-bottom: 1px solid #1e293b;
+}
+
+/* Sidebar Navigation Links */
+.sidebar-nav-link {
+    display: flex;
+    align-items: center;
+    padding: 0.65rem 1.25rem;
+    color: #94a3b8;
+    font-size: 0.875rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: all 0.2s ease;
+    border-left: 3px solid transparent;
+}
+
+.sidebar-nav-link i {
+    font-size: 1.1rem;
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+}
+
+.sidebar-nav-link:hover {
+    color: #f8fafc;
+    background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-nav-link.active {
+    color: var(--tg-sidebar-active-color);
+    background-color: var(--tg-sidebar-active-bg);
+    border-left-color: #38bdf8;
+    font-weight: 600;
+}
+
+.sidebar-nav-link .accordion-arrow {
+    margin-left: auto;
+    transition: transform 0.2s ease;
+}
+
+.sidebar-nav-link[aria-expanded="true"] .accordion-arrow {
+    transform: rotate(90deg);
+}
+
+/* Sidebar Sub-Menu */
+.sidebar-submenu {
+    background-color: rgba(15, 23, 42, 0.5);
+    padding-left: 0.75rem;
+}
+
+.sidebar-submenu .sidebar-nav-link {
+    padding: 0.5rem 1.25rem 0.5rem 2.25rem;
+    font-size: 0.825rem;
+}
+
+/* Main Content Wrapper */
+#admin-content-wrapper {
+    margin-left: var(--tg-sidebar-width);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Topbar Header */
+#admin-topbar {
+    height: var(--tg-topbar-height);
+    background-color: #ffffff;
+    border-bottom: 1px solid #e2e8f0;
+    position: sticky;
+    top: 0;
+    z-index: 1030;
+    padding: 0 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+}
+
+/* Global Search Input */
+.topbar-search {
+    max-width: 380px;
+    width: 100%;
+}
+
+.topbar-search .form-control {
+    border-radius: 50rem;
+    font-size: 0.875rem;
+    padding-left: 2.5rem;
+}
+
+.topbar-search .search-icon {
+    position: absolute;
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+    color: #94a3b8;
+    z-index: 5;
+}
+
+/* Admin Main Canvas */
+.admin-main-body {
+    padding: 1.5rem;
+    flex-grow: 1;
+}
+
+/* Responsive Sidebar Toggling */
+@media (max-width: 991.98px) {
+    #admin-sidebar {
+        transform: translateX(-100%);
+    }
+
+    #admin-sidebar.show {
+        transform: translateX(0);
+    }
+
+    #admin-content-wrapper {
+        margin-left: 0;
+    }
+}

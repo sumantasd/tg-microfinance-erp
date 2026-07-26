@@ -1,0 +1,159 @@
+/* TG Microfinance ERP - Public Corporate Website Styles */
+
+/* Body padding offset for fixed header */
+body.public-body {
+    padding-top: 76px;
+    background-color: var(--tg-body-bg);
+}
+
+/* Fixed & Shrinking Navbar */
+.public-navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    width: 100%;
+    z-index: 1030;
+    background-color: #ffffff;
+    box-shadow: 0 1px 3px 0 rgba(15, 23, 42, 0.06);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+    transition: padding 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s ease, background-color 0.3s ease;
+}
+
+.public-navbar.scrolled {
+    padding-top: 0.45rem !important;
+    padding-bottom: 0.45rem !important;
+    box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.12) !important;
+    background-color: rgba(255, 255, 255, 0.98) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.public-brand {
+    font-weight: 700;
+    color: var(--tg-primary);
+    font-size: 1.3rem;
+    letter-spacing: -0.5px;
+}
+
+.public-nav-link {
+    font-weight: 500;
+    color: #334155;
+    padding: 0.5rem 0.75rem !important;
+    font-size: 0.95rem;
+    border-radius: 0.375rem;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+}
+
+.public-nav-link:hover,
+.public-nav-link.active {
+    color: var(--tg-primary) !important;
+    background-color: rgba(13, 110, 253, 0.08);
+}
+
+/* Nav Dropdown Styling */
+.public-dropdown-menu {
+    border: none;
+    border-radius: 0.75rem;
+    box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.08);
+    padding: 0.5rem;
+    margin-top: 0.5rem !important;
+}
+
+.public-dropdown-item {
+    font-size: 0.9rem;
+    font-weight: 500;
+    color: #475569;
+    padding: 0.5rem 0.85rem;
+    border-radius: 0.5rem;
+    transition: all 0.15s ease;
+}
+
+.public-dropdown-item:hover,
+.public-dropdown-item.active {
+    color: var(--tg-primary);
+    background-color: rgba(13, 110, 253, 0.08);
+}
+
+/* Mobile Offcanvas Drawer */
+.public-offcanvas {
+    width: 320px !important;
+    border-left: none;
+}
+
+.public-offcanvas .offcanvas-header {
+    background-color: #0f172a;
+    color: #ffffff;
+    padding: 1.25rem 1.5rem;
+}
+
+.public-offcanvas .offcanvas-body {
+    padding: 1.5rem;
+    background-color: #f8f9fa;
+}
+
+/* Public Hero Section */
+.hero-section {
+    background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0d6efd 100%);
+    color: #ffffff;
+    padding: 50px 0;
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+}
+
+@media (min-width: 992px) {
+    .hero-section {
+        min-height: 80vh;
+        display: flex;
+        align-items: center;
+        padding: 60px 0;
+    }
+}
+
+.hero-title {
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1.15;
+    word-break: break-word;
+}
+
+/* Public Footer with High Contrast */
+.public-footer {
+    background-color: #0f172a;
+    color: #cbd5e1;
+    padding-top: 60px;
+    padding-bottom: 25px;
+    border-top: 1px solid #1e293b;
+}
+
+.public-footer h5,
+.public-footer h6 {
+    color: #ffffff;
+    font-weight: 700;
+    letter-spacing: -0.2px;
+}
+
+.public-footer p {
+    color: #ffffff;
+    line-height: 1.6;
+}
+
+.public-footer a {
+    color: #cbd5e1;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+.public-footer a:hover {
+    color: #ffffff;
+}
+
+/* Responsive Floating Elements Utility */
+@media (max-width: 767.98px) {
+    .hide-on-mobile {
+        display: none !important;
+    }
+}
