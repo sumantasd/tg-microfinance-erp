@@ -6,36 +6,32 @@
 @section('content')
 <x-ui.page-banner
     title="Official Interest Rates Schedule"
-    subtitle="Transparent rates, zero hidden charges, and clear calculations regulated by central microfinance standards."
+    subtitle="Transparent rates, zero hidden charges, and clear calculation methods regulated by central microfinance standards."
     badge="Rate Transparency"
     :breadcrumbs="['Products' => '/products/loan', 'Interest Rates' => '']"
 />
 
 <section class="container-xl py-5">
     <x-ui.card class="p-4 mb-5">
-        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-percent text-primary me-2"></i>Loan Products Rate Matrix</h5>
-        <x-ui.data-table :headers="['Product Category', 'Min-Max Amount', 'Tenure Options', 'Interest Rate (P.A.)', 'Processing Fee']">
-            <tr>
-                <td class="fw-semibold">Micro-Enterprise Loan</td>
-                <td>$500 – $5,000</td>
-                <td>6 – 18 Months</td>
-                <td><span class="badge bg-primary-subtle text-primary">12.5% Flat / Reducing</span></td>
-                <td>1.0%</td>
-            </tr>
-            <tr>
-                <td class="fw-semibold">Group Solidarity Loan</td>
-                <td>$200 – $2,000</td>
-                <td>12 Months</td>
-                <td><span class="badge bg-success-subtle text-success">11.0% Reducing</span></td>
-                <td>0.5%</td>
-            </tr>
-            <tr>
-                <td class="fw-semibold">SME Expansion Loan</td>
-                <td>$5,000 – $25,000</td>
-                <td>12 – 36 Months</td>
-                <td><span class="badge bg-info-subtle text-info">14.0% Reducing</span></td>
-                <td>1.5%</td>
-            </tr>
+        <h5 class="fw-bold mb-3 text-dark"><i class="bi bi-percent text-primary me-2"></i>Micro-Finance Rates & Method Matrix</h5>
+        <x-ui.data-table :headers="['Product Name', 'Amount Range', 'Tenure Options', 'Interest Rate (P.A.)', 'Calculation Method', 'Processing Fee']">
+            @forelse($rates as $item)
+                <tr>
+                    <td class="fw-bold text-dark">
+                        {{ $item->product_name }}
+                        <span class="badge bg-secondary-subtle text-secondary small d-block" style="width: fit-content;">{{ strtoupper($item->product_type) }}</span>
+                    </td>
+                    <td class="fw-semibold text-secondary">{{ $item->amount_range ?? 'N/A' }}</td>
+                    <td class="text-muted">{{ $item->tenure_options ?? 'N/A' }}</td>
+                    <td><strong class="text-primary">{{ $item->interest_rate }}</strong></td>
+                    <td><span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill">{{ $item->interest_method }}</span></td>
+                    <td><span class="badge bg-light text-dark border">{{ $item->processing_fee ?? '0.0%' }}</span></td>
+                </tr>
+            @empty
+                <tr>
+                    <td colspan="6" class="text-center py-4 text-muted">No interest rate entries currently listed.</td>
+                </tr>
+            @endforelse
         </x-ui.data-table>
     </x-ui.card>
 </section>

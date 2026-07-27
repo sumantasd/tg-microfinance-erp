@@ -81,7 +81,11 @@
         </a>
 
         <div class="collapse sidebar-submenu {{ request()->is('admin/cms*') ? 'show' : '' }}" id="sidebarCmsCollapse">
-            <a class="sidebar-nav-link {{ request()->is('admin/cms/homepage') ? 'active' : '' }}" href="{{ url('/admin/cms/homepage') }}">
+            <a class="sidebar-nav-link {{ request()->is('admin/cms/settings*') ? 'active' : '' }}" href="{{ url('/admin/cms/settings') }}">
+                <i class="bi bi-sliders"></i>
+                <span>Website Settings</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/cms/homepage*') ? 'active' : '' }}" href="{{ url('/admin/cms/homepage') }}">
                 <i class="bi bi-house-gear"></i>
                 <span>Homepage</span>
             </a>
@@ -116,6 +120,26 @@
             <a class="sidebar-nav-link {{ request()->is('admin/cms/faq*') ? 'active' : '' }}" href="{{ url('/admin/cms/faq') }}">
                 <i class="bi bi-question-circle"></i>
                 <span>FAQ</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/cms/why-choose-us*') ? 'active' : '' }}" href="{{ url('/admin/cms/why-choose-us') }}">
+                <i class="bi bi-patch-check"></i>
+                <span>Why Choose Us</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/cms/team*') ? 'active' : '' }}" href="{{ url('/admin/cms/team') }}">
+                <i class="bi bi-people"></i>
+                <span>Team Members</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/cms/interest-rates*') ? 'active' : '' }}" href="{{ url('/admin/cms/interest-rates') }}">
+                <i class="bi bi-percent"></i>
+                <span>Interest Rates</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/cms/services*') ? 'active' : '' }}" href="{{ url('/admin/cms/services') }}">
+                <i class="bi bi-gear"></i>
+                <span>Services</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/cms/careers*') ? 'active' : '' }}" href="{{ url('/admin/cms/careers') }}">
+                <i class="bi bi-briefcase"></i>
+                <span>Careers</span>
             </a>
             <a class="sidebar-nav-link {{ request()->is('admin/cms/contact*') ? 'active' : '' }}" href="{{ url('/admin/cms/contact') }}">
                 <i class="bi bi-envelope"></i>

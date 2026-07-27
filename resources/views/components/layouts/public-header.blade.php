@@ -3,11 +3,15 @@
     <div class="container-xl">
         <div class="d-flex align-items-center justify-content-between">
             <!-- Brand Logo -->
-            <a class="navbar-brand public-brand d-flex align-items-center gap-2 me-4" href="{{ url('/') }}">
-                <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
-                    <i class="bi bi-bank2 fs-5"></i>
-                </div>
-                <span class="fs-5">TG Microfinance</span>
+            <a class="navbar-brand public-brand d-flex align-items-center me-4" href="{{ url('/') }}">
+                @if(isset($settings) && $settings->logo_url)
+                    <img src="{{ $settings->logo_url }}" alt="{{ $settings->company_name ?? 'Logo' }}" style="max-height: 48px; width: auto; object-fit: contain;">
+                @else
+                    <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center me-2" style="width: 40px; height: 40px;">
+                        <i class="bi bi-bank2 fs-5"></i>
+                    </div>
+                    <span class="fs-5 fw-bold">{{ $settings->company_name ?? 'TG Microfinance' }}</span>
+                @endif
             </a>
 
             <!-- Desktop Navigation Menu -->
@@ -97,11 +101,15 @@
 <!-- Bootstrap 5 Offcanvas Mobile Navigation Drawer -->
 <div class="offcanvas offcanvas-end public-offcanvas" tabindex="-1" id="mobileNavOffcanvas" aria-labelledby="mobileNavOffcanvasLabel">
     <div class="offcanvas-header">
-        <div class="d-flex align-items-center gap-2" id="mobileNavOffcanvasLabel">
-            <div class="bg-primary text-white rounded-circle p-1.5 d-flex align-items-center justify-content-center" style="width: 34px; height: 34px;">
-                <i class="bi bi-bank2 fs-6"></i>
-            </div>
-            <span class="fw-bold text-white fs-6">TG Microfinance</span>
+        <div class="d-flex align-items-center" id="mobileNavOffcanvasLabel">
+            @if(isset($settings) && $settings->logo_url)
+                <img src="{{ $settings->logo_url }}" alt="{{ $settings->company_name ?? 'Logo' }}" style="max-height: 38px; width: auto; object-fit: contain;">
+            @else
+                <div class="bg-primary text-white rounded-circle p-1.5 d-flex align-items-center justify-content-center me-2" style="width: 34px; height: 34px;">
+                    <i class="bi bi-bank2 fs-6"></i>
+                </div>
+                <span class="fw-bold text-white fs-6">{{ $settings->company_name ?? 'TG Microfinance' }}</span>
+            @endif
         </div>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" aria-label="Close"></button>
     </div>
