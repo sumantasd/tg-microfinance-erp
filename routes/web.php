@@ -145,10 +145,12 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     Route::get('/company', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Company Management', 'moduleSlug' => 'company']); });
     Route::get('/branch', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Branch Management', 'moduleSlug' => 'branch']); });
     Route::get('/employee', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Employee Management', 'moduleSlug' => 'employee']); });
-    Route::get('/customer', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Customer Management', 'moduleSlug' => 'customer']); });
+    Route::get('/customer', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Member Management', 'moduleSlug' => 'customer']); });
     Route::get('/loan', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Loan Management', 'moduleSlug' => 'loan']); });
     Route::get('/savings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Savings Accounts', 'moduleSlug' => 'savings']); });
     Route::get('/collection', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Field Collections', 'moduleSlug' => 'collection']); });
+    Route::get('/inventory', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Inventory Management', 'moduleSlug' => 'inventory']); });
+    Route::get('/billing', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Billing & Counter Invoices', 'moduleSlug' => 'billing']); });
     Route::get('/accounting', function () { return view('admin.placeholders.module', ['moduleTitle' => 'General Ledger Accounting', 'moduleSlug' => 'accounting']); });
     Route::get('/reports', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Financial Reports', 'moduleSlug' => 'reports']); });
 

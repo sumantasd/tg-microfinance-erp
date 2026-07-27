@@ -44,6 +44,23 @@
         <x-layouts.admin-footer />
     </div>
 
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const sidebar = document.getElementById('admin-sidebar');
+        const toggler = document.getElementById('sidebar-toggler');
+        if (sidebar && toggler) {
+            toggler.addEventListener('click', function(e) {
+                e.stopPropagation();
+                sidebar.classList.toggle('show');
+            });
+            document.addEventListener('click', function(e) {
+                if (window.innerWidth < 992 && sidebar.classList.contains('show') && !sidebar.contains(e.target) && e.target !== toggler) {
+                    sidebar.classList.remove('show');
+                }
+            });
+        }
+    });
+    </script>
     @stack('scripts')
 </body>
 </html>

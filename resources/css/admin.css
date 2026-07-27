@@ -1,25 +1,36 @@
-/* TG Microfinance ERP - Admin Panel Theme & Layout Styles */
+/* TG Microfinance ERP - Admin Panel Premium Theme & Layout Styles */
 
 :root {
-    --tg-sidebar-width: 265px;
+    --tg-sidebar-width: 270px;
     --tg-topbar-height: 64px;
-    --tg-sidebar-bg: #0f172a;
-    --tg-sidebar-color: #94a3b8;
-    --tg-sidebar-active-bg: rgba(13, 110, 253, 0.15);
+    --tg-sidebar-bg: #0b132b;
+    --tg-sidebar-border: #1c2541;
+    --tg-sidebar-color: #8d99ae;
+    --tg-sidebar-active-bg: linear-gradient(90deg, rgba(13, 110, 253, 0.18) 0%, rgba(13, 110, 253, 0.04) 100%);
     --tg-sidebar-active-color: #38bdf8;
-    --tg-admin-bg: #f8fafc;
+    --tg-admin-bg: #f4f6f9;
+    --tg-card-bg: #ffffff;
+    --tg-card-border: #e2e8f0;
+    --tg-font-primary: 'Inter', sans-serif;
+    --tg-font-heading: 'Outfit', sans-serif;
 }
 
 body.admin-body {
     background-color: var(--tg-admin-bg);
     color: #1e293b;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--tg-font-primary);
     min-height: 100vh;
     margin: 0;
     overflow-x: hidden;
 }
 
-/* Sidebar Wrapper */
+h1, h2, h3, h4, h5, h6, .font-heading {
+    font-family: var(--tg-font-heading);
+}
+
+/* ==========================================================================
+   1. SIDEBAR STYLES (ENTERPRISE ERP READY)
+   ========================================================================== */
 #admin-sidebar {
     width: var(--tg-sidebar-width);
     height: 100vh;
@@ -31,19 +42,19 @@ body.admin-body {
     color: var(--tg-sidebar-color);
     overflow-y: auto;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 4px 0 20px rgba(0, 0, 0, 0.1);
+    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.12);
+    border-right: 1px solid var(--tg-sidebar-border);
 }
 
 #admin-sidebar::-webkit-scrollbar {
-    width: 5px;
+    width: 4px;
 }
 
 #admin-sidebar::-webkit-scrollbar-thumb {
-    background: #334155;
+    background: #1c2541;
     border-radius: 4px;
 }
 
-/* Sidebar Brand */
 .sidebar-brand {
     height: var(--tg-topbar-height);
     display: flex;
@@ -52,43 +63,66 @@ body.admin-body {
     font-weight: 700;
     font-size: 1.15rem;
     color: #ffffff;
-    border-bottom: 1px solid #1e293b;
+    border-bottom: 1px solid var(--tg-sidebar-border);
+    background-color: rgba(0, 0, 0, 0.15);
 }
 
-/* Sidebar Navigation Links */
+.sidebar-group-header {
+    padding: 1.125rem 1.25rem 0.375rem;
+    font-size: 0.675rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 1.2px;
+    color: #64748b;
+    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
+    margin-bottom: 0.25rem;
+}
+
 .sidebar-nav-link {
     display: flex;
     align-items: center;
-    padding: 0.65rem 1.25rem;
+    padding: 0.625rem 1.25rem;
     color: #94a3b8;
     font-size: 0.875rem;
     font-weight: 500;
     text-decoration: none;
     transition: all 0.2s ease;
     border-left: 3px solid transparent;
+    position: relative;
 }
 
-.sidebar-nav-link i {
+.sidebar-nav-link i.nav-icon {
     font-size: 1.1rem;
     margin-right: 0.75rem;
-    width: 20px;
+    width: 22px;
     text-align: center;
+    transition: transform 0.2s ease;
 }
 
 .sidebar-nav-link:hover {
-    color: #f8fafc;
-    background-color: rgba(255, 255, 255, 0.05);
+    color: #ffffff;
+    background-color: rgba(255, 255, 255, 0.04);
+}
+
+.sidebar-nav-link:hover i.nav-icon {
+    transform: translateX(2px);
+    color: #38bdf8;
 }
 
 .sidebar-nav-link.active {
     color: var(--tg-sidebar-active-color);
-    background-color: var(--tg-sidebar-active-bg);
+    background: var(--tg-sidebar-active-bg);
     border-left-color: #38bdf8;
     font-weight: 600;
 }
 
+.sidebar-nav-link.active i.nav-icon {
+    color: #38bdf8;
+}
+
 .sidebar-nav-link .accordion-arrow {
     margin-left: auto;
+    font-size: 0.75rem;
     transition: transform 0.2s ease;
 }
 
@@ -96,18 +130,19 @@ body.admin-body {
     transform: rotate(90deg);
 }
 
-/* Sidebar Sub-Menu */
 .sidebar-submenu {
-    background-color: rgba(15, 23, 42, 0.5);
-    padding-left: 0.75rem;
+    background-color: rgba(0, 0, 0, 0.25);
+    padding-left: 0.5rem;
 }
 
 .sidebar-submenu .sidebar-nav-link {
-    padding: 0.5rem 1.25rem 0.5rem 2.25rem;
+    padding: 0.5rem 1.25rem 0.5rem 2.5rem;
     font-size: 0.825rem;
 }
 
-/* Main Content Wrapper */
+/* ==========================================================================
+   2. TOPBAR & MAIN CONTENT LAYOUT
+   ========================================================================== */
 #admin-content-wrapper {
     margin-left: var(--tg-sidebar-width);
     min-height: 100vh;
@@ -116,7 +151,6 @@ body.admin-body {
     transition: margin-left 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-/* Topbar Header */
 #admin-topbar {
     height: var(--tg-topbar-height);
     background-color: #ffffff;
@@ -128,10 +162,9 @@ body.admin-body {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.04);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
 }
 
-/* Global Search Input */
 .topbar-search {
     max-width: 380px;
     width: 100%;
@@ -139,8 +172,15 @@ body.admin-body {
 
 .topbar-search .form-control {
     border-radius: 50rem;
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     padding-left: 2.5rem;
+    background-color: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.topbar-search .form-control:focus {
+    background-color: #ffffff;
+    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
 }
 
 .topbar-search .search-icon {
@@ -152,13 +192,93 @@ body.admin-body {
     z-index: 5;
 }
 
-/* Admin Main Canvas */
 .admin-main-body {
     padding: 1.5rem;
     flex-grow: 1;
 }
 
-/* Responsive Sidebar Toggling */
+/* ==========================================================================
+   3. ENTERPRISE KPI CARDS & UI COMPONENTS
+   ========================================================================== */
+.tg-kpi-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.85rem;
+    padding: 1.25rem;
+    transition: all 0.25s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.tg-kpi-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+}
+
+.tg-kpi-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 0.65rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    flex-shrink: 0;
+}
+
+.tg-chart-card {
+    background-color: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0.85rem;
+    padding: 1.25rem;
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+}
+
+.chart-placeholder-box {
+    height: 220px;
+    background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
+    border: 2px dashed #cbd5e1;
+    border-radius: 0.65rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Data Table Clean Upgrades */
+.table-responsive {
+    border-radius: 0.75rem;
+}
+
+.tg-data-table {
+    margin-bottom: 0;
+}
+
+.tg-data-table th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 0.875rem 1rem;
+    border-bottom: 2px solid #e2e8f0;
+}
+
+.tg-data-table td {
+    padding: 0.875rem 1rem;
+    vertical-align: middle;
+    font-size: 0.875rem;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.tg-data-table tr:hover td {
+    background-color: #f8fafc;
+}
+
+/* ==========================================================================
+   4. RESPONSIVE SIDEBAR TOGGLE
+   ========================================================================== */
 @media (max-width: 991.98px) {
     #admin-sidebar {
         transform: translateX(-100%);

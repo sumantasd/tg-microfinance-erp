@@ -41,8 +41,9 @@
                 @endforeach
             </select>
         </div>
-        <div class="col-md-1 d-flex gap-1">
-            <button type="submit" class="btn btn-primary w-100 rounded-3"><i class="bi bi-filter"></i></button>
+        <div class="col-md-2 d-flex gap-1">
+            <button type="submit" class="btn btn-primary w-100 rounded-3"><i class="bi bi-filter me-1"></i>Filter</button>
+            <button type="button" class="btn btn-outline-secondary w-100 rounded-3" title="Export Users (CSV/Excel)"><i class="bi bi-download"></i></button>
             <a href="{{ route('admin.system.users.index') }}" class="btn btn-light border w-100 rounded-3" title="Reset"><i class="bi bi-arrow-counterclockwise"></i></a>
         </div>
     </form>
