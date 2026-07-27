@@ -1,38 +1,109 @@
-<!-- Admin ERP Dark Sidebar Navigation -->
+@php
+    $settings = \App\Models\WebsiteSetting::first();
+    $companyName = $settings->company_name ?? 'TG Microfinance';
+    $companyLogo = $settings->logo_url ?? null;
+@endphp
+
+<!-- Light SaaS Enterprise Sidebar Navigation (Stripe / Razorpay / Zoho Inspired) -->
 <aside id="admin-sidebar">
-    <!-- Brand Header -->
+    <!-- Brand Header with Dynamic Logo -->
     <div class="sidebar-brand">
-        <div class="bg-primary text-white rounded-circle p-1 me-2 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px;">
-            <i class="bi bi-bank2 fs-6"></i>
-        </div>
-        <div>
-            <span class="d-block fw-bold text-white font-heading lh-sm">TG Microfinance</span>
-            <small class="text-muted d-block font-monospace" style="font-size: 0.65rem; letter-spacing: 0.5px;">ENTERPRISE ERP v2.5</small>
-        </div>
+        <a href="{{ url('/admin') }}" class="d-flex align-items-center text-decoration-none gap-2 text-dark">
+            @if($companyLogo)
+                <img src="{{ $companyLogo }}" alt="{{ $companyName }}" class="img-fluid" style="max-height: 38px; max-width: 140px; object-fit: contain;">
+            @else
+                <div class="bg-primary text-white rounded-3 p-1.5 d-flex align-items-center justify-content-center shadow-sm" style="width: 36px; height: 36px; background-color: #2563eb !important;">
+                    <i class="bi bi-bank2 fs-6"></i>
+                </div>
+                <div>
+                    <span class="d-block fw-bold font-heading lh-sm text-dark">{{ $companyName }}</span>
+                    <small class="text-muted d-block font-monospace" style="font-size: 0.625rem; letter-spacing: 0.5px;">SAAS ERP DASHBOARD</small>
+                </div>
+            @endif
+        </a>
     </div>
 
     <nav class="nav flex-column py-2">
         <!-- 1. DASHBOARD LINK -->
         <a class="sidebar-nav-link {{ request()->is('admin') || request()->is('admin/dashboard') ? 'active' : '' }}" href="{{ url('/admin') }}">
-            <i class="bi bi-speedometer2 text-primary nav-icon"></i>
+            <i class="bi bi-grid-1x2-fill text-primary nav-icon"></i>
             <span>Dashboard</span>
         </a>
 
-        <!-- 2. WEBSITE CMS ACCORDION GROUP -->
+        <!-- 2. ERP MANAGEMENT (ALWAYS VISIBLE - REQUIREMENT #1) -->
+        <div class="sidebar-group-header">
+            ERP Management
+        </div>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/branch*') ? 'active' : '' }}" href="{{ url('/admin/branch') }}">
+            <i class="bi bi-building nav-icon text-warning"></i>
+            <span>Branch Management</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/customer*') ? 'active' : '' }}" href="{{ url('/admin/customer') }}">
+            <i class="bi bi-person-badge nav-icon text-primary"></i>
+            <span>Member Management</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/loan*') ? 'active' : '' }}" href="{{ url('/admin/loan') }}">
+            <i class="bi bi-cash-stack nav-icon text-success"></i>
+            <span>Loan Management</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/savings*') ? 'active' : '' }}" href="{{ url('/admin/savings') }}">
+            <i class="bi bi-piggy-bank nav-icon text-info"></i>
+            <span>Savings</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/collection*') ? 'active' : '' }}" href="{{ url('/admin/collection') }}">
+            <i class="bi bi-journal-check nav-icon text-danger"></i>
+            <span>Collection</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/inventory*') ? 'active' : '' }}" href="{{ url('/admin/inventory') }}">
+            <i class="bi bi-box-seam nav-icon text-warning"></i>
+            <span>Inventory</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/billing*') ? 'active' : '' }}" href="{{ url('/admin/billing') }}">
+            <i class="bi bi-receipt nav-icon text-info"></i>
+            <span>Billing</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/accounting*') ? 'active' : '' }}" href="{{ url('/admin/accounting') }}">
+            <i class="bi bi-calculator nav-icon text-primary"></i>
+            <span>Accounting</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/reports*') ? 'active' : '' }}" href="{{ url('/admin/reports') }}">
+            <i class="bi bi-bar-chart-line nav-icon text-success"></i>
+            <span>Reports</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/employee*') ? 'active' : '' }}" href="{{ url('/admin/employee') }}">
+            <i class="bi bi-person-lines-fill nav-icon text-info"></i>
+            <span>HRM</span>
+        </a>
+
+        <!-- 3. WEBSITE CMS (ONLY COLLAPSIBLE MENU - REQUIREMENT #1) -->
+        <div class="sidebar-group-header">
+            Website CMS
+        </div>
+
         <a class="sidebar-nav-link {{ request()->is('admin/cms*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarCmsCollapse" role="button" aria-expanded="{{ request()->is('admin/cms*') ? 'true' : 'false' }}" aria-controls="sidebarCmsCollapse">
-            <i class="bi bi-globe text-info nav-icon"></i>
+            <i class="bi bi-globe text-primary nav-icon"></i>
             <span>Website CMS</span>
             <i class="bi bi-chevron-right accordion-arrow"></i>
         </a>
 
         <div class="collapse sidebar-submenu {{ request()->is('admin/cms*') ? 'show' : '' }}" id="sidebarCmsCollapse">
-            <a class="sidebar-nav-link {{ request()->is('admin/cms/homepage*') ? 'active' : '' }}" href="{{ url('/admin/cms/homepage') }}">
-                <i class="bi bi-house-gear nav-icon"></i>
-                <span>Homepage CMS</span>
-            </a>
             <a class="sidebar-nav-link {{ request()->is('admin/cms/settings*') ? 'active' : '' }}" href="{{ url('/admin/cms/settings') }}">
                 <i class="bi bi-sliders nav-icon"></i>
                 <span>Website Settings</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/cms/homepage*') ? 'active' : '' }}" href="{{ url('/admin/cms/homepage') }}">
+                <i class="bi bi-house-gear nav-icon"></i>
+                <span>Homepage</span>
             </a>
             <a class="sidebar-nav-link {{ request()->is('admin/cms/banners*') ? 'active' : '' }}" href="{{ url('/admin/cms/banners') }}">
                 <i class="bi bi-images nav-icon"></i>
@@ -44,11 +115,11 @@
             </a>
             <a class="sidebar-nav-link {{ request()->is('admin/cms/loan-products*') ? 'active' : '' }}" href="{{ url('/admin/cms/loan-products') }}">
                 <i class="bi bi-box-seam nav-icon"></i>
-                <span>Loan Products</span>
+                <span>Loan Products CMS</span>
             </a>
             <a class="sidebar-nav-link {{ request()->is('admin/cms/savings-products*') ? 'active' : '' }}" href="{{ url('/admin/cms/savings-products') }}">
                 <i class="bi bi-piggy-bank nav-icon"></i>
-                <span>Savings Products</span>
+                <span>Savings Products CMS</span>
             </a>
             <a class="sidebar-nav-link {{ request()->is('admin/cms/interest-rates*') ? 'active' : '' }}" href="{{ url('/admin/cms/interest-rates') }}">
                 <i class="bi bi-percent nav-icon"></i>
@@ -96,94 +167,39 @@
             </a>
         </div>
 
-        <!-- 3. ERP MANAGEMENT ACCORDION GROUP -->
-        @php
-            $isErpActive = request()->is('admin/branch*') || request()->is('admin/customer*') || request()->is('admin/loan*') || request()->is('admin/savings*') || request()->is('admin/collection*') || request()->is('admin/inventory*') || request()->is('admin/billing*') || request()->is('admin/accounting*') || request()->is('admin/employee*') || request()->is('admin/reports*');
-        @endphp
-        <a class="sidebar-nav-link {{ $isErpActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarErpCollapse" role="button" aria-expanded="{{ $isErpActive ? 'true' : 'false' }}" aria-controls="sidebarErpCollapse">
-            <i class="bi bi-diagram-3 text-warning nav-icon"></i>
-            <span>ERP Management</span>
-            <i class="bi bi-chevron-right accordion-arrow"></i>
-        </a>
-
-        <div class="collapse sidebar-submenu {{ $isErpActive ? 'show' : '' }}" id="sidebarErpCollapse">
-            <a class="sidebar-nav-link {{ request()->is('admin/branch*') ? 'active' : '' }}" href="{{ url('/admin/branch') }}">
-                <i class="bi bi-building nav-icon"></i>
-                <span>Branch Management</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/customer*') ? 'active' : '' }}" href="{{ url('/admin/customer') }}">
-                <i class="bi bi-person-badge nav-icon"></i>
-                <span>Member Management</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/loan*') ? 'active' : '' }}" href="{{ url('/admin/loan') }}">
-                <i class="bi bi-cash-stack nav-icon"></i>
-                <span>Loan Management</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/savings*') ? 'active' : '' }}" href="{{ url('/admin/savings') }}">
-                <i class="bi bi-piggy-bank nav-icon"></i>
-                <span>Savings</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/collection*') ? 'active' : '' }}" href="{{ url('/admin/collection') }}">
-                <i class="bi bi-journal-check nav-icon"></i>
-                <span>Collection</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/inventory*') ? 'active' : '' }}" href="{{ url('/admin/inventory') }}">
-                <i class="bi bi-box-seam nav-icon"></i>
-                <span>Inventory</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/billing*') ? 'active' : '' }}" href="{{ url('/admin/billing') }}">
-                <i class="bi bi-receipt nav-icon"></i>
-                <span>Billing</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/accounting*') ? 'active' : '' }}" href="{{ url('/admin/accounting') }}">
-                <i class="bi bi-calculator nav-icon"></i>
-                <span>Accounting</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/employee*') ? 'active' : '' }}" href="{{ url('/admin/employee') }}">
-                <i class="bi bi-person-lines-fill nav-icon"></i>
-                <span>HRM / Employees</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/reports*') ? 'active' : '' }}" href="{{ url('/admin/reports') }}">
-                <i class="bi bi-bar-chart-line nav-icon"></i>
-                <span>Reports</span>
-            </a>
+        <!-- 4. SYSTEM (ALWAYS VISIBLE - REQUIREMENT #1) -->
+        <div class="sidebar-group-header">
+            System
         </div>
 
-        <!-- 4. SYSTEM ACCORDION GROUP -->
-        @php
-            $isSystemActive = request()->is('admin/system*');
-        @endphp
-        <a class="sidebar-nav-link {{ $isSystemActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarSystemCollapse" role="button" aria-expanded="{{ $isSystemActive ? 'true' : 'false' }}" aria-controls="sidebarSystemCollapse">
-            <i class="bi bi-shield-lock text-success nav-icon"></i>
-            <span>System</span>
-            <i class="bi bi-chevron-right accordion-arrow"></i>
+        <a class="sidebar-nav-link {{ request()->is('admin/system/users*') ? 'active' : '' }}" href="{{ url('/admin/system/users') }}">
+            <i class="bi bi-person-gear nav-icon text-primary"></i>
+            <span>Users</span>
         </a>
 
-        <div class="collapse sidebar-submenu {{ $isSystemActive ? 'show' : '' }}" id="sidebarSystemCollapse">
-            <a class="sidebar-nav-link {{ request()->is('admin/system/users*') ? 'active' : '' }}" href="{{ url('/admin/system/users') }}">
-                <i class="bi bi-person-gear nav-icon"></i>
-                <span>Users</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/system/roles*') ? 'active' : '' }}" href="{{ url('/admin/system/roles') }}">
-                <i class="bi bi-shield-check nav-icon"></i>
-                <span>Roles</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/system/permissions*') ? 'active' : '' }}" href="{{ url('/admin/system/permissions') }}">
-                <i class="bi bi-key nav-icon"></i>
-                <span>Permissions</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/system/audit-logs*') ? 'active' : '' }}" href="{{ url('/admin/system/audit-logs') }}">
-                <i class="bi bi-journal-text nav-icon"></i>
-                <span>Audit Logs</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/system/backup*') ? 'active' : '' }}" href="{{ url('/admin/system/backup') }}">
-                <i class="bi bi-database-up nav-icon"></i>
-                <span>Backup</span>
-            </a>
-            <a class="sidebar-nav-link {{ request()->is('admin/system/settings*') ? 'active' : '' }}" href="{{ url('/admin/system/settings') }}">
-                <i class="bi bi-gear nav-icon"></i>
-                <span>System Settings</span>
-            </a>
-        </div>
+        <a class="sidebar-nav-link {{ request()->is('admin/system/roles*') ? 'active' : '' }}" href="{{ url('/admin/system/roles') }}">
+            <i class="bi bi-shield-check nav-icon text-success"></i>
+            <span>Roles</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/system/permissions*') ? 'active' : '' }}" href="{{ url('/admin/system/permissions') }}">
+            <i class="bi bi-key nav-icon text-warning"></i>
+            <span>Permissions</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/system/audit-logs*') ? 'active' : '' }}" href="{{ url('/admin/system/audit-logs') }}">
+            <i class="bi bi-journal-text nav-icon text-info"></i>
+            <span>Audit Logs</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/system/backup*') ? 'active' : '' }}" href="{{ url('/admin/system/backup') }}">
+            <i class="bi bi-database-up nav-icon text-primary"></i>
+            <span>Backup</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/system/settings*') ? 'active' : '' }}" href="{{ url('/admin/system/settings') }}">
+            <i class="bi bi-gear nav-icon text-secondary"></i>
+            <span>Settings</span>
+        </a>
     </nav>
 </aside>

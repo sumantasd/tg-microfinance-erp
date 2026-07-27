@@ -20,13 +20,22 @@
 <body class="bg-dark min-vh-100 d-flex align-items-center justify-content-center py-5" style="background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0d6efd 100%);">
 
     <div class="container" style="max-width: 440px;">
-        <!-- Brand Header -->
+        <!-- Brand Header with Dynamic Logo -->
+        @php
+            $settings = \App\Models\WebsiteSetting::first();
+            $companyName = $settings->company_name ?? 'TG Microfinance';
+            $companyLogo = $settings->logo_url ?? null;
+        @endphp
         <div class="text-center mb-4">
             <a href="{{ url('/') }}" class="d-inline-flex align-items-center gap-2 text-decoration-none text-white">
-                <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center shadow-lg" style="width: 46px; height: 46px;">
-                    <i class="bi bi-bank2 fs-4"></i>
-                </div>
-                <span class="fs-4 fw-bold tracking-tight">TG Microfinance</span>
+                @if($companyLogo)
+                    <img src="{{ $companyLogo }}" alt="{{ $companyName }}" class="img-fluid" style="max-height: 48px; max-width: 180px; object-fit: contain;">
+                @else
+                    <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center shadow-lg" style="width: 46px; height: 46px;">
+                        <i class="bi bi-bank2 fs-4"></i>
+                    </div>
+                    <span class="fs-4 fw-bold tracking-tight text-white">{{ $companyName }}</span>
+                @endif
             </a>
             <span class="d-block small text-light opacity-75 mt-1">Enterprise Staff & Portal Security</span>
         </div>

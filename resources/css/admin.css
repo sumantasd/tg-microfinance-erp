@@ -1,35 +1,41 @@
-/* TG Microfinance ERP - Admin Panel Premium Theme & Layout Styles */
+/* TG Microfinance ERP - High-Density SaaS Admin Theme (Razorpay, Zoho Books & Stripe Inspired) */
 
 :root {
     --tg-sidebar-width: 270px;
     --tg-topbar-height: 64px;
-    --tg-sidebar-bg: #0b132b;
-    --tg-sidebar-border: #1c2541;
-    --tg-sidebar-color: #8d99ae;
-    --tg-sidebar-active-bg: linear-gradient(90deg, rgba(13, 110, 253, 0.18) 0%, rgba(13, 110, 253, 0.04) 100%);
-    --tg-sidebar-active-color: #38bdf8;
-    --tg-admin-bg: #f4f6f9;
+    --tg-sidebar-bg: #ffffff;
+    --tg-sidebar-border: #e2e8f0;
+    --tg-sidebar-color: #475569;
+    --tg-sidebar-active-bg: #eff6ff;
+    --tg-sidebar-active-color: #2563eb;
+    --tg-admin-bg: #f8fafc;
     --tg-card-bg: #ffffff;
     --tg-card-border: #e2e8f0;
-    --tg-font-primary: 'Inter', sans-serif;
+    --tg-card-radius: 0.875rem; /* 14px rounded cards for dense layout */
+    --tg-primary: #2563eb;
+    --tg-text-main: #0f172a;
+    --tg-font-primary: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
     --tg-font-heading: 'Outfit', sans-serif;
 }
 
 body.admin-body {
     background-color: var(--tg-admin-bg);
-    color: #1e293b;
+    color: var(--tg-text-main);
     font-family: var(--tg-font-primary);
     min-height: 100vh;
     margin: 0;
     overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, h4, h5, h6, .font-heading {
     font-family: var(--tg-font-heading);
+    letter-spacing: -0.02em;
+    color: var(--tg-text-main);
 }
 
 /* ==========================================================================
-   1. SIDEBAR STYLES (ENTERPRISE ERP READY)
+   1. SAAS SIDEBAR ARCHITECTURE (ERP MODULES ALWAYS VISIBLE)
    ========================================================================== */
 #admin-sidebar {
     width: var(--tg-sidebar-width);
@@ -42,7 +48,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     color: var(--tg-sidebar-color);
     overflow-y: auto;
     transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 4px 0 25px rgba(0, 0, 0, 0.12);
+    box-shadow: 2px 0 15px rgba(0, 0, 0, 0.03);
     border-right: 1px solid var(--tg-sidebar-border);
 }
 
@@ -51,7 +57,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 #admin-sidebar::-webkit-scrollbar-thumb {
-    background: #1c2541;
+    background: #cbd5e1;
     border-radius: 4px;
 }
 
@@ -62,37 +68,37 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     padding: 0 1.25rem;
     font-weight: 700;
     font-size: 1.15rem;
-    color: #ffffff;
+    color: var(--tg-text-main);
     border-bottom: 1px solid var(--tg-sidebar-border);
-    background-color: rgba(0, 0, 0, 0.15);
+    background-color: #ffffff;
 }
 
 .sidebar-group-header {
-    padding: 1.125rem 1.25rem 0.375rem;
-    font-size: 0.675rem;
+    padding: 1rem 1.25rem 0.25rem;
+    font-size: 0.65rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 1.2px;
-    color: #64748b;
-    border-bottom: 1px dashed rgba(255, 255, 255, 0.05);
-    margin-bottom: 0.25rem;
+    color: #94a3b8;
 }
 
 .sidebar-nav-link {
     display: flex;
     align-items: center;
-    padding: 0.625rem 1.25rem;
-    color: #94a3b8;
-    font-size: 0.875rem;
+    padding: 0.55rem 1.25rem;
+    color: var(--tg-sidebar-color);
+    font-size: 0.85rem;
     font-weight: 500;
     text-decoration: none;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
     border-left: 3px solid transparent;
+    border-radius: 0 0.5rem 0.5rem 0;
+    margin-right: 0.5rem;
     position: relative;
 }
 
 .sidebar-nav-link i.nav-icon {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     margin-right: 0.75rem;
     width: 22px;
     text-align: center;
@@ -100,24 +106,24 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .sidebar-nav-link:hover {
-    color: #ffffff;
-    background-color: rgba(255, 255, 255, 0.04);
+    color: #1e293b;
+    background-color: #f1f5f9;
 }
 
 .sidebar-nav-link:hover i.nav-icon {
     transform: translateX(2px);
-    color: #38bdf8;
+    color: var(--tg-primary);
 }
 
 .sidebar-nav-link.active {
     color: var(--tg-sidebar-active-color);
-    background: var(--tg-sidebar-active-bg);
-    border-left-color: #38bdf8;
+    background-color: var(--tg-sidebar-active-bg);
+    border-left-color: var(--tg-primary);
     font-weight: 600;
 }
 
 .sidebar-nav-link.active i.nav-icon {
-    color: #38bdf8;
+    color: var(--tg-primary);
 }
 
 .sidebar-nav-link .accordion-arrow {
@@ -131,17 +137,21 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .sidebar-submenu {
-    background-color: rgba(0, 0, 0, 0.25);
-    padding-left: 0.5rem;
+    background-color: #f8fafc;
+    padding-left: 0.25rem;
+    border-radius: 0.5rem;
+    margin: 0.25rem 0.5rem;
 }
 
 .sidebar-submenu .sidebar-nav-link {
-    padding: 0.5rem 1.25rem 0.5rem 2.5rem;
-    font-size: 0.825rem;
+    padding: 0.45rem 1rem 0.45rem 2.25rem;
+    font-size: 0.8125rem;
+    border-radius: 0.5rem;
+    margin-right: 0;
 }
 
 /* ==========================================================================
-   2. TOPBAR & MAIN CONTENT LAYOUT
+   2. TOPBAR HEADER & SAAS CANVAS
    ========================================================================== */
 #admin-content-wrapper {
     margin-left: var(--tg-sidebar-width);
@@ -154,7 +164,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 #admin-topbar {
     height: var(--tg-topbar-height);
     background-color: #ffffff;
-    border-bottom: 1px solid #e2e8f0;
+    border-bottom: 1px solid var(--tg-card-border);
     position: sticky;
     top: 0;
     z-index: 1030;
@@ -162,7 +172,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.03);
+    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
 }
 
 .topbar-search {
@@ -180,7 +190,7 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 
 .topbar-search .form-control:focus {
     background-color: #ffffff;
-    box-shadow: 0 0 0 3px rgba(13, 110, 253, 0.12);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
 }
 
 .topbar-search .search-icon {
@@ -193,49 +203,84 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 }
 
 .admin-main-body {
-    padding: 1.5rem;
+    padding: 1.25rem 1.5rem;
     flex-grow: 1;
 }
 
 /* ==========================================================================
-   3. ENTERPRISE KPI CARDS & UI COMPONENTS
+   3. HIGH-DENSITY SAAS CARDS & QUICK ACTIONS
    ========================================================================== */
+.tg-saas-card {
+    background-color: #ffffff;
+    border: 1px solid var(--tg-card-border);
+    border-radius: var(--tg-card-radius);
+    box-shadow: 0 2px 10px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.tg-saas-card:hover {
+    box-shadow: 0 8px 22px -4px rgba(0, 0, 0, 0.06);
+}
+
 .tg-kpi-card {
     background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.85rem;
-    padding: 1.25rem;
-    transition: all 0.25s ease;
+    border: 1px solid var(--tg-card-border);
+    border-radius: var(--tg-card-radius);
+    padding: 1.1rem;
+    box-shadow: 0 2px 10px -1px rgba(0, 0, 0, 0.03);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
     position: relative;
     overflow: hidden;
 }
 
 .tg-kpi-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08);
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.07);
 }
 
 .tg-kpi-icon {
-    width: 44px;
-    height: 44px;
+    width: 40px;
+    height: 40px;
     border-radius: 0.65rem;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 1.25rem;
+    font-size: 1.15rem;
     flex-shrink: 0;
+}
+
+.tg-quick-action-btn {
+    background-color: #ffffff;
+    border: 1px solid var(--tg-card-border);
+    border-radius: 0.75rem;
+    padding: 0.875rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    text-decoration: none;
+    color: var(--tg-text-main);
+    transition: all 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.tg-quick-action-btn:hover {
+    transform: translateY(-2px);
+    border-color: var(--tg-primary);
+    background-color: #eff6ff;
+    color: var(--tg-primary);
+    box-shadow: 0 6px 18px -3px rgba(37, 99, 235, 0.15);
 }
 
 .tg-chart-card {
     background-color: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 0.85rem;
+    border: 1px solid var(--tg-card-border);
+    border-radius: var(--tg-card-radius);
     padding: 1.25rem;
-    box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.02);
+    box-shadow: 0 2px 10px -1px rgba(0, 0, 0, 0.03);
 }
 
 .chart-placeholder-box {
-    height: 220px;
+    min-height: 200px;
     background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
     border: 2px dashed #cbd5e1;
     border-radius: 0.65rem;
@@ -243,11 +288,12 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    padding: 1rem;
 }
 
 /* Data Table Clean Upgrades */
 .table-responsive {
-    border-radius: 0.75rem;
+    border-radius: var(--tg-card-radius);
 }
 
 .tg-data-table {
@@ -257,18 +303,18 @@ h1, h2, h3, h4, h5, h6, .font-heading {
 .tg-data-table th {
     background-color: #f8fafc;
     color: #475569;
-    font-size: 0.75rem;
+    font-size: 0.725rem;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    padding: 0.875rem 1rem;
+    padding: 0.75rem 1rem;
     border-bottom: 2px solid #e2e8f0;
 }
 
 .tg-data-table td {
-    padding: 0.875rem 1rem;
+    padding: 0.75rem 1rem;
     vertical-align: middle;
-    font-size: 0.875rem;
+    font-size: 0.85rem;
     border-bottom: 1px solid #f1f5f9;
 }
 
