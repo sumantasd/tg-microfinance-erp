@@ -25,7 +25,7 @@
                                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-1.5 rounded-pill fw-semibold mb-3 shadow-sm d-inline-flex align-items-center gap-1 text-wrap">
                                             <i class="bi bi-shield-check me-1"></i> {{ $settings->company_name ?? 'TG Microfinance' }}
                                         </span>
-                                        <h1 class="hero-title display-4 mb-3">{{ $banner->title }}</h1>
+                                        <h1 class="hero-title display-4 mb-3 text-white">{{ $banner->title }}</h1>
                                         @if($banner->subtitle)
                                             <p class="lead mb-4 text-light opacity-90">
                                                 {{ $banner->subtitle }}
@@ -59,7 +59,7 @@
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-1.5 rounded-pill fw-semibold mb-3 shadow-sm d-inline-flex align-items-center gap-1 text-wrap">
                             <i class="bi bi-shield-check me-1"></i> {{ $settings->company_name ?? 'TG Microfinance' }}
                         </span>
-                        <h1 class="hero-title display-4 mb-3">{{ $banner->title }}</h1>
+                        <h1 class="hero-title display-4 mb-3 text-white">{{ $banner->title }}</h1>
                         @if($banner->subtitle)
                             <p class="lead mb-4 text-light opacity-90">
                                 {{ $banner->subtitle }}
@@ -87,7 +87,7 @@
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-1.5 rounded-pill fw-semibold mb-3 shadow-sm d-inline-flex align-items-center gap-1 text-wrap">
                         <i class="bi bi-shield-check me-1"></i> Certified Enterprise Microfinance Institution
                     </span>
-                    <h1 class="hero-title display-4 mb-3">Empowering Small Businesses & Micro-Entrepreneurs</h1>
+                    <h1 class="hero-title display-4 mb-3 text-white">Empowering Small Businesses & Micro-Entrepreneurs</h1>
                     <p class="lead mb-4 text-light opacity-90">
                         Fast, accessible credit solutions, flexible savings schemes, and digital branch operations designed for community growth and financial independence.
                     </p>
