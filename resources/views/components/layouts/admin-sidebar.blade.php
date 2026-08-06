@@ -35,6 +35,11 @@
             ERP Management
         </div>
 
+        <a class="sidebar-nav-link {{ request()->is('admin/company*') ? 'active' : '' }}" href="{{ url('/admin/company') }}">
+            <i class="bi bi-buildings nav-icon text-primary"></i>
+            <span>Company Profile</span>
+        </a>
+
         <a class="sidebar-nav-link {{ request()->is('admin/branch*') ? 'active' : '' }}" href="{{ url('/admin/branch') }}">
             <i class="bi bi-building nav-icon text-warning"></i>
             <span>Branch Management</span>

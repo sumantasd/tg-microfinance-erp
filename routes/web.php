@@ -18,6 +18,8 @@ use App\Http\Controllers\Admin\Cms\SeoSettingController;
 use App\Http\Controllers\Admin\Cms\TeamMemberController;
 use App\Http\Controllers\Admin\Cms\WebsiteSettingController;
 use App\Http\Controllers\Admin\Cms\WhyChooseUsController;
+use App\Http\Controllers\Admin\BranchController;
+use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\System\PermissionController;
 use App\Http\Controllers\Admin\System\RoleController;
@@ -141,9 +143,26 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::get('/backup', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Database Backup', 'moduleSlug' => 'system/backup']); });
     });
 
-    // ERP Core Module Placeholders
-    Route::get('/company', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Company Management', 'moduleSlug' => 'company']); });
-    Route::get('/branch', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Branch Management', 'moduleSlug' => 'branch']); });
+    // ERP Core Modules - Real Functional Company & Branch Routes
+    Route::get('/company', [CompanyController::class, 'index'])->name('admin.company.index');
+    Route::get('/company/create', [CompanyController::class, 'create'])->name('admin.company.create');
+    Route::post('/company', [CompanyController::class, 'store'])->name('admin.company.store');
+    Route::get('/company/{company}', [CompanyController::class, 'show'])->name('admin.company.show');
+    Route::get('/company/{company}/edit', [CompanyController::class, 'edit'])->name('admin.company.edit');
+    Route::put('/company/{company}', [CompanyController::class, 'update'])->name('admin.company.update');
+    Route::patch('/company/{company}/toggle-status', [CompanyController::class, 'toggleStatus'])->name('admin.company.toggle-status');
+    Route::delete('/company/{company}', [CompanyController::class, 'destroy'])->name('admin.company.destroy');
+    Route::post('/company/{id}/restore', [CompanyController::class, 'restore'])->name('admin.company.restore');
+
+    Route::get('/branch', [BranchController::class, 'index'])->name('admin.branch.index');
+    Route::get('/branch/create', [BranchController::class, 'create'])->name('admin.branch.create');
+    Route::post('/branch', [BranchController::class, 'store'])->name('admin.branch.store');
+    Route::get('/branch/{branch}', [BranchController::class, 'show'])->name('admin.branch.show');
+    Route::get('/branch/{branch}/edit', [BranchController::class, 'edit'])->name('admin.branch.edit');
+    Route::put('/branch/{branch}', [BranchController::class, 'update'])->name('admin.branch.update');
+    Route::patch('/branch/{branch}/toggle-status', [BranchController::class, 'toggleStatus'])->name('admin.branch.toggle-status');
+    Route::delete('/branch/{branch}', [BranchController::class, 'destroy'])->name('admin.branch.destroy');
+    Route::post('/branch/{id}/restore', [BranchController::class, 'restore'])->name('admin.branch.restore');
     Route::get('/employee', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Employee Management', 'moduleSlug' => 'employee']); });
     Route::get('/customer', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Member Management', 'moduleSlug' => 'customer']); });
     Route::get('/loan', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Loan Management', 'moduleSlug' => 'loan']); });

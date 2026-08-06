@@ -35,12 +35,32 @@ class RbacSeeder extends Seeder
             'permissions.view',
             'permissions.assign',
 
-            // ERP Modules
+            // Company Management
             'company.view',
+            'company.create',
+            'company.edit',
+            'company.delete',
+            'company.restore',
+            'company.toggle_status',
+
+            // Branch Management
             'branch.view',
+            'branch.create',
+            'branch.edit',
+            'branch.delete',
+            'branch.restore',
+            'branch.toggle_status',
+
+            // ERP Modules
             'customer.view',
+            'customer.create',
+            'customer.edit',
+            'customer.delete',
             'loan.view',
+            'loan.create',
+            'loan.edit',
             'loan.approve',
+            'loan.delete',
             'savings.view',
             'collection.view',
             'accounting.view',
@@ -55,10 +75,11 @@ class RbacSeeder extends Seeder
             Permission::firstOrCreate(['name' => $permissionName, 'guard_name' => 'web']);
         }
 
-        // 8 Default Roles
+        // 9 Default Roles
         $roles = [
             'Super Admin',
             'Admin',
+            'Company Admin',
             'Branch Manager',
             'Accountant',
             'Loan Officer',
@@ -78,11 +99,45 @@ class RbacSeeder extends Seeder
         $adminRole = Role::findByName('Admin', 'web');
         $adminRole->syncPermissions(Permission::all());
 
-        // Assign Specific Permissions to Branch Manager
+        // Company Admin permissions (View, Create, Edit, Toggle Status; No permanent delete or restore)
+        $companyAdminRole = Role::findByName('Company Admin', 'web');
+        $companyAdminRole->syncPermissions([
+            'company.view',
+            'company.create',
+            'company.edit',
+            'company.toggle_status',
+            'branch.view',
+            'branch.create',
+            'branch.edit',
+            'branch.toggle_status',
+            'customer.view',
+            'customer.create',
+            'customer.edit',
+            'loan.view',
+            'loan.create',
+            'loan.edit',
+            'loan.approve',
+            'savings.view',
+            'collection.view',
+            'accounting.view',
+            'reports.view',
+            'settings.manage',
+        ]);
+
+        // Branch Manager permissions (Strict View Only for assigned branch; No create, edit, delete, restore, status toggle)
         $branchManagerRole = Role::findByName('Branch Manager', 'web');
         $branchManagerRole->syncPermissions([
-            'company.view', 'branch.view', 'customer.view', 'loan.view', 'loan.approve',
-            'savings.view', 'collection.view', 'reports.view'
+            'company.view',
+            'branch.view',
+            'customer.view',
+            'customer.create',
+            'customer.edit',
+            'loan.view',
+            'loan.create',
+            'loan.approve',
+            'savings.view',
+            'collection.view',
+            'reports.view',
         ]);
     }
 }
