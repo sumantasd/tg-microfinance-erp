@@ -7,9 +7,28 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class CompanyRepository implements CompanyRepositoryInterface
 {
+    /**
+     * Apply strict multi-tenant isolation based on authenticated user context.
+     */
+    protected function applyCompanyScope($query)
+    {
+        $user = auth()->user();
+
+        if ($user && !$user->isSuperAdmin()) {
+            if ($user->company_id) {
+                $query->where('id', $user->company_id);
+            } else {
+                $query->whereRaw('1 = 0');
+            }
+        }
+
+        return $query;
+    }
+
     public function getPaginatedCompanies(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
         $query = Company::withCount(['branches', 'users']);
+        $query = $this->applyCompanyScope($query);
 
         if (!empty($filters['status']) && $filters['status'] === 'trashed') {
             $query->onlyTrashed();
@@ -33,12 +52,14 @@ class CompanyRepository implements CompanyRepositoryInterface
 
     public function findById(int $id): ?Company
     {
-        return Company::with(['branches', 'creator', 'updater'])->find($id);
+        $query = Company::with(['branches', 'creator', 'updater']);
+        return $this->applyCompanyScope($query)->find($id);
     }
 
     public function findWithTrashed(int $id): ?Company
     {
-        return Company::withTrashed()->with(['branches', 'creator', 'updater'])->find($id);
+        $query = Company::withTrashed()->with(['branches', 'creator', 'updater']);
+        return $this->applyCompanyScope($query)->find($id);
     }
 
     public function create(array $data): Company

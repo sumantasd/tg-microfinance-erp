@@ -137,8 +137,13 @@
         @endforelse
     </x-ui.data-table>
 
-    <div class="p-3 border-top">
-        {{ $companies->links() }}
+    <div class="px-3 py-3 border-top bg-white d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <div class="small text-muted">
+            Showing <span class="fw-semibold text-dark">{{ $companies->firstItem() ?? 0 }}</span> to <span class="fw-semibold text-dark">{{ $companies->lastItem() ?? 0 }}</span> of <span class="fw-semibold text-dark">{{ $companies->total() }}</span> company profiles
+        </div>
+        <div class="d-flex align-items-center">
+            {{ $companies->links() }}
+        </div>
     </div>
 </x-ui.card>
 @endsection

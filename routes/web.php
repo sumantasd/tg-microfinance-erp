@@ -20,6 +20,9 @@ use App\Http\Controllers\Admin\Cms\WebsiteSettingController;
 use App\Http\Controllers\Admin\Cms\WhyChooseUsController;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\DepartmentController;
+use App\Http\Controllers\Admin\DesignationController;
+use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\System\PermissionController;
 use App\Http\Controllers\Admin\System\RoleController;
@@ -163,7 +166,60 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     Route::patch('/branch/{branch}/toggle-status', [BranchController::class, 'toggleStatus'])->name('admin.branch.toggle-status');
     Route::delete('/branch/{branch}', [BranchController::class, 'destroy'])->name('admin.branch.destroy');
     Route::post('/branch/{id}/restore', [BranchController::class, 'restore'])->name('admin.branch.restore');
-    Route::get('/employee', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Employee Management', 'moduleSlug' => 'employee']); });
+
+    // Phase 3: HRM Foundation Routes
+    Route::get('/department', [DepartmentController::class, 'index'])->name('admin.department.index');
+    Route::get('/department/create', [DepartmentController::class, 'create'])->name('admin.department.create');
+    Route::post('/department', [DepartmentController::class, 'store'])->name('admin.department.store');
+    Route::get('/department/{department}', [DepartmentController::class, 'show'])->name('admin.department.show');
+    Route::get('/department/{department}/edit', [DepartmentController::class, 'edit'])->name('admin.department.edit');
+    Route::put('/department/{department}', [DepartmentController::class, 'update'])->name('admin.department.update');
+    Route::patch('/department/{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->name('admin.department.toggle-status');
+    Route::delete('/department/{department}', [DepartmentController::class, 'destroy'])->name('admin.department.destroy');
+    Route::post('/department/{id}/restore', [DepartmentController::class, 'restore'])->name('admin.department.restore');
+
+    Route::get('/designation', [DesignationController::class, 'index'])->name('admin.designation.index');
+    Route::get('/designation/create', [DesignationController::class, 'create'])->name('admin.designation.create');
+    Route::post('/designation', [DesignationController::class, 'store'])->name('admin.designation.store');
+    Route::get('/designation/{designation}', [DesignationController::class, 'show'])->name('admin.designation.show');
+    Route::get('/designation/{designation}/edit', [DesignationController::class, 'edit'])->name('admin.designation.edit');
+    Route::put('/designation/{designation}', [DesignationController::class, 'update'])->name('admin.designation.update');
+    Route::patch('/designation/{designation}/toggle-status', [DesignationController::class, 'toggleStatus'])->name('admin.designation.toggle-status');
+    Route::delete('/designation/{designation}', [DesignationController::class, 'destroy'])->name('admin.designation.destroy');
+    Route::post('/designation/{id}/restore', [DesignationController::class, 'restore'])->name('admin.designation.restore');
+
+    Route::get('/employee', [EmployeeController::class, 'index'])->name('admin.employee.index');
+    Route::get('/employee/create', [EmployeeController::class, 'create'])->name('admin.employee.create');
+    Route::post('/employee', [EmployeeController::class, 'store'])->name('admin.employee.store');
+    Route::get('/employee/{employee}', [EmployeeController::class, 'show'])->name('admin.employee.show');
+    Route::get('/employee/{employee}/edit', [EmployeeController::class, 'edit'])->name('admin.employee.edit');
+    Route::put('/employee/{employee}', [EmployeeController::class, 'update'])->name('admin.employee.update');
+    Route::patch('/employee/{employee}/toggle-status', [EmployeeController::class, 'toggleStatus'])->name('admin.employee.toggle-status');
+    Route::delete('/employee/{employee}', [EmployeeController::class, 'destroy'])->name('admin.employee.destroy');
+    Route::post('/employee/{id}/restore', [EmployeeController::class, 'restore'])->name('admin.employee.restore');
+    Route::delete('/employee/document/{document}', [EmployeeController::class, 'destroyDocument'])->name('admin.employee.document.destroy');
+
+    // Essential HRM Modules Routes
+    Route::get('/hrm/attendance', [\App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('admin.hrm.attendance.index');
+    Route::post('/hrm/attendance', [\App\Http\Controllers\Admin\AttendanceController::class, 'store'])->name('admin.hrm.attendance.store');
+
+    Route::get('/hrm/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('admin.hrm.leave.index');
+    Route::post('/hrm/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'store'])->name('admin.hrm.leave.store');
+    Route::post('/hrm/leave/{leave}/approve', [\App\Http\Controllers\Admin\LeaveController::class, 'approve'])->name('admin.hrm.leave.approve');
+    Route::post('/hrm/leave/{leave}/reject', [\App\Http\Controllers\Admin\LeaveController::class, 'reject'])->name('admin.hrm.leave.reject');
+
+    Route::get('/hrm/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('admin.hrm.payroll.index');
+    Route::post('/hrm/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'store'])->name('admin.hrm.payroll.store');
+    Route::get('/hrm/payroll/{id}', [\App\Http\Controllers\Admin\PayrollController::class, 'show'])->name('admin.hrm.payroll.show');
+    Route::post('/hrm/payroll/{id}/disburse', [\App\Http\Controllers\Admin\PayrollController::class, 'disburse'])->name('admin.hrm.payroll.disburse');
+    Route::get('/hrm/payroll/slip/{uuid}', [\App\Http\Controllers\Admin\PayrollController::class, 'salarySlip'])->name('admin.hrm.payroll.slip');
+
+    Route::get('/hrm/letters', [\App\Http\Controllers\Admin\HrLetterController::class, 'index'])->name('admin.hrm.letters.index');
+    Route::get('/hrm/letters/{employee}/generate', [\App\Http\Controllers\Admin\HrLetterController::class, 'generate'])->name('admin.hrm.letters.generate');
+    Route::get('/hrm/letters/{employee}/id-card', [\App\Http\Controllers\Admin\HrLetterController::class, 'idCard'])->name('admin.hrm.letters.id-card');
+
+    Route::get('/hrm/reports', [\App\Http\Controllers\Admin\HrReportController::class, 'index'])->name('admin.hrm.reports.index');
+
     Route::get('/customer', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Member Management', 'moduleSlug' => 'customer']); });
     Route::get('/loan', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Loan Management', 'moduleSlug' => 'loan']); });
     Route::get('/savings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Savings Accounts', 'moduleSlug' => 'savings']); });

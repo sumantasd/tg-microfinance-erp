@@ -7,12 +7,13 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class BranchRepository implements BranchRepositoryInterface
 {
-    public function getPaginatedBranches(array $filters = [], int $perPage = 10): LengthAwarePaginator
+    /**
+     * Apply strict multi-tenant and branch-level data isolation based on role and context.
+     */
+    protected function applyBranchScope($query)
     {
-        $query = Branch::with(['company', 'manager'])->withCount('users');
         $user = auth()->user();
 
-        // Enforce strict data isolation for non-Super Admin roles
         if ($user && !$user->isSuperAdmin()) {
             if ($user->hasRole('Branch Manager')) {
                 // Branch Manager: Query ONLY assigned branch or managed branch
@@ -25,7 +26,6 @@ class BranchRepository implements BranchRepositoryInterface
                     $query->where('manager_id', $userId);
                 }
 
-                // If user is a Branch Manager but has neither branch_id nor managed branch, return 0 records
                 if (!$assignedBranchId && !Branch::where('manager_id', $userId)->exists()) {
                     $query->whereRaw('1 = 0');
                 }
@@ -46,8 +46,18 @@ class BranchRepository implements BranchRepositoryInterface
                     $query->whereRaw('1 = 0');
                 }
             }
-        } elseif (!empty($filters['company_id'])) {
-            // Super Admin optional company filter
+        }
+
+        return $query;
+    }
+
+    public function getPaginatedBranches(array $filters = [], int $perPage = 10): LengthAwarePaginator
+    {
+        $query = Branch::with(['company', 'manager'])->withCount('users');
+        $query = $this->applyBranchScope($query);
+
+        $user = auth()->user();
+        if ($user && $user->isSuperAdmin() && !empty($filters['company_id'])) {
             $query->where('company_id', $filters['company_id']);
         }
 
@@ -73,12 +83,14 @@ class BranchRepository implements BranchRepositoryInterface
 
     public function findById(int $id): ?Branch
     {
-        return Branch::with(['company', 'manager', 'creator', 'updater'])->find($id);
+        $query = Branch::with(['company', 'manager', 'creator', 'updater']);
+        return $this->applyBranchScope($query)->find($id);
     }
 
     public function findWithTrashed(int $id): ?Branch
     {
-        return Branch::withTrashed()->with(['company', 'manager', 'creator', 'updater'])->find($id);
+        $query = Branch::withTrashed()->with(['company', 'manager', 'creator', 'updater']);
+        return $this->applyBranchScope($query)->find($id);
     }
 
     public function create(array $data): Branch

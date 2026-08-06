@@ -85,10 +85,46 @@
             <span>Reports</span>
         </a>
 
-        <a class="sidebar-nav-link {{ request()->is('admin/employee*') ? 'active' : '' }}" href="{{ url('/admin/employee') }}">
-            <i class="bi bi-person-lines-fill nav-icon text-info"></i>
-            <span>HRM</span>
+        <a class="sidebar-nav-link {{ request()->is('admin/employee*') || request()->is('admin/department*') || request()->is('admin/designation*') || request()->is('admin/hrm*') ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarHrmCollapse" role="button" aria-expanded="{{ request()->is('admin/employee*') || request()->is('admin/department*') || request()->is('admin/designation*') || request()->is('admin/hrm*') ? 'true' : 'false' }}" aria-controls="sidebarHrmCollapse">
+            <i class="bi bi-people nav-icon text-info"></i>
+            <span>Enterprise HRM</span>
+            <i class="bi bi-chevron-right accordion-arrow"></i>
         </a>
+
+        <div class="collapse sidebar-submenu {{ request()->is('admin/employee*') || request()->is('admin/department*') || request()->is('admin/designation*') || request()->is('admin/hrm*') ? 'show' : '' }}" id="sidebarHrmCollapse">
+            <a class="sidebar-nav-link {{ request()->is('admin/employee*') ? 'active' : '' }}" href="{{ route('admin.employee.index') }}">
+                <i class="bi bi-person-lines-fill nav-icon"></i>
+                <span>Employees</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/department*') ? 'active' : '' }}" href="{{ route('admin.department.index') }}">
+                <i class="bi bi-diagram-2 nav-icon"></i>
+                <span>Departments</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/designation*') ? 'active' : '' }}" href="{{ route('admin.designation.index') }}">
+                <i class="bi bi-person-workspace nav-icon"></i>
+                <span>Designations</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/hrm/attendance*') ? 'active' : '' }}" href="{{ route('admin.hrm.attendance.index') }}">
+                <i class="bi bi-calendar-check nav-icon"></i>
+                <span>Attendance</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/hrm/leave*') ? 'active' : '' }}" href="{{ route('admin.hrm.leave.index') }}">
+                <i class="bi bi-calendar-minus nav-icon"></i>
+                <span>Leave Management</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/hrm/payroll*') ? 'active' : '' }}" href="{{ route('admin.hrm.payroll.index') }}">
+                <i class="bi bi-cash-stack nav-icon"></i>
+                <span>Payroll & Slips</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/hrm/letters*') ? 'active' : '' }}" href="{{ route('admin.hrm.letters.index') }}">
+                <i class="bi bi-card-heading nav-icon"></i>
+                <span>HR Letters & ID Cards</span>
+            </a>
+            <a class="sidebar-nav-link {{ request()->is('admin/hrm/reports*') ? 'active' : '' }}" href="{{ route('admin.hrm.reports.index') }}">
+                <i class="bi bi-file-earmark-bar-graph nav-icon"></i>
+                <span>HR Reports</span>
+            </a>
+        </div>
 
         <!-- 3. WEBSITE CMS (ONLY COLLAPSIBLE MENU - REQUIREMENT #1) -->
         <div class="sidebar-group-header">

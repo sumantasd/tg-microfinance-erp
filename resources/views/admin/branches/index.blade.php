@@ -152,8 +152,13 @@
         @endforelse
     </x-ui.data-table>
 
-    <div class="p-3 border-top">
-        {{ $branches->links() }}
+    <div class="px-3 py-3 border-top bg-white d-flex flex-column flex-sm-row justify-content-between align-items-center gap-2">
+        <div class="small text-muted">
+            Showing <span class="fw-semibold text-dark">{{ $branches->firstItem() ?? 0 }}</span> to <span class="fw-semibold text-dark">{{ $branches->lastItem() ?? 0 }}</span> of <span class="fw-semibold text-dark">{{ $branches->total() }}</span> branch offices
+        </div>
+        <div class="d-flex align-items-center">
+            {{ $branches->links() }}
+        </div>
     </div>
 </x-ui.card>
 @endsection
