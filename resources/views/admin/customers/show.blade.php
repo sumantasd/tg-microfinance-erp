@@ -295,10 +295,59 @@
                                     <span class="badge bg-warning-subtle text-dark border border-warning-subtle small fw-bold">{{ $g->relationship }}</span>
                                 </div>
                                 @can('customer.manage_guarantor')
-                                    <form action="{{ route('admin.customer.guarantor.destroy', $g->id) }}" method="POST" onsubmit="return confirm('Remove guarantor?');">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Remove Guarantor"><i class="bi bi-trash fs-6"></i></button>
-                                    </form>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-sm btn-link text-warning p-0" data-bs-toggle="modal" data-bs-target="#editGuarantorModal{{ $g->id }}" title="Edit Guarantor"><i class="bi bi-pencil fs-6"></i></button>
+                                        <form action="{{ route('admin.customer.guarantor.destroy', $g->id) }}" method="POST" onsubmit="return confirm('Remove guarantor?');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Remove Guarantor"><i class="bi bi-trash fs-6"></i></button>
+                                        </form>
+                                    </div>
+
+                                    <!-- Edit Guarantor Modal -->
+                                    <div class="modal fade text-start" id="editGuarantorModal{{ $g->id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form action="{{ route('admin.customer.guarantor.store', $customer->id) }}" method="POST" enctype="multipart/form-data">
+                                                    @csrf
+                                                    <input type="hidden" name="id" value="{{ $g->id }}">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title fw-bold">Edit Guarantor</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body row g-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Full Name <span class="text-danger">*</span></label>
+                                                            <input type="text" name="full_name" value="{{ $g->full_name }}" class="form-control" required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Relationship <span class="text-danger">*</span></label>
+                                                            <input type="text" name="relationship" value="{{ $g->relationship }}" class="form-control" required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Mobile <span class="text-danger">*</span></label>
+                                                            <input type="text" name="mobile" value="{{ $g->mobile }}" class="form-control" required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Occupation</label>
+                                                            <input type="text" name="occupation" value="{{ $g->occupation }}" class="form-control">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Monthly Income (₹)</label>
+                                                            <input type="number" step="0.01" name="monthly_income" value="{{ $g->monthly_income }}" class="form-control">
+                                                        </div>
+                                                        <div class="col-md-12">
+                                                            <label class="form-label fw-bold">Residential Address <span class="text-danger">*</span></label>
+                                                            <textarea name="address" class="form-control" rows="2" required>{{ $g->address }}</textarea>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-warning fw-bold">Update Guarantor</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 @endcan
                             </div>
                             <hr class="my-2">
@@ -339,10 +388,51 @@
                                     <span class="badge bg-danger-subtle text-danger border border-danger-subtle small fw-bold">{{ $nom->relationship }} ({{ $nom->share_percentage }}% Share)</span>
                                 </div>
                                 @can('customer.manage_nominee')
-                                    <form action="{{ route('admin.customer.nominee.destroy', $nom->id) }}" method="POST" onsubmit="return confirm('Remove nominee?');">
-                                        @csrf @method('DELETE')
-                                        <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Remove Nominee"><i class="bi bi-trash fs-6"></i></button>
-                                    </form>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <button class="btn btn-sm btn-link text-warning p-0" data-bs-toggle="modal" data-bs-target="#editNomineeModal{{ $nom->id }}" title="Edit Nominee"><i class="bi bi-pencil fs-6"></i></button>
+                                        <form action="{{ route('admin.customer.nominee.destroy', $nom->id) }}" method="POST" onsubmit="return confirm('Remove nominee?');">
+                                            @csrf @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-link text-danger p-0" title="Remove Nominee"><i class="bi bi-trash fs-6"></i></button>
+                                        </form>
+                                    </div>
+
+                                    <!-- Edit Nominee Modal -->
+                                    <div class="modal fade text-start" id="editNomineeModal{{ $nom->id }}" tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <form action="{{ route('admin.customer.nominee.store', $customer->id) }}" method="POST">
+                                                    @csrf
+                                                    <input type="hidden" name="id" value="{{ $nom->id }}">
+                                                    <div class="modal-header">
+                                                        <h5 class="modal-title fw-bold">Edit Nominee</h5>
+                                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                    </div>
+                                                    <div class="modal-body row g-3">
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Nominee Name <span class="text-danger">*</span></label>
+                                                            <input type="text" name="nominee_name" value="{{ $nom->nominee_name }}" class="form-control" required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Relationship <span class="text-danger">*</span></label>
+                                                            <input type="text" name="relationship" value="{{ $nom->relationship }}" class="form-control" required>
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Date of Birth</label>
+                                                            <input type="date" name="dob" value="{{ $nom->dob ? $nom->dob->format('Y-m-d') : '' }}" class="form-control">
+                                                        </div>
+                                                        <div class="col-md-6">
+                                                            <label class="form-label fw-bold">Share Percentage (%) <span class="text-danger">*</span></label>
+                                                            <input type="number" step="0.01" name="share_percentage" value="{{ $nom->share_percentage }}" class="form-control" required>
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-light border" data-bs-dismiss="modal">Cancel</button>
+                                                        <button type="submit" class="btn btn-danger text-white fw-bold">Update Nominee</button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
                                 @endcan
                             </div>
                             <hr class="my-2">

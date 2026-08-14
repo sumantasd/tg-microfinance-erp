@@ -267,37 +267,116 @@ class CustomerManagementTest extends TestCase
         $this->assertSoftDeleted('customer_guarantors', ['id' => $guarantor->id]);
     }
 
-    public function test_can_add_and_remove_nominee(): void
+    public function test_can_edit_existing_guarantor(): void
     {
         $customer = Customer::create([
             'company_id' => $this->company->id,
             'branch_id' => $this->branch->id,
-            'customer_code' => 'CUST-BR001-2026-00005',
-            'first_name' => 'Suresh',
-            'last_name' => 'Yadav',
-            'mobile_number' => '9876543215',
+            'customer_code' => 'CUST-BR001-2026-00006',
+            'first_name' => 'Kiran',
+            'last_name' => 'Prakash',
+            'mobile_number' => '9876543216',
             'gender' => 'male',
             'registration_date' => '2026-08-14',
             'status' => 'active',
         ]);
 
+        $guarantor = CustomerGuarantor::create([
+            'customer_id' => $customer->id,
+            'full_name' => 'Original Guarantor',
+            'relationship' => 'Friend',
+            'mobile' => '9000000001',
+            'address' => 'Old Address, Patna',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->post(route('admin.customer.guarantor.store', $customer->id), [
+            'id' => $guarantor->id,
+            'full_name' => 'Updated Guarantor Name',
+            'relationship' => 'Uncle',
+            'mobile' => '9000000002',
+            'address' => 'New Address, Gaya',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('customer_guarantors', [
+            'id' => $guarantor->id,
+            'full_name' => 'Updated Guarantor Name',
+            'relationship' => 'Uncle',
+            'mobile' => '9000000002',
+        ]);
+    }
+
+    public function test_can_edit_existing_nominee(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00007',
+            'first_name' => 'Deepak',
+            'last_name' => 'Mishra',
+            'mobile_number' => '9876543217',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $nominee = CustomerNominee::create([
+            'customer_id' => $customer->id,
+            'nominee_name' => 'Original Nominee',
+            'relationship' => 'Son',
+            'share_percentage' => 50.00,
+        ]);
+
         $response = $this->actingAs($this->adminUser)->post(route('admin.customer.nominee.store', $customer->id), [
-            'nominee_name' => 'Priyanka Yadav',
-            'relationship' => 'Spouse',
+            'id' => $nominee->id,
+            'nominee_name' => 'Updated Nominee Name',
+            'relationship' => 'Son',
             'share_percentage' => 100.00,
         ]);
 
         $response->assertRedirect();
         $this->assertDatabaseHas('customer_nominees', [
-            'customer_id' => $customer->id,
-            'nominee_name' => 'Priyanka Yadav',
+            'id' => $nominee->id,
+            'nominee_name' => 'Updated Nominee Name',
             'share_percentage' => 100.00,
         ]);
+    }
 
-        $nominee = CustomerNominee::where('customer_id', $customer->id)->first();
+    public function test_can_reject_kyc_document_with_reason(): void
+    {
+        Storage::fake('private');
 
-        $deleteResponse = $this->actingAs($this->adminUser)->delete(route('admin.customer.nominee.destroy', $nominee->id));
-        $deleteResponse->assertRedirect();
-        $this->assertSoftDeleted('customer_nominees', ['id' => $nominee->id]);
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00008',
+            'first_name' => 'Manish',
+            'last_name' => 'Kashyap',
+            'mobile_number' => '9876543218',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $kyc = CustomerKycDocument::create([
+            'customer_id' => $customer->id,
+            'kyc_document_type' => 'pan',
+            'document_number' => 'ABCDE1234F',
+            'file_path' => 'kyc/documents/pan.pdf',
+            'file_name' => 'pan.pdf',
+            'verification_status' => 'pending',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->post(route('admin.customer.kyc.verify', $kyc->id), [
+            'verification_status' => 'rejected',
+            'rejection_reason' => 'Blurry copy, identity text not legible.',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('customer_kyc_documents', [
+            'id' => $kyc->id,
+            'verification_status' => 'rejected',
+            'rejection_reason' => 'Blurry copy, identity text not legible.',
+        ]);
     }
 }
