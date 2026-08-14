@@ -91,6 +91,16 @@ class Customer extends Model
         return $this->hasMany(CustomerNominee::class);
     }
 
+    public function groupMemberships(): HasMany
+    {
+        return $this->hasMany(CustomerGroupMember::class, 'customer_id');
+    }
+
+    public function activeGroupMembership(): HasOne
+    {
+        return $this->hasOne(CustomerGroupMember::class, 'customer_id')->where('status', 'active')->latestOfMany();
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');

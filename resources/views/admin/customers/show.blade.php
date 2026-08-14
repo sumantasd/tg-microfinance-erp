@@ -177,6 +177,45 @@
                     @endif
                 </x-ui.card>
             </div>
+
+            <!-- Group Membership Card -->
+            <div class="col-12 mt-3">
+                <x-ui.card class="p-4 shadow-sm">
+                    <h5 class="fw-bold text-dark mb-3 border-bottom pb-2">
+                        <i class="bi bi-people-fill text-info me-2"></i>Group Membership (Microfinance JLG / SHG)
+                    </h5>
+                    @if($customer->activeGroupMembership && $customer->activeGroupMembership->group)
+                        @php $grp = $customer->activeGroupMembership->group; @endphp
+                        <div class="p-3 bg-light rounded-3 border d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                            <div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <h6 class="fw-bold text-dark mb-0 fs-6">{{ $grp->name }}</h6>
+                                    <span class="badge bg-light text-secondary border font-monospace">{{ $grp->group_code }}</span>
+                                    @if($customer->activeGroupMembership->role === 'group_leader' || $grp->leader_customer_id === $customer->id)
+                                        <span class="badge bg-warning-subtle text-dark border border-warning-subtle fw-bold"><i class="bi bi-award me-1"></i>Group Leader</span>
+                                    @else
+                                        <span class="badge bg-info-subtle text-info border border-info-subtle">Group Member</span>
+                                    @endif
+                                </div>
+                                <div class="small text-muted mt-1">
+                                    <span><i class="bi bi-geo-alt me-1"></i>Meeting: {{ $grp->meeting_day ?? 'N/A' }} {{ $grp->meeting_time ? 'at ' . $grp->meeting_time : '' }} ({{ $grp->meeting_location ?? 'Center' }})</span>
+                                    <span class="ms-3"><i class="bi bi-calendar-check me-1"></i>Joined Group: {{ $customer->activeGroupMembership->joined_at ? $customer->activeGroupMembership->joined_at->format('d M Y') : 'N/A' }}</span>
+                                </div>
+                            </div>
+                            <div>
+                                <a href="{{ route('admin.customer-group.show', $grp->id) }}" class="btn btn-sm btn-outline-info fw-bold rounded-pill px-3">
+                                    <i class="bi bi-eye me-1"></i> View Group Profile
+                                </a>
+                            </div>
+                        </div>
+                    @else
+                        <div class="p-3 bg-light rounded-3 text-center border">
+                            <span class="badge bg-secondary-subtle text-secondary px-3 py-1.5 fs-6 mb-2">No Group Assigned</span>
+                            <p class="text-muted small mb-0">This customer is not currently assigned to any joint liability microfinance group.</p>
+                        </div>
+                    @endif
+                </x-ui.card>
+            </div>
         </div>
     </div>
 

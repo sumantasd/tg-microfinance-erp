@@ -27,6 +27,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Repositories\LeaveRepositoryInterface::class, \App\Repositories\LeaveRepository::class);
         $this->app->bind(\App\Repositories\PayrollRepositoryInterface::class, \App\Repositories\PayrollRepository::class);
         $this->app->bind(\App\Repositories\CustomerRepositoryInterface::class, \App\Repositories\CustomerRepository::class);
+        $this->app->bind(\App\Repositories\CustomerGroupRepositoryInterface::class, \App\Repositories\CustomerGroupRepository::class);
     }
 
     /**

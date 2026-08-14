@@ -45,9 +45,14 @@
             <span>Branch Management</span>
         </a>
 
-        <a class="sidebar-nav-link {{ request()->is('admin/customer*') ? 'active' : '' }}" href="{{ url('/admin/customer') }}">
+        <a class="sidebar-nav-link {{ request()->is('admin/customer') || request()->is('admin/customer/*') ? 'active' : '' }}" href="{{ url('/admin/customer') }}">
             <i class="bi bi-person-badge nav-icon text-primary"></i>
             <span>Member Management</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/customer-group*') ? 'active' : '' }}" href="{{ route('admin.customer-group.index') }}">
+            <i class="bi bi-people nav-icon text-info"></i>
+            <span>Customer Groups</span>
         </a>
 
         <a class="sidebar-nav-link {{ request()->is('admin/loan*') ? 'active' : '' }}" href="{{ url('/admin/loan') }}">

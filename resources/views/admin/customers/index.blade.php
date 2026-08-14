@@ -89,7 +89,7 @@
 
 <!-- Data Table -->
 <x-ui.card class="p-0 shadow-sm overflow-hidden">
-    <x-ui.data-table :headers="['Customer ID & Name', 'Type & Branch', 'Contact Details', 'Status & KYC', 'Reg. Date', 'Actions']">
+    <x-ui.data-table :headers="['Customer ID & Name', 'Type & Branch', 'Group', 'Contact Details', 'Status & KYC', 'Reg. Date', 'Actions']">
         @forelse($customers as $customer)
             <tr class="{{ $customer->trashed() ? 'table-warning opacity-75' : '' }}">
                 <td>
@@ -113,6 +113,14 @@
                 <td>
                     <div class="fw-semibold text-dark">{{ ucfirst(str_replace('_', ' ', $customer->customer_type)) }}</div>
                     <div class="small text-muted"><i class="bi bi-geo-alt me-1"></i>{{ $customer->branch->name ?? 'N/A' }}</div>
+                </td>
+                <td>
+                    @if($customer->activeGroupMembership && $customer->activeGroupMembership->group)
+                        <div class="fw-bold text-dark small"><i class="bi bi-people text-info me-1"></i>{{ $customer->activeGroupMembership->group->name }}</div>
+                        <div class="small text-muted font-monospace">{{ $customer->activeGroupMembership->group->group_code }}</div>
+                    @else
+                        <span class="badge bg-light text-muted border">No Group</span>
+                    @endif
                 </td>
                 <td>
                     <div class="fw-semibold text-dark"><i class="bi bi-telephone text-muted me-1"></i>{{ $customer->mobile_number }}</div>
@@ -209,7 +217,7 @@
             </tr>
         @empty
             <tr>
-                <td colspan="6" class="text-center py-5 text-muted">
+                <td colspan="7" class="text-center py-5 text-muted">
                     <i class="bi bi-person-x fs-1 d-block mb-2 text-muted"></i>
                     No customers found matching the specified filters.
                 </td>

@@ -32,6 +32,7 @@ class RbacSeeder extends Seeder
             'hr_letter.view', 'hr_letter.generate',
 
             'customer.view', 'customer.create', 'customer.edit', 'customer.delete', 'customer.restore', 'customer.verify_kyc', 'customer.manage_guarantor', 'customer.manage_nominee', 'customer.change_status',
+            'group.view', 'group.create', 'group.edit', 'group.delete', 'group.change_status', 'group.manage_members',
             'loan.view', 'loan.create', 'loan.edit', 'loan.approve', 'loan.delete',
             'savings.view', 'collection.view', 'accounting.view', 'reports.view',
             'website.manage', 'settings.manage',
@@ -64,6 +65,7 @@ class RbacSeeder extends Seeder
             'payroll.view', 'payroll.process', 'payroll.disburse',
             'hr_letter.view', 'hr_letter.generate',
             'customer.view', 'customer.create', 'customer.edit', 'customer.delete', 'customer.restore', 'customer.verify_kyc', 'customer.manage_guarantor', 'customer.manage_nominee', 'customer.change_status',
+            'group.view', 'group.create', 'group.edit', 'group.delete', 'group.change_status', 'group.manage_members',
             'loan.view', 'loan.create', 'loan.edit', 'loan.approve',
             'savings.view', 'collection.view', 'accounting.view', 'reports.view', 'settings.manage',
         ]);
@@ -75,6 +77,7 @@ class RbacSeeder extends Seeder
             'leave.view', 'leave.create', 'leave.approve',
             'payroll.view', 'hr_letter.view', 'hr_letter.generate',
             'customer.view', 'customer.create', 'customer.edit', 'customer.verify_kyc', 'customer.manage_guarantor', 'customer.manage_nominee', 'customer.change_status',
+            'group.view', 'group.create', 'group.edit', 'group.change_status', 'group.manage_members',
             'loan.view', 'loan.create', 'loan.approve',
             'savings.view', 'collection.view', 'reports.view',
         ]);

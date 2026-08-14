@@ -11,7 +11,7 @@ class CustomerRepository implements CustomerRepositoryInterface
 {
     public function getPaginatedCustomers(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        $query = Customer::with(['company', 'branch', 'presentAddress', 'kycDocuments', 'guarantors', 'nominees']);
+        $query = Customer::with(['company', 'branch', 'presentAddress', 'kycDocuments', 'guarantors', 'nominees', 'activeGroupMembership.group']);
 
         if (!empty($filters['search'])) {
             $search = $filters['search'];
@@ -30,6 +30,13 @@ class CustomerRepository implements CustomerRepositoryInterface
 
         if (!empty($filters['branch_id'])) {
             $query->where('branch_id', $filters['branch_id']);
+        }
+
+        if (!empty($filters['group_id'])) {
+            $groupId = $filters['group_id'];
+            $query->whereHas('groupMemberships', function ($q) use ($groupId) {
+                $q->where('group_id', $groupId)->where('status', 'active');
+            });
         }
 
         if (!empty($filters['status'])) {
@@ -83,6 +90,7 @@ class CustomerRepository implements CustomerRepositoryInterface
             'kycDocuments.verifier',
             'guarantors',
             'nominees',
+            'activeGroupMembership.group',
             'creator',
             'updater',
         ])->find($id);

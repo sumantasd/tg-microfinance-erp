@@ -21,6 +21,7 @@ use App\Http\Controllers\Admin\Cms\WhyChooseUsController;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\CustomerGroupController;
 use App\Http\Controllers\Admin\CustomerGuarantorController;
 use App\Http\Controllers\Admin\CustomerKycController;
 use App\Http\Controllers\Admin\CustomerNomineeController;
@@ -249,6 +250,19 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     // Customer Nominee Routes
     Route::post('/customer/{customer}/nominee', [CustomerNomineeController::class, 'store'])->name('admin.customer.nominee.store');
     Route::delete('/customer/nominee/{nominee}', [CustomerNomineeController::class, 'destroy'])->name('admin.customer.nominee.destroy');
+
+    // Customer Group Management Routes
+    Route::get('/customer-group', [CustomerGroupController::class, 'index'])->name('admin.customer-group.index');
+    Route::get('/customer-group/create', [CustomerGroupController::class, 'create'])->name('admin.customer-group.create');
+    Route::post('/customer-group', [CustomerGroupController::class, 'store'])->name('admin.customer-group.store');
+    Route::get('/customer-group/{group}', [CustomerGroupController::class, 'show'])->name('admin.customer-group.show');
+    Route::get('/customer-group/{group}/edit', [CustomerGroupController::class, 'edit'])->name('admin.customer-group.edit');
+    Route::put('/customer-group/{group}', [CustomerGroupController::class, 'update'])->name('admin.customer-group.update');
+    Route::delete('/customer-group/{group}', [CustomerGroupController::class, 'destroy'])->name('admin.customer-group.destroy');
+    Route::patch('/customer-group/{group}/toggle-status', [CustomerGroupController::class, 'toggleStatus'])->name('admin.customer-group.toggle-status');
+    Route::post('/customer-group/{group}/member', [CustomerGroupController::class, 'addMember'])->name('admin.customer-group.member.store');
+    Route::delete('/customer-group/{group}/member/{customer}', [CustomerGroupController::class, 'removeMember'])->name('admin.customer-group.member.destroy');
+    Route::post('/customer-group/{group}/assign-leader', [CustomerGroupController::class, 'assignLeader'])->name('admin.customer-group.assign-leader');
     Route::get('/loan', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Loan Management', 'moduleSlug' => 'loan']); });
     Route::get('/savings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Savings Accounts', 'moduleSlug' => 'savings']); });
     Route::get('/collection', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Field Collections', 'moduleSlug' => 'collection']); });
