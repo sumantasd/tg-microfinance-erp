@@ -49,12 +49,26 @@ class CustomerService
     ): Customer {
         return DB::transaction(function () use ($data, $photo, $addresses, $kycDocs, $guarantors, $nominees) {
             $user = Auth::user();
-            if ($user && !$user->isSuperAdmin()) {
-                $data['company_id'] = $user->company_id;
-                if ($user->branch_id) {
-                    $data['branch_id'] = $user->branch_id;
-                }
+
+            if (empty($data['branch_id']) && $user?->branch_id) {
+                $data['branch_id'] = $user->branch_id;
             }
+
+            if (empty($data['branch_id'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'branch_id' => 'Please select a valid branch for customer registration.',
+                ]);
+            }
+
+            $branch = \App\Models\Branch::findOrFail($data['branch_id']);
+
+            if ($user && !$user->isSuperAdmin() && $user->company_id && $user->company_id !== $branch->company_id) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'branch_id' => 'Selected branch does not belong to your assigned company.',
+                ]);
+            }
+
+            $data['company_id'] = $branch->company_id;
 
             if (empty($data['customer_code'])) {
                 $data['customer_code'] = $this->customerRepository->generateCustomerCode($data['company_id'], $data['branch_id']);
@@ -173,12 +187,17 @@ class CustomerService
             $oldValues = $customer->toArray();
 
             $user = Auth::user();
-            if ($user && !$user->isSuperAdmin()) {
-                $data['company_id'] = $customer->company_id;
-                if ($user->branch_id) {
-                    $data['branch_id'] = $customer->branch_id;
-                }
+            $targetBranchId = $data['branch_id'] ?? $customer->branch_id;
+            $branch = \App\Models\Branch::findOrFail($targetBranchId);
+
+            if ($user && !$user->isSuperAdmin() && $user->company_id && $user->company_id !== $branch->company_id) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'branch_id' => 'Selected branch does not belong to your assigned company.',
+                ]);
             }
+
+            $data['branch_id'] = $branch->id;
+            $data['company_id'] = $branch->company_id;
 
             if ($photo) {
                 if ($customer->profile_photo_path) {

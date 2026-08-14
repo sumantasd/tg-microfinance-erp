@@ -28,6 +28,14 @@ use App\Http\Controllers\Admin\CustomerNomineeController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DesignationController;
 use App\Http\Controllers\Admin\EmployeeController;
+use App\Http\Controllers\Admin\InventoryController;
+use App\Http\Controllers\Admin\InventoryTransferController;
+use App\Http\Controllers\Admin\EmiCollectionController;
+use App\Http\Controllers\Admin\LoanAccountController;
+use App\Http\Controllers\Admin\LoanApplicationController;
+use App\Http\Controllers\Admin\LoanSchemeController;
+use App\Http\Controllers\Admin\ProductPurchaseController;
+use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\System\PermissionController;
 use App\Http\Controllers\Admin\System\RoleController;
@@ -263,10 +271,56 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     Route::post('/customer-group/{group}/member', [CustomerGroupController::class, 'addMember'])->name('admin.customer-group.member.store');
     Route::delete('/customer-group/{group}/member/{customer}', [CustomerGroupController::class, 'removeMember'])->name('admin.customer-group.member.destroy');
     Route::post('/customer-group/{group}/assign-leader', [CustomerGroupController::class, 'assignLeader'])->name('admin.customer-group.assign-leader');
+
+    // Module 7 — Phase 7.1 Routes (Loan Schemes, Product Catalog, Generic Inventory)
+    Route::resource('loan-scheme', LoanSchemeController::class, ['as' => 'admin']);
+    Route::resource('product', AdminProductController::class, ['as' => 'admin']);
+    
+    Route::get('/inventory', [InventoryController::class, 'index'])->name('admin.inventory.index');
+    Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('admin.inventory.movements');
+    Route::post('/inventory/restock', [InventoryController::class, 'restock'])->name('admin.inventory.restock');
+    Route::post('/inventory/adjust', [InventoryController::class, 'adjust'])->name('admin.inventory.adjust');
+
+    // Branch-to-Branch Inventory Transfer Routes
+    Route::get('/inventory/transfers', [InventoryTransferController::class, 'index'])->name('admin.inventory-transfer.index');
+    Route::get('/inventory/transfers/create', [InventoryTransferController::class, 'create'])->name('admin.inventory-transfer.create');
+    Route::post('/inventory/transfers', [InventoryTransferController::class, 'store'])->name('admin.inventory-transfer.store');
+    Route::get('/inventory/transfers/{inventoryTransfer}', [InventoryTransferController::class, 'show'])->name('admin.inventory-transfer.show');
+    Route::post('/inventory/transfers/{inventoryTransfer}/request', [InventoryTransferController::class, 'requestTransfer'])->name('admin.inventory-transfer.request');
+    Route::post('/inventory/transfers/{inventoryTransfer}/approve', [InventoryTransferController::class, 'approve'])->name('admin.inventory-transfer.approve');
+    Route::post('/inventory/transfers/{inventoryTransfer}/reject', [InventoryTransferController::class, 'reject'])->name('admin.inventory-transfer.reject');
+    Route::post('/inventory/transfers/{inventoryTransfer}/dispatch', [InventoryTransferController::class, 'dispatchTransfer'])->name('admin.inventory-transfer.dispatch');
+    Route::post('/inventory/transfers/{inventoryTransfer}/receive', [InventoryTransferController::class, 'receive'])->name('admin.inventory-transfer.receive');
+    Route::post('/inventory/transfers/{inventoryTransfer}/cancel', [InventoryTransferController::class, 'cancel'])->name('admin.inventory-transfer.cancel');
+
+    // Product Purchase / Procurement Management Routes
+    Route::resource('inventory/purchases', ProductPurchaseController::class)->names('admin.product-purchase');
+    Route::post('/inventory/purchases/{productPurchase}/confirm', [ProductPurchaseController::class, 'confirm'])->name('admin.product-purchase.confirm');
+    Route::post('/inventory/purchases/{productPurchase}/receive', [ProductPurchaseController::class, 'receive'])->name('admin.product-purchase.receive');
+    // Module 7 — Phase 7.2 Routes (Loan Applications & Approvals)
+    Route::resource('loan-application', LoanApplicationController::class, ['as' => 'admin']);
+    Route::post('/loan-application/{loanApplication}/submit', [LoanApplicationController::class, 'submitApplication'])->name('admin.loan-application.submit');
+    Route::post('/loan-application/{loanApplication}/start-review', [LoanApplicationController::class, 'startReview'])->name('admin.loan-application.start-review');
+    Route::post('/loan-application/{loanApplication}/approve', [LoanApplicationController::class, 'approve'])->name('admin.loan-application.approve');
+    Route::post('/loan-application/{loanApplication}/reject', [LoanApplicationController::class, 'reject'])->name('admin.loan-application.reject');
+    Route::post('/loan-application/{loanApplication}/cancel', [LoanApplicationController::class, 'cancel'])->name('admin.loan-application.cancel');
+    // Module 7 — Phase 7.3 Routes (Loan Accounts, Sanction, Down Payment, Disbursement & EMI Schedule)
+    Route::resource('loan-account', LoanAccountController::class, ['as' => 'admin'])->only(['index', 'show']);
+    Route::post('/loan-account/sanction', [LoanAccountController::class, 'sanction'])->name('admin.loan-account.sanction');
+    Route::get('/loan-account/{loanAccount}/statement', [LoanAccountController::class, 'statement'])->name('admin.loan-account.statement');
+    Route::post('/loan-account/{loanAccount}/down-payment', [LoanAccountController::class, 'recordDownPayment'])->name('admin.loan-account.record-down-payment');
+    Route::post('/loan-account/{loanAccount}/disburse-cash', [LoanAccountController::class, 'disburseCash'])->name('admin.loan-account.disburse-cash');
+    Route::post('/loan-account/{loanAccount}/issue-product', [LoanAccountController::class, 'issueProduct'])->name('admin.loan-account.issue-product');
+    Route::post('/loan-account/{loanAccount}/repayment', [LoanAccountController::class, 'recordRepayment'])->name('admin.loan-account.record-repayment');
+    
+    // Dedicated Repayment & EMI Collection Module Routes
+    Route::get('/emi-collection', [EmiCollectionController::class, 'index'])->name('admin.emi-collection.index');
+    Route::get('/emi-collection/receipt/{repayment}', [EmiCollectionController::class, 'receipt'])->name('admin.emi-collection.receipt');
+    Route::get('/emi-collection/thermal-receipt/{repayment}', [EmiCollectionController::class, 'thermalReceipt'])->name('admin.emi-collection.thermal-receipt');
+
     Route::get('/loan', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Loan Management', 'moduleSlug' => 'loan']); });
     Route::get('/savings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Savings Accounts', 'moduleSlug' => 'savings']); });
     Route::get('/collection', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Field Collections', 'moduleSlug' => 'collection']); });
-    Route::get('/inventory', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Inventory Management', 'moduleSlug' => 'inventory']); });
     Route::get('/billing', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Billing & Counter Invoices', 'moduleSlug' => 'billing']); });
     Route::get('/accounting', function () { return view('admin.placeholders.module', ['moduleTitle' => 'General Ledger Accounting', 'moduleSlug' => 'accounting']); });
     Route::get('/reports', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Financial Reports', 'moduleSlug' => 'reports']); });

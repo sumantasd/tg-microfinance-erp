@@ -379,4 +379,161 @@ class CustomerManagementTest extends TestCase
             'rejection_reason' => 'Blurry copy, identity text not legible.',
         ]);
     }
+
+    public function test_customer_creation_resolves_company_id_from_branch_id_when_omitted_in_payload(): void
+    {
+        // Testing exact user scenario: branch_id provided in POST payload without company_id
+        $response = $this->actingAs($this->adminUser)->post(route('admin.customer.store'), [
+            'branch_id' => $this->branch->id,
+            'customer_type' => 'group_member',
+            'first_name' => 'Ramu',
+            'last_name' => 'Das',
+            'mobile_number' => '9888877777',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'addresses' => [
+                'present' => [
+                    'address_line' => 'Rampur Main Road',
+                    'district' => 'Patna',
+                    'state' => 'Bihar',
+                    'pin_code' => '800001',
+                ]
+            ]
+        ]);
+
+        $response->assertRedirect();
+        
+        $customer = Customer::where('mobile_number', '9888877777')->first();
+        $this->assertNotNull($customer);
+        $this->assertEquals($this->company->id, $customer->company_id);
+        $this->assertEquals($this->branch->id, $customer->branch_id);
+        $this->assertStringContainsString('CUST-BR001-', $customer->customer_code);
+    }
+
+    public function test_prevents_cross_company_branch_assignment_for_scoped_users(): void
+    {
+        $otherCompany = Company::create([
+            'name' => 'Other Finance Ltd',
+            'code' => 'COMP02',
+            'registration_number' => 'REG-1002',
+            'email' => 'other@finance.com',
+            'phone' => '8888888888',
+            'address' => 'Gaya, Bihar',
+            'is_active' => true,
+        ]);
+
+        $otherBranch = Branch::create([
+            'company_id' => $otherCompany->id,
+            'name' => 'Gaya Branch',
+            'code' => 'BR002',
+            'phone' => '7777777777',
+            'address' => 'Station Road, Gaya',
+            'city' => 'Gaya',
+            'state' => 'Bihar',
+            'pincode' => '823001',
+            'is_active' => true,
+        ]);
+
+        $companyAdmin = User::create([
+            'name' => 'Company Admin',
+            'email' => 'cadmin@grihalaxmi.com',
+            'password' => bcrypt('password'),
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'status' => 'active',
+        ]);
+        $cRole = Role::firstOrCreate(['name' => 'Company Admin', 'guard_name' => 'web']);
+        $companyAdmin->assignRole('Company Admin');
+
+        // Company Admin trying to create customer in a branch of Other Company
+        $response = $this->actingAs($companyAdmin)->post(route('admin.customer.store'), [
+            'branch_id' => $otherBranch->id,
+            'customer_type' => 'individual',
+            'first_name' => 'Invalid',
+            'last_name' => 'BranchUser',
+            'mobile_number' => '9991112223',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'addresses' => [
+                'present' => [
+                    'address_line' => 'Test',
+                    'district' => 'Patna',
+                    'state' => 'Bihar',
+                    'pin_code' => '800001',
+                ]
+            ]
+        ]);
+
+        $response->assertSessionHasErrors('branch_id');
+    }
+
+    public function test_unauthorized_user_cannot_access_or_download_kyc_document(): void
+    {
+        Storage::fake('private');
+
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00999',
+            'first_name' => 'Secure',
+            'last_name' => 'User',
+            'mobile_number' => '9990001112',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $file = UploadedFile::fake()->create('secret_id.pdf', 300, 'application/pdf');
+        $this->actingAs($this->adminUser)->post(route('admin.customer.kyc.store', $customer->id), [
+            'kyc_document_type' => 'voter_id',
+            'document_number' => 'VOTER12345',
+            'file' => $file,
+        ]);
+
+        $kyc = CustomerKycDocument::where('customer_id', $customer->id)->first();
+
+        // Unauthenticated access attempt
+        \Illuminate\Support\Facades\Auth::logout();
+        $guestResponse = $this->get(route('admin.customer.kyc.download', $kyc->id));
+        $guestResponse->assertRedirect(route('login'));
+    }
+
+    public function test_guarantor_kyc_upload_and_download_stream(): void
+    {
+        Storage::fake('private');
+
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00998',
+            'first_name' => 'Guarantor',
+            'last_name' => 'Owner',
+            'mobile_number' => '9990001113',
+            'gender' => 'female',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $kycFile = UploadedFile::fake()->create('guarantor_pan.pdf', 400, 'application/pdf');
+
+        $response = $this->actingAs($this->adminUser)->post(route('admin.customer.guarantor.store', $customer->id), [
+            'full_name' => 'Guarantor Full Name',
+            'relationship' => 'Uncle',
+            'mobile' => '9888877771',
+            'address' => 'Patna Address',
+            'kyc_type' => 'pan',
+            'kyc_number' => 'GUA123456P',
+            'kyc_file' => $kycFile,
+        ]);
+
+        $response->assertRedirect();
+        $guarantor = CustomerGuarantor::where('customer_id', $customer->id)->first();
+        $this->assertNotNull($guarantor);
+        $this->assertNotNull($guarantor->kyc_document_path);
+
+        Storage::disk('private')->assertExists($guarantor->kyc_document_path);
+
+        $downloadResponse = $this->actingAs($this->adminUser)->get(route('admin.customer.guarantor.download-kyc', $guarantor->id));
+        $downloadResponse->assertStatus(200);
+    }
 }

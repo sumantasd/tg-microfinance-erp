@@ -33,7 +33,13 @@ class RbacSeeder extends Seeder
 
             'customer.view', 'customer.create', 'customer.edit', 'customer.delete', 'customer.restore', 'customer.verify_kyc', 'customer.manage_guarantor', 'customer.manage_nominee', 'customer.change_status',
             'group.view', 'group.create', 'group.edit', 'group.delete', 'group.change_status', 'group.manage_members',
-            'loan.view', 'loan.create', 'loan.edit', 'loan.approve', 'loan.delete',
+            'loan_scheme.view', 'loan_scheme.create', 'loan_scheme.edit', 'loan_scheme.delete',
+            'product.view', 'product.create', 'product.edit', 'product.delete',
+            'inventory.view', 'inventory.manage', 'inventory.adjust',
+            'inventory.transfer.view', 'inventory.transfer.create', 'inventory.transfer.approve', 'inventory.transfer.dispatch', 'inventory.transfer.receive', 'inventory.transfer.cancel',
+            'purchase.view', 'purchase.create', 'purchase.edit', 'purchase.receive', 'purchase.cancel',
+            'loan_application.view', 'loan_application.create', 'loan_application.edit', 'loan_application.submit', 'loan_application.review', 'loan_application.approve', 'loan_application.reject', 'loan_application.cancel',
+            'loan.view', 'loan.sanction', 'loan.disburse', 'loan.issue_product', 'loan.view_schedule', 'loan.record_down_payment', 'loan.record_repayment', 'loan.collection.view', 'loan.collection.create', 'loan.collection.receipt', 'loan.collection.history', 'loan.create', 'loan.edit', 'loan.approve', 'loan.delete',
             'savings.view', 'collection.view', 'accounting.view', 'reports.view',
             'website.manage', 'settings.manage',
         ];

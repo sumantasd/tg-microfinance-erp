@@ -5,7 +5,13 @@
 
 <div class="table-responsive rounded-3 border bg-white">
     <table {{ $attributes->merge(['class' => 'table table-hover align-middle mb-0']) }}>
-        @if(!empty($headers))
+        @if(isset($headers) && $headers instanceof \Illuminate\View\ComponentSlot && $headers->isNotEmpty())
+            <thead class="table-light text-uppercase small text-muted" style="font-size: 0.725rem; letter-spacing: 0.5px;">
+                <tr>
+                    {{ $headers }}
+                </tr>
+            </thead>
+        @elseif(is_array($headers) && count($headers) > 0)
             <thead class="table-light text-uppercase small text-muted" style="font-size: 0.725rem; letter-spacing: 0.5px;">
                 <tr>
                     @foreach($headers as $header)
@@ -17,7 +23,7 @@
         <tbody>
             @if($slot->isEmpty())
                 <tr>
-                    <td colspan="{{ count($headers) ?: 1 }}" class="text-center py-5 text-muted">
+                    <td colspan="15" class="text-center py-5 text-muted">
                         <i class="bi bi-inbox fs-1 d-block mb-2 opacity-50"></i>
                         <p class="mb-0 small fw-medium">{{ $emptyMessage }}</p>
                     </td>

@@ -55,24 +55,44 @@
             <span>Customer Groups</span>
         </a>
 
-        <a class="sidebar-nav-link {{ request()->is('admin/loan*') ? 'active' : '' }}" href="{{ url('/admin/loan') }}">
-            <i class="bi bi-cash-stack nav-icon text-success"></i>
-            <span>Loan Management</span>
+        <a class="sidebar-nav-link {{ request()->is('admin/loan-scheme*') ? 'active' : '' }}" href="{{ route('admin.loan-scheme.index') }}">
+            <i class="bi bi-journal-bookmark nav-icon text-primary"></i>
+            <span>Loan Schemes</span>
         </a>
 
-        <a class="sidebar-nav-link {{ request()->is('admin/savings*') ? 'active' : '' }}" href="{{ url('/admin/savings') }}">
-            <i class="bi bi-piggy-bank nav-icon text-info"></i>
-            <span>Savings</span>
+        <a class="sidebar-nav-link {{ request()->is('admin/loan-application*') ? 'active' : '' }}" href="{{ route('admin.loan-application.index') }}">
+            <i class="bi bi-file-earmark-spreadsheet nav-icon text-success"></i>
+            <span>Loan Applications</span>
         </a>
 
-        <a class="sidebar-nav-link {{ request()->is('admin/collection*') ? 'active' : '' }}" href="{{ url('/admin/collection') }}">
-            <i class="bi bi-journal-check nav-icon text-danger"></i>
-            <span>Collection</span>
+        <a class="sidebar-nav-link {{ request()->is('admin/loan-account*') ? 'active' : '' }}" href="{{ route('admin.loan-account.index') }}">
+            <i class="bi bi-wallet2 nav-icon text-warning"></i>
+            <span>Loan Accounts</span>
         </a>
 
-        <a class="sidebar-nav-link {{ request()->is('admin/inventory*') ? 'active' : '' }}" href="{{ url('/admin/inventory') }}">
-            <i class="bi bi-box-seam nav-icon text-warning"></i>
-            <span>Inventory</span>
+        <a class="sidebar-nav-link {{ request()->is('admin/emi-collection*') ? 'active' : '' }}" href="{{ route('admin.emi-collection.index') }}">
+            <i class="bi bi-cash-coin nav-icon text-success"></i>
+            <span>EMI Collection</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/product*') ? 'active' : '' }}" href="{{ route('admin.product.index') }}">
+            <i class="bi bi-box-seam nav-icon text-info"></i>
+            <span>Product Catalog</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/inventory*') && !request()->is('admin/inventory/transfers*') ? 'active' : '' }}" href="{{ route('admin.inventory.index') }}">
+            <i class="bi bi-boxes nav-icon text-warning"></i>
+            <span>Branch Inventory</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/inventory/transfers*') ? 'active' : '' }}" href="{{ route('admin.inventory-transfer.index') }}">
+            <i class="bi bi-arrow-left-right nav-icon text-danger"></i>
+            <span>Stock Transfers</span>
+        </a>
+
+        <a class="sidebar-nav-link {{ request()->is('admin/inventory/purchases*') ? 'active' : '' }}" href="{{ route('admin.product-purchase.index') }}">
+            <i class="bi bi-cart-check nav-icon text-primary"></i>
+            <span>Product Purchases</span>
         </a>
 
         <a class="sidebar-nav-link {{ request()->is('admin/billing*') ? 'active' : '' }}" href="{{ url('/admin/billing') }}">

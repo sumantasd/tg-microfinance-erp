@@ -106,6 +106,11 @@ class Customer extends Model
         return $this->belongsTo(User::class, 'created_by');
     }
 
+    public function loanAccounts(): HasMany
+    {
+        return $this->hasMany(LoanAccount::class, 'customer_id');
+    }
+
     public function updater(): BelongsTo
     {
         return $this->belongsTo(User::class, 'updated_by');

@@ -56,6 +56,11 @@ class CustomerGroup extends Model
         return $this->hasMany(CustomerGroupMember::class, 'group_id');
     }
 
+    public function members(): HasMany
+    {
+        return $this->hasMany(CustomerGroupMember::class, 'group_id');
+    }
+
     public function activeMembers(): HasMany
     {
         return $this->hasMany(CustomerGroupMember::class, 'group_id')->where('status', 'active');
