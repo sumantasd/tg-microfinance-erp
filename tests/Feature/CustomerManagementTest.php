@@ -1,0 +1,303 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\Branch;
+use App\Models\Company;
+use App\Models\Customer;
+use App\Models\CustomerGuarantor;
+use App\Models\CustomerKycDocument;
+use App\Models\CustomerNominee;
+use App\Models\User;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
+use Tests\TestCase;
+
+class CustomerManagementTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected User $adminUser;
+    protected Company $company;
+    protected Branch $branch;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        // Create Super Admin role and permissions
+        $role = Role::create(['name' => 'Super Admin', 'guard_name' => 'web']);
+        
+        $permissions = [
+            'customer.view', 'customer.create', 'customer.edit', 'customer.delete',
+            'customer.restore', 'customer.verify_kyc', 'customer.manage_guarantor',
+            'customer.manage_nominee', 'customer.change_status'
+        ];
+
+        foreach ($permissions as $p) {
+            Permission::create(['name' => $p, 'guard_name' => 'web']);
+        }
+
+        $role->syncPermissions(Permission::all());
+
+        $this->company = Company::create([
+            'name' => 'Grihalaxmi Finance HO',
+            'code' => 'HO001',
+            'registration_number' => 'REG-1001',
+            'email' => 'ho@grihalaxmi.com',
+            'phone' => '9999999999',
+            'address' => 'Patna HO, Bihar',
+            'is_active' => true,
+        ]);
+
+        $this->branch = Branch::create([
+            'company_id' => $this->company->id,
+            'name' => 'Main Branch',
+            'code' => 'BR001',
+            'phone' => '8888888888',
+            'address' => 'Main Road, Patna',
+            'city' => 'Patna',
+            'state' => 'Bihar',
+            'pincode' => '800001',
+            'is_active' => true,
+        ]);
+
+        $this->adminUser = User::create([
+            'name' => 'Admin User',
+            'email' => 'admin@grihalaxmi.com',
+            'password' => bcrypt('password'),
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'status' => 'active',
+        ]);
+
+        $this->adminUser->assignRole('Super Admin');
+    }
+
+    public function test_authenticated_user_can_view_customer_list(): void
+    {
+        $response = $this->actingAs($this->adminUser)->get(route('admin.customer.index'));
+        $response->assertStatus(200);
+        $response->assertSee('Customer & Member Management');
+    }
+
+    public function test_can_create_customer_with_addresses_and_auto_generated_code(): void
+    {
+        Storage::fake('public');
+
+        $response = $this->actingAs($this->adminUser)->post(route('admin.customer.store'), [
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_type' => 'individual',
+            'first_name' => 'Sunil',
+            'last_name' => 'Kumar',
+            'mobile_number' => '9876543210',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'addresses' => [
+                'present' => [
+                    'address_line' => '123 Main Road',
+                    'district' => 'Patna',
+                    'state' => 'Bihar',
+                    'pin_code' => '800001',
+                ]
+            ]
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('customers', [
+            'first_name' => 'Sunil',
+            'last_name' => 'Kumar',
+            'mobile_number' => '9876543210',
+        ]);
+
+        $customer = Customer::where('mobile_number', '9876543210')->first();
+        $this->assertNotNull($customer);
+        $this->assertStringContainsString('CUST-BR001-', $customer->customer_code);
+        $this->assertDatabaseHas('customer_addresses', [
+            'customer_id' => $customer->id,
+            'district' => 'Patna',
+            'pin_code' => '800001',
+        ]);
+    }
+
+    public function test_can_view_customer_profile_page(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00001',
+            'first_name' => 'Anita',
+            'last_name' => 'Devi',
+            'mobile_number' => '9876543211',
+            'gender' => 'female',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->get(route('admin.customer.show', $customer->id));
+        $response->assertStatus(200);
+        $response->assertSee('Anita Devi');
+        $response->assertSee('CUST-BR001-2026-00001');
+    }
+
+    public function test_can_update_customer_details(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00002',
+            'first_name' => 'Vikram',
+            'last_name' => 'Singh',
+            'mobile_number' => '9876543212',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->put(route('admin.customer.update', $customer->id), [
+            'customer_code' => $customer->customer_code,
+            'customer_type' => 'individual',
+            'status' => 'active',
+            'first_name' => 'Vikram',
+            'last_name' => 'Choudhary',
+            'mobile_number' => '9876543212',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'addresses' => [
+                'present' => [
+                    'address_line' => '456 Station Road',
+                    'district' => 'Gaya',
+                    'state' => 'Bihar',
+                    'pin_code' => '823001',
+                ]
+            ]
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'last_name' => 'Choudhary',
+        ]);
+    }
+
+    public function test_can_upload_and_verify_kyc_document(): void
+    {
+        Storage::fake('private');
+
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00003',
+            'first_name' => 'Pooja',
+            'last_name' => 'Kumari',
+            'mobile_number' => '9876543213',
+            'gender' => 'female',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $file = UploadedFile::fake()->create('aadhaar.pdf', 500, 'application/pdf');
+
+        $uploadResponse = $this->actingAs($this->adminUser)->post(route('admin.customer.kyc.store', $customer->id), [
+            'kyc_document_type' => 'aadhaar',
+            'document_number' => '1234-5678-9012',
+            'file' => $file,
+        ]);
+
+        $uploadResponse->assertRedirect();
+        $this->assertDatabaseHas('customer_kyc_documents', [
+            'customer_id' => $customer->id,
+            'kyc_document_type' => 'aadhaar',
+            'verification_status' => 'pending',
+        ]);
+
+        $kyc = CustomerKycDocument::where('customer_id', $customer->id)->first();
+
+        // Verify Document
+        $verifyResponse = $this->actingAs($this->adminUser)->post(route('admin.customer.kyc.verify', $kyc->id), [
+            'verification_status' => 'verified',
+            'remarks' => 'Verified with original Aadhaar card.',
+        ]);
+
+        $verifyResponse->assertRedirect();
+        $this->assertDatabaseHas('customer_kyc_documents', [
+            'id' => $kyc->id,
+            'verification_status' => 'verified',
+            'verified_by' => $this->adminUser->id,
+        ]);
+    }
+
+    public function test_can_add_and_remove_guarantor(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00004',
+            'first_name' => 'Rajesh',
+            'last_name' => 'Verma',
+            'mobile_number' => '9876543214',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->post(route('admin.customer.guarantor.store', $customer->id), [
+            'full_name' => 'Amit Verma',
+            'relationship' => 'Brother',
+            'mobile' => '9123456789',
+            'address' => 'Patna City, Bihar',
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('customer_guarantors', [
+            'customer_id' => $customer->id,
+            'full_name' => 'Amit Verma',
+            'relationship' => 'Brother',
+        ]);
+
+        $guarantor = CustomerGuarantor::where('customer_id', $customer->id)->first();
+
+        // Delete Guarantor
+        $deleteResponse = $this->actingAs($this->adminUser)->delete(route('admin.customer.guarantor.destroy', $guarantor->id));
+        $deleteResponse->assertRedirect();
+        $this->assertSoftDeleted('customer_guarantors', ['id' => $guarantor->id]);
+    }
+
+    public function test_can_add_and_remove_nominee(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'customer_code' => 'CUST-BR001-2026-00005',
+            'first_name' => 'Suresh',
+            'last_name' => 'Yadav',
+            'mobile_number' => '9876543215',
+            'gender' => 'male',
+            'registration_date' => '2026-08-14',
+            'status' => 'active',
+        ]);
+
+        $response = $this->actingAs($this->adminUser)->post(route('admin.customer.nominee.store', $customer->id), [
+            'nominee_name' => 'Priyanka Yadav',
+            'relationship' => 'Spouse',
+            'share_percentage' => 100.00,
+        ]);
+
+        $response->assertRedirect();
+        $this->assertDatabaseHas('customer_nominees', [
+            'customer_id' => $customer->id,
+            'nominee_name' => 'Priyanka Yadav',
+            'share_percentage' => 100.00,
+        ]);
+
+        $nominee = CustomerNominee::where('customer_id', $customer->id)->first();
+
+        $deleteResponse = $this->actingAs($this->adminUser)->delete(route('admin.customer.nominee.destroy', $nominee->id));
+        $deleteResponse->assertRedirect();
+        $this->assertSoftDeleted('customer_nominees', ['id' => $nominee->id]);
+    }
+}

@@ -20,6 +20,10 @@ use App\Http\Controllers\Admin\Cms\WebsiteSettingController;
 use App\Http\Controllers\Admin\Cms\WhyChooseUsController;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\CompanyController;
+use App\Http\Controllers\Admin\CustomerController;
+use App\Http\Controllers\Admin\CustomerGuarantorController;
+use App\Http\Controllers\Admin\CustomerKycController;
+use App\Http\Controllers\Admin\CustomerNomineeController;
 use App\Http\Controllers\Admin\DepartmentController;
 use App\Http\Controllers\Admin\DesignationController;
 use App\Http\Controllers\Admin\EmployeeController;
@@ -220,7 +224,31 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
 
     Route::get('/hrm/reports', [\App\Http\Controllers\Admin\HrReportController::class, 'index'])->name('admin.hrm.reports.index');
 
-    Route::get('/customer', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Member Management', 'moduleSlug' => 'customer']); });
+    // Module 6: Customer & Member Management Routes
+    Route::get('/customer', [CustomerController::class, 'index'])->name('admin.customer.index');
+    Route::get('/customer/create', [CustomerController::class, 'create'])->name('admin.customer.create');
+    Route::post('/customer', [CustomerController::class, 'store'])->name('admin.customer.store');
+    Route::get('/customer/{customer}', [CustomerController::class, 'show'])->name('admin.customer.show');
+    Route::get('/customer/{customer}/edit', [CustomerController::class, 'edit'])->name('admin.customer.edit');
+    Route::put('/customer/{customer}', [CustomerController::class, 'update'])->name('admin.customer.update');
+    Route::patch('/customer/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])->name('admin.customer.toggle-status');
+    Route::delete('/customer/{customer}', [CustomerController::class, 'destroy'])->name('admin.customer.destroy');
+    Route::post('/customer/{id}/restore', [CustomerController::class, 'restore'])->name('admin.customer.restore');
+
+    // Customer KYC Routes
+    Route::post('/customer/{customer}/kyc', [CustomerKycController::class, 'store'])->name('admin.customer.kyc.store');
+    Route::get('/customer/kyc/{kyc}/download', [CustomerKycController::class, 'download'])->name('admin.customer.kyc.download');
+    Route::post('/customer/kyc/{kyc}/verify', [CustomerKycController::class, 'verify'])->name('admin.customer.kyc.verify');
+    Route::delete('/customer/kyc/{kyc}', [CustomerKycController::class, 'destroy'])->name('admin.customer.kyc.destroy');
+
+    // Customer Guarantor Routes
+    Route::post('/customer/{customer}/guarantor', [CustomerGuarantorController::class, 'store'])->name('admin.customer.guarantor.store');
+    Route::get('/customer/guarantor/{guarantor}/download-kyc', [CustomerGuarantorController::class, 'downloadKyc'])->name('admin.customer.guarantor.download-kyc');
+    Route::delete('/customer/guarantor/{guarantor}', [CustomerGuarantorController::class, 'destroy'])->name('admin.customer.guarantor.destroy');
+
+    // Customer Nominee Routes
+    Route::post('/customer/{customer}/nominee', [CustomerNomineeController::class, 'store'])->name('admin.customer.nominee.store');
+    Route::delete('/customer/nominee/{nominee}', [CustomerNomineeController::class, 'destroy'])->name('admin.customer.nominee.destroy');
     Route::get('/loan', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Loan Management', 'moduleSlug' => 'loan']); });
     Route::get('/savings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Savings Accounts', 'moduleSlug' => 'savings']); });
     Route::get('/collection', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Field Collections', 'moduleSlug' => 'collection']); });
