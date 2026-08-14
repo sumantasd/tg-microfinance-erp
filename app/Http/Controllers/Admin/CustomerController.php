@@ -24,16 +24,16 @@ class CustomerController extends Controller
         ]);
 
         $customers = $this->customerService->getPaginatedCustomers($filters, 15);
-        $branches = Branch::where('status', 'active')->get();
-        $companies = Company::where('status', 'active')->get();
+        $branches = Branch::where('is_active', true)->get();
+        $companies = Company::where('is_active', true)->get();
 
         return view('admin.customers.index', compact('customers', 'branches', 'companies', 'filters'));
     }
 
     public function create(): View
     {
-        $branches = Branch::where('status', 'active')->get();
-        $companies = Company::where('status', 'active')->get();
+        $branches = Branch::where('is_active', true)->get();
+        $companies = Company::where('is_active', true)->get();
 
         return view('admin.customers.create', compact('branches', 'companies'));
     }
@@ -70,8 +70,8 @@ class CustomerController extends Controller
     public function edit(Customer $customer): View
     {
         $customer = $this->customerService->getCustomerById($customer->id);
-        $branches = Branch::where('status', 'active')->get();
-        $companies = Company::where('status', 'active')->get();
+        $branches = Branch::where('is_active', true)->get();
+        $companies = Company::where('is_active', true)->get();
 
         return view('admin.customers.edit', compact('customer', 'branches', 'companies'));
     }
