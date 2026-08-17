@@ -1,0 +1,646 @@
+{
+    "total": 71,
+    "broken_count": 0,
+    "broken": [],
+    "results": [
+        {
+            "category": "loan",
+            "type": "disbursement",
+            "title": "Loan Disbursement Report",
+            "method": "getLoanDisbursementReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "loan",
+            "type": "active",
+            "title": "Active Loans Report",
+            "method": "getLoanActiveReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "loan",
+            "type": "outstanding",
+            "title": "Loan Outstanding Report",
+            "method": "getLoanOutstandingReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "loan",
+            "type": "statement",
+            "title": "Loan Account Statement",
+            "method": "getLoanStatementReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "loan",
+            "type": "repayment",
+            "title": "Loan Repayment Report",
+            "method": "getLoanRepaymentReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "loan",
+            "type": "due",
+            "title": "EMI Due Report",
+            "method": "getLoanDueReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "loan",
+            "type": "closure",
+            "title": "Loan Closure Report",
+            "method": "getLoanClosureReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "loan",
+            "type": "cash",
+            "title": "Cash Loan Report",
+            "method": "getLoanCashReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "loan",
+            "type": "product",
+            "title": "Product Loan Report",
+            "method": "getLoanProductReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "daily",
+            "title": "Daily Collection Report",
+            "method": "getCollectionDailyReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "date_wise",
+            "title": "Date-wise Collection Trend",
+            "method": "getCollectionDateWiseReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "branch_wise",
+            "title": "Branch-wise Collection Summary",
+            "method": "getCollectionBranchWiseReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "staff_wise",
+            "title": "Staff \/ Collector Report",
+            "method": "getCollectionStaffWiseReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "payment_method",
+            "title": "Payment Method Breakdown",
+            "method": "getCollectionPaymentMethodReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "principal",
+            "title": "Principal Collection Report",
+            "method": "getCollectionPrincipalReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "interest",
+            "title": "Interest Collection Report",
+            "method": "getCollectionInterestReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "fee",
+            "title": "Fee Collection Report",
+            "method": "getCollectionFeeReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "penalty",
+            "title": "Penalty Collection Report",
+            "method": "getCollectionPenaltyReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "collection",
+            "type": "efficiency",
+            "title": "Collection Efficiency Report",
+            "method": "getCollectionEfficiencyReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "customer",
+            "type": "summary",
+            "title": "Customer Loan Summary",
+            "method": "getCustomerSummaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "customer",
+            "type": "outstanding",
+            "title": "Customer Outstanding Report",
+            "method": "getCustomerOutstandingReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "customer",
+            "type": "history",
+            "title": "Customer Collection History",
+            "method": "getCustomerHistoryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "customer",
+            "type": "overdue",
+            "title": "Customer Overdue Report",
+            "method": "getCustomerOverdueReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "customer",
+            "type": "portfolio",
+            "title": "Customer Portfolio Summary",
+            "method": "getCustomerPortfolioReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "dashboard",
+            "title": "Overdue Summary Report",
+            "method": "getOverdueDashboardReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "loans",
+            "title": "Overdue Loans Report",
+            "method": "getOverdueLoansReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "installments",
+            "title": "Overdue Installments Report",
+            "method": "getOverdueInstallmentsReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "customer_overdue",
+            "title": "Customer Delinquency Report",
+            "method": "getOverdueCustomerOverdueReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "aging",
+            "title": "Branch Aging & PAR Matrix",
+            "method": "getOverdueAgingReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "par30",
+            "title": "PAR 30+ (Portfolio at Risk)",
+            "method": "getOverduePar30Report",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "par60",
+            "title": "PAR 60+ (Watchlist)",
+            "method": "getOverduePar60Report",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "par90",
+            "title": "PAR 90+ (Non-Performing Assets)",
+            "method": "getOverduePar90Report",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "overdue",
+            "type": "dpd_aging",
+            "title": "DPD Aging Bucket Analysis",
+            "method": "getOverdueDpdAgingReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "penalty",
+            "type": "assessed",
+            "title": "Penalty Assessed Ledger",
+            "method": "getPenaltyAssessedReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "penalty",
+            "type": "collected",
+            "title": "Penalty Collected Report",
+            "method": "getPenaltyCollectedReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "penalty",
+            "type": "outstanding",
+            "title": "Penalty Outstanding Report",
+            "method": "getPenaltyOutstandingReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "penalty",
+            "type": "waived",
+            "title": "Penalty Waivers Report",
+            "method": "getPenaltyWaivedReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "penalty",
+            "type": "customer_wise",
+            "title": "Customer-wise Penalty Summary",
+            "method": "getPenaltyCustomerWiseReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "penalty",
+            "type": "branch_wise",
+            "title": "Branch-wise Penalty Summary",
+            "method": "getPenaltyBranchWiseReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "inventory",
+            "type": "stock",
+            "title": "Product Stock on Hand",
+            "method": "getInventoryStockReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "inventory",
+            "type": "valuation",
+            "title": "Stock Valuation Report",
+            "method": "getInventoryValuationReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "inventory",
+            "type": "movements",
+            "title": "Stock Movement Ledger",
+            "method": "getInventoryMovementsReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "inventory",
+            "type": "purchases",
+            "title": "Product Purchases Report",
+            "method": "getInventoryPurchasesReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "inventory",
+            "type": "transfers",
+            "title": "Stock Transfers Report",
+            "method": "getInventoryTransfersReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "inventory",
+            "type": "product_loan_issues",
+            "title": "Product Loan Issue Register",
+            "method": "getInventoryProductLoanIssuesReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "inventory",
+            "type": "revenue",
+            "title": "Product Loan Sales Revenue",
+            "method": "getInventoryRevenueReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "inventory",
+            "type": "cogs",
+            "title": "Product Loan COGS Report",
+            "method": "getInventoryCogsReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "cash_book",
+            "title": "Cash Book Report",
+            "method": "getAccountingCashBookReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "bank_book",
+            "title": "Bank Book Report",
+            "method": "getAccountingBankBookReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "voucher_register",
+            "title": "Voucher Register",
+            "method": "getAccountingVoucherRegisterReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "general_ledger",
+            "title": "General Ledger",
+            "method": "getAccountingGeneralLedgerReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "trial_balance",
+            "title": "Trial Balance",
+            "method": "getAccountingTrialBalanceReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "profit_loss",
+            "title": "Profit & Loss Statement",
+            "method": "getAccountingProfitLossReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "balance_sheet",
+            "title": "Balance Sheet",
+            "method": "getAccountingBalanceSheetReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "account_statement",
+            "title": "Account Statement",
+            "method": "getAccountingAccountStatementReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "accounting",
+            "type": "branch_summary",
+            "title": "Branch-wise Accounting Summary",
+            "method": "getAccountingBranchSummaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "hr",
+            "type": "employees",
+            "title": "Employee Staff Directory",
+            "method": "getHrEmployeesReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "hr",
+            "type": "attendance",
+            "title": "Attendance Summary Report",
+            "method": "getHrAttendanceReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "hr",
+            "type": "leaves",
+            "title": "Leave Management Report",
+            "method": "getHrLeavesReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "hr",
+            "type": "payroll",
+            "title": "Payroll Register",
+            "method": "getHrPayrollReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "hr",
+            "type": "salary",
+            "title": "Salary Structure Report",
+            "method": "getHrSalaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "hr",
+            "type": "dept_employees",
+            "title": "Department-wise Headcount",
+            "method": "getHrDeptEmployeesReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "hr",
+            "type": "branch_employees",
+            "title": "Branch-wise Headcount",
+            "method": "getHrBranchEmployeesReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "management",
+            "type": "portfolio_summary",
+            "title": "Executive Portfolio Summary",
+            "method": "getManagementPortfolioSummaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "management",
+            "type": "branch_performance",
+            "title": "Branch Performance Scorecard",
+            "method": "getManagementBranchPerformanceReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "management",
+            "type": "collection_performance",
+            "title": "Collection Performance Report",
+            "method": "getManagementCollectionPerformanceReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "management",
+            "type": "disbursement_summary",
+            "title": "Disbursement Summary",
+            "method": "getManagementDisbursementSummaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "management",
+            "type": "outstanding_summary",
+            "title": "Outstanding Portfolio Summary",
+            "method": "getManagementOutstandingSummaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "management",
+            "type": "overdue_summary",
+            "title": "Overdue Executive Summary",
+            "method": "getManagementOverdueSummaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "management",
+            "type": "par_summary",
+            "title": "PAR Analysis Summary",
+            "method": "getManagementParSummaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        },
+        {
+            "category": "management",
+            "type": "product_loan_summary",
+            "title": "Product vs Cash Loan Comparison",
+            "method": "getManagementProductLoanSummaryReport",
+            "method_exists": "YES",
+            "status": "OK",
+            "error": ""
+        }
+    ]
+}

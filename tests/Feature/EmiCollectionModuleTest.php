@@ -31,6 +31,8 @@ class EmiCollectionModuleTest extends TestCase
     {
         parent::setUp();
 
+        $this->seed(\Database\Seeders\RbacSeeder::class);
+
         $this->company = Company::create(['name' => 'Grihalaxmi Finance', 'code' => 'GF01', 'email' => 'info@grihalaxmi.com', 'phone' => '9876543210', 'address' => '123 Main St', 'is_active' => true]);
         $this->branchA = Branch::create(['company_id' => $this->company->id, 'name' => 'Branch Alpha', 'code' => 'BRA', 'phone' => '9876543210', 'email' => 'bra@grihalaxmi.com', 'address' => 'Branch Alpha St', 'city' => 'Patna', 'state' => 'Bihar', 'pincode' => '800001', 'is_active' => true]);
         $this->branchB = Branch::create(['company_id' => $this->company->id, 'name' => 'Branch Beta', 'code' => 'BRB', 'phone' => '9876543211', 'email' => 'brb@grihalaxmi.com', 'address' => 'Branch Beta St', 'city' => 'Patna', 'state' => 'Bihar', 'pincode' => '800001', 'is_active' => true]);
@@ -44,6 +46,7 @@ class EmiCollectionModuleTest extends TestCase
             'user_type' => 'company_admin',
             'is_active' => true,
         ]);
+        $this->adminUser->assignRole('Super Admin');
 
         $this->customer = Customer::create([
             'company_id' => $this->company->id,

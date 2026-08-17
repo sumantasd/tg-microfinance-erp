@@ -168,6 +168,7 @@ class Phase73LoanAccountTest extends TestCase
             'sku' => 'PRD-SEW01',
             'name' => 'Singer Heavy Duty Sewing Machine',
             'unit_price' => 18500.00,
+            'cost_price' => 15000.00,
             'is_active' => true,
         ]);
 

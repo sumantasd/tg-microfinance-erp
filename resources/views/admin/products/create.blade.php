@@ -42,15 +42,31 @@
             </div>
 
             <div class="col-md-4">
-                <label class="form-label fw-bold small">Category</label>
-                <input type="text" name="category" class="form-control @error('category') is-invalid @enderror" value="{{ old('category') }}" placeholder="e.g. Solar Energy, Home Appliances, Sewing">
-                @error('category') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label fw-bold small mb-0">Product Category</label>
+                    <a href="{{ route('admin.product-category.create') }}" target="_blank" class="small text-decoration-none text-success fw-bold"><i class="bi bi-plus-circle me-0.5"></i>New Category</a>
+                </div>
+                <select name="category_id" class="form-select @error('category_id') is-invalid @enderror">
+                    <option value="">Select Category</option>
+                    @foreach($categories as $category)
+                        <option value="{{ $category->id }}" {{ old('category_id') == $category->id ? 'selected' : '' }}>{{ $category->name }}</option>
+                    @endforeach
+                </select>
+                @error('category_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
-                <label class="form-label fw-bold small">Brand</label>
-                <input type="text" name="brand" class="form-control @error('brand') is-invalid @enderror" value="{{ old('brand') }}" placeholder="e.g. Usha, Bajaj, Tata Solar">
-                @error('brand') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label fw-bold small mb-0">Product Brand</label>
+                    <a href="{{ route('admin.product-brand.create') }}" target="_blank" class="small text-decoration-none text-primary fw-bold"><i class="bi bi-plus-circle me-0.5"></i>New Brand</a>
+                </div>
+                <select name="brand_id" class="form-select @error('brand_id') is-invalid @enderror">
+                    <option value="">Select Brand</option>
+                    @foreach($brands as $brand)
+                        <option value="{{ $brand->id }}" {{ old('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+                    @endforeach
+                </select>
+                @error('brand_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">

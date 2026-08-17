@@ -10,14 +10,22 @@ class ProductRepository implements ProductRepositoryInterface
 {
     public function getPaginatedProducts(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
-        $query = Product::with(['company']);
+        $query = Product::with(['company', 'brandRel', 'categoryRel']);
 
         if (!empty($filters['company_id'])) {
             $query->where('company_id', $filters['company_id']);
         }
 
-        if (!empty($filters['category'])) {
+        if (!empty($filters['category_id'])) {
+            $query->where('category_id', $filters['category_id']);
+        } elseif (!empty($filters['category'])) {
             $query->where('category', $filters['category']);
+        }
+
+        if (!empty($filters['brand_id'])) {
+            $query->where('brand_id', $filters['brand_id']);
+        } elseif (!empty($filters['brand'])) {
+            $query->where('brand', $filters['brand']);
         }
 
         if (isset($filters['is_active'])) {
@@ -30,6 +38,7 @@ class ProductRepository implements ProductRepositoryInterface
                 $q->where('name', 'like', "%{$search}%")
                   ->orWhere('sku', 'like', "%{$search}%")
                   ->orWhere('brand', 'like', "%{$search}%")
+                  ->orWhere('category', 'like', "%{$search}%")
                   ->orWhere('model_number', 'like', "%{$search}%");
             });
         }

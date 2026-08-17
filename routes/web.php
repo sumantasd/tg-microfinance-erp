@@ -17,7 +17,11 @@ use App\Http\Controllers\Admin\Cms\PageController;
 use App\Http\Controllers\Admin\Cms\SeoSettingController;
 use App\Http\Controllers\Admin\Cms\TeamMemberController;
 use App\Http\Controllers\Admin\Cms\WebsiteSettingController;
-use App\Http\Controllers\Admin\Cms\WhyChooseUsController;
+use App\Http\Controllers\Admin\AccountingDashboardController;
+use App\Http\Controllers\Admin\BankAccountController;
+use App\Http\Controllers\Admin\ChartOfAccountController;
+use App\Http\Controllers\Admin\VoucherController;
+use App\Http\Controllers\Admin\ReportsController;
 use App\Http\Controllers\Admin\BranchController;
 use App\Http\Controllers\Admin\CompanyController;
 use App\Http\Controllers\Admin\CustomerController;
@@ -31,9 +35,14 @@ use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InventoryTransferController;
 use App\Http\Controllers\Admin\EmiCollectionController;
+use App\Http\Controllers\Admin\OverdueController;
+use App\Http\Controllers\Admin\LoanPenaltyController;
 use App\Http\Controllers\Admin\LoanAccountController;
+use App\Http\Controllers\Admin\LoanSettlementController;
 use App\Http\Controllers\Admin\LoanApplicationController;
 use App\Http\Controllers\Admin\LoanSchemeController;
+use App\Http\Controllers\Admin\ProductBrandController;
+use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductPurchaseController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\ProfileController;
@@ -130,208 +139,294 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     // System Modules - Real Functional RBAC Routes
     Route::prefix('system')->group(function () {
         // User Management CRUD
-        Route::get('/users', [UserController::class, 'index'])->name('admin.system.users.index');
-        Route::get('/users/create', [UserController::class, 'create'])->name('admin.system.users.create');
-        Route::post('/users', [UserController::class, 'store'])->name('admin.system.users.store');
-        Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('admin.system.users.edit');
-        Route::put('/users/{user}', [UserController::class, 'update'])->name('admin.system.users.update');
-        Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('admin.system.users.toggle-status');
-        Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.system.users.destroy');
+        Route::middleware('can:users.view')->group(function () {
+            Route::get('/users', [UserController::class, 'index'])->name('admin.system.users.index');
+            Route::get('/users/create', [UserController::class, 'create'])->name('admin.system.users.create')->middleware('can:users.create');
+            Route::post('/users', [UserController::class, 'store'])->name('admin.system.users.store')->middleware('can:users.create');
+            Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('admin.system.users.edit')->middleware('can:users.edit');
+            Route::put('/users/{user}', [UserController::class, 'update'])->name('admin.system.users.update')->middleware('can:users.edit');
+            Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('admin.system.users.toggle-status')->middleware('can:users.toggle_status');
+            Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.system.users.destroy')->middleware('can:users.delete');
+        });
 
         // Role Management CRUD
-        Route::get('/roles', [RoleController::class, 'index'])->name('admin.system.roles.index');
-        Route::get('/roles/create', [RoleController::class, 'create'])->name('admin.system.roles.create');
-        Route::post('/roles', [RoleController::class, 'store'])->name('admin.system.roles.store');
-        Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('admin.system.roles.edit');
-        Route::put('/roles/{role}', [RoleController::class, 'update'])->name('admin.system.roles.update');
-        Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('admin.system.roles.destroy');
+        Route::middleware('can:roles.view')->group(function () {
+            Route::get('/roles', [RoleController::class, 'index'])->name('admin.system.roles.index');
+            Route::get('/roles/create', [RoleController::class, 'create'])->name('admin.system.roles.create')->middleware('can:roles.create');
+            Route::post('/roles', [RoleController::class, 'store'])->name('admin.system.roles.store')->middleware('can:roles.create');
+            Route::get('/roles/{role}/edit', [RoleController::class, 'edit'])->name('admin.system.roles.edit')->middleware('can:roles.edit');
+            Route::put('/roles/{role}', [RoleController::class, 'update'])->name('admin.system.roles.update')->middleware('can:roles.edit');
+            Route::delete('/roles/{role}', [RoleController::class, 'destroy'])->name('admin.system.roles.destroy')->middleware('can:roles.delete');
+        });
 
         // Permissions Matrix
-        Route::get('/permissions', [PermissionController::class, 'index'])->name('admin.system.permissions.index');
-        Route::post('/permissions', [PermissionController::class, 'store'])->name('admin.system.permissions.store');
-        Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('admin.system.permissions.destroy');
+        Route::middleware('can:permissions.view')->group(function () {
+            Route::get('/permissions', [PermissionController::class, 'index'])->name('admin.system.permissions.index');
+            Route::post('/permissions', [PermissionController::class, 'store'])->name('admin.system.permissions.store');
+            Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('admin.system.permissions.destroy');
+        });
 
         // System Placeholder Subpages
-        Route::get('/settings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Settings', 'moduleSlug' => 'system/settings']); });
-        Route::get('/media', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Media Library', 'moduleSlug' => 'system/media']); });
-        Route::get('/notifications', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Notifications', 'moduleSlug' => 'system/notifications']); });
-        Route::get('/audit-logs', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Audit Logs', 'moduleSlug' => 'system/audit-logs']); });
-        Route::get('/backup', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Database Backup', 'moduleSlug' => 'system/backup']); });
+        Route::middleware('can:settings.view')->group(function () {
+            Route::get('/settings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Settings', 'moduleSlug' => 'system/settings']); });
+            Route::get('/media', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Media Library', 'moduleSlug' => 'system/media']); });
+            Route::get('/notifications', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Notifications', 'moduleSlug' => 'system/notifications']); });
+            Route::get('/audit-logs', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Audit Logs', 'moduleSlug' => 'system/audit-logs']); });
+            Route::get('/backup', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Database Backup', 'moduleSlug' => 'system/backup']); });
+        });
     });
 
     // ERP Core Modules - Real Functional Company & Branch Routes
-    Route::get('/company', [CompanyController::class, 'index'])->name('admin.company.index');
-    Route::get('/company/create', [CompanyController::class, 'create'])->name('admin.company.create');
-    Route::post('/company', [CompanyController::class, 'store'])->name('admin.company.store');
-    Route::get('/company/{company}', [CompanyController::class, 'show'])->name('admin.company.show');
-    Route::get('/company/{company}/edit', [CompanyController::class, 'edit'])->name('admin.company.edit');
-    Route::put('/company/{company}', [CompanyController::class, 'update'])->name('admin.company.update');
-    Route::patch('/company/{company}/toggle-status', [CompanyController::class, 'toggleStatus'])->name('admin.company.toggle-status');
-    Route::delete('/company/{company}', [CompanyController::class, 'destroy'])->name('admin.company.destroy');
-    Route::post('/company/{id}/restore', [CompanyController::class, 'restore'])->name('admin.company.restore');
+    Route::middleware('can:company.view')->group(function () {
+        Route::get('/company', [CompanyController::class, 'index'])->name('admin.company.index');
+        Route::get('/company/create', [CompanyController::class, 'create'])->name('admin.company.create')->middleware('can:company.create');
+        Route::post('/company', [CompanyController::class, 'store'])->name('admin.company.store')->middleware('can:company.create');
+        Route::get('/company/{company}', [CompanyController::class, 'show'])->name('admin.company.show');
+        Route::get('/company/{company}/edit', [CompanyController::class, 'edit'])->name('admin.company.edit')->middleware('can:company.edit');
+        Route::put('/company/{company}', [CompanyController::class, 'update'])->name('admin.company.update')->middleware('can:company.edit');
+        Route::patch('/company/{company}/toggle-status', [CompanyController::class, 'toggleStatus'])->name('admin.company.toggle-status')->middleware('can:company.toggle_status');
+        Route::delete('/company/{company}', [CompanyController::class, 'destroy'])->name('admin.company.destroy')->middleware('can:company.delete');
+        Route::post('/company/{id}/restore', [CompanyController::class, 'restore'])->name('admin.company.restore')->middleware('can:company.restore');
+    });
 
-    Route::get('/branch', [BranchController::class, 'index'])->name('admin.branch.index');
-    Route::get('/branch/create', [BranchController::class, 'create'])->name('admin.branch.create');
-    Route::post('/branch', [BranchController::class, 'store'])->name('admin.branch.store');
-    Route::get('/branch/{branch}', [BranchController::class, 'show'])->name('admin.branch.show');
-    Route::get('/branch/{branch}/edit', [BranchController::class, 'edit'])->name('admin.branch.edit');
-    Route::put('/branch/{branch}', [BranchController::class, 'update'])->name('admin.branch.update');
-    Route::patch('/branch/{branch}/toggle-status', [BranchController::class, 'toggleStatus'])->name('admin.branch.toggle-status');
-    Route::delete('/branch/{branch}', [BranchController::class, 'destroy'])->name('admin.branch.destroy');
-    Route::post('/branch/{id}/restore', [BranchController::class, 'restore'])->name('admin.branch.restore');
+    Route::middleware('can:branch.view')->group(function () {
+        Route::get('/branch', [BranchController::class, 'index'])->name('admin.branch.index');
+        Route::get('/branch/create', [BranchController::class, 'create'])->name('admin.branch.create')->middleware('can:branch.create');
+        Route::post('/branch', [BranchController::class, 'store'])->name('admin.branch.store')->middleware('can:branch.create');
+        Route::get('/branch/{branch}', [BranchController::class, 'show'])->name('admin.branch.show');
+        Route::get('/branch/{branch}/edit', [BranchController::class, 'edit'])->name('admin.branch.edit')->middleware('can:branch.edit');
+        Route::put('/branch/{branch}', [BranchController::class, 'update'])->name('admin.branch.update')->middleware('can:branch.edit');
+        Route::patch('/branch/{branch}/toggle-status', [BranchController::class, 'toggleStatus'])->name('admin.branch.toggle-status')->middleware('can:branch.toggle_status');
+        Route::delete('/branch/{branch}', [BranchController::class, 'destroy'])->name('admin.branch.destroy')->middleware('can:branch.delete');
+        Route::post('/branch/{id}/restore', [BranchController::class, 'restore'])->name('admin.branch.restore')->middleware('can:branch.restore');
+    });
 
     // Phase 3: HRM Foundation Routes
-    Route::get('/department', [DepartmentController::class, 'index'])->name('admin.department.index');
-    Route::get('/department/create', [DepartmentController::class, 'create'])->name('admin.department.create');
-    Route::post('/department', [DepartmentController::class, 'store'])->name('admin.department.store');
-    Route::get('/department/{department}', [DepartmentController::class, 'show'])->name('admin.department.show');
-    Route::get('/department/{department}/edit', [DepartmentController::class, 'edit'])->name('admin.department.edit');
-    Route::put('/department/{department}', [DepartmentController::class, 'update'])->name('admin.department.update');
-    Route::patch('/department/{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->name('admin.department.toggle-status');
-    Route::delete('/department/{department}', [DepartmentController::class, 'destroy'])->name('admin.department.destroy');
-    Route::post('/department/{id}/restore', [DepartmentController::class, 'restore'])->name('admin.department.restore');
+    Route::middleware('can:department.view')->group(function () {
+        Route::get('/department', [DepartmentController::class, 'index'])->name('admin.department.index');
+        Route::get('/department/create', [DepartmentController::class, 'create'])->name('admin.department.create')->middleware('can:department.create');
+        Route::post('/department', [DepartmentController::class, 'store'])->name('admin.department.store')->middleware('can:department.create');
+        Route::get('/department/{department}', [DepartmentController::class, 'show'])->name('admin.department.show');
+        Route::get('/department/{department}/edit', [DepartmentController::class, 'edit'])->name('admin.department.edit')->middleware('can:department.edit');
+        Route::put('/department/{department}', [DepartmentController::class, 'update'])->name('admin.department.update')->middleware('can:department.edit');
+        Route::patch('/department/{department}/toggle-status', [DepartmentController::class, 'toggleStatus'])->name('admin.department.toggle-status')->middleware('can:department.toggle_status');
+        Route::delete('/department/{department}', [DepartmentController::class, 'destroy'])->name('admin.department.destroy')->middleware('can:department.delete');
+        Route::post('/department/{id}/restore', [DepartmentController::class, 'restore'])->name('admin.department.restore')->middleware('can:department.restore');
+    });
 
-    Route::get('/designation', [DesignationController::class, 'index'])->name('admin.designation.index');
-    Route::get('/designation/create', [DesignationController::class, 'create'])->name('admin.designation.create');
-    Route::post('/designation', [DesignationController::class, 'store'])->name('admin.designation.store');
-    Route::get('/designation/{designation}', [DesignationController::class, 'show'])->name('admin.designation.show');
-    Route::get('/designation/{designation}/edit', [DesignationController::class, 'edit'])->name('admin.designation.edit');
-    Route::put('/designation/{designation}', [DesignationController::class, 'update'])->name('admin.designation.update');
-    Route::patch('/designation/{designation}/toggle-status', [DesignationController::class, 'toggleStatus'])->name('admin.designation.toggle-status');
-    Route::delete('/designation/{designation}', [DesignationController::class, 'destroy'])->name('admin.designation.destroy');
-    Route::post('/designation/{id}/restore', [DesignationController::class, 'restore'])->name('admin.designation.restore');
+    Route::middleware('can:designation.view')->group(function () {
+        Route::get('/designation', [DesignationController::class, 'index'])->name('admin.designation.index');
+        Route::get('/designation/create', [DesignationController::class, 'create'])->name('admin.designation.create')->middleware('can:designation.create');
+        Route::post('/designation', [DesignationController::class, 'store'])->name('admin.designation.store')->middleware('can:designation.create');
+        Route::get('/designation/{designation}', [DesignationController::class, 'show'])->name('admin.designation.show');
+        Route::get('/designation/{designation}/edit', [DesignationController::class, 'edit'])->name('admin.designation.edit')->middleware('can:designation.edit');
+        Route::put('/designation/{designation}', [DesignationController::class, 'update'])->name('admin.designation.update')->middleware('can:designation.edit');
+        Route::patch('/designation/{designation}/toggle-status', [DesignationController::class, 'toggleStatus'])->name('admin.designation.toggle-status')->middleware('can:designation.toggle_status');
+        Route::delete('/designation/{designation}', [DesignationController::class, 'destroy'])->name('admin.designation.destroy')->middleware('can:designation.delete');
+        Route::post('/designation/{id}/restore', [DesignationController::class, 'restore'])->name('admin.designation.restore')->middleware('can:designation.restore');
+    });
 
-    Route::get('/employee', [EmployeeController::class, 'index'])->name('admin.employee.index');
-    Route::get('/employee/create', [EmployeeController::class, 'create'])->name('admin.employee.create');
-    Route::post('/employee', [EmployeeController::class, 'store'])->name('admin.employee.store');
-    Route::get('/employee/{employee}', [EmployeeController::class, 'show'])->name('admin.employee.show');
-    Route::get('/employee/{employee}/edit', [EmployeeController::class, 'edit'])->name('admin.employee.edit');
-    Route::put('/employee/{employee}', [EmployeeController::class, 'update'])->name('admin.employee.update');
-    Route::patch('/employee/{employee}/toggle-status', [EmployeeController::class, 'toggleStatus'])->name('admin.employee.toggle-status');
-    Route::delete('/employee/{employee}', [EmployeeController::class, 'destroy'])->name('admin.employee.destroy');
-    Route::post('/employee/{id}/restore', [EmployeeController::class, 'restore'])->name('admin.employee.restore');
-    Route::delete('/employee/document/{document}', [EmployeeController::class, 'destroyDocument'])->name('admin.employee.document.destroy');
+    Route::middleware('can:employee.view')->group(function () {
+        Route::get('/employee', [EmployeeController::class, 'index'])->name('admin.employee.index');
+        Route::get('/employee/create', [EmployeeController::class, 'create'])->name('admin.employee.create')->middleware('can:employee.create');
+        Route::post('/employee', [EmployeeController::class, 'store'])->name('admin.employee.store')->middleware('can:employee.create');
+        Route::get('/employee/{employee}', [EmployeeController::class, 'show'])->name('admin.employee.show');
+        Route::get('/employee/{employee}/edit', [EmployeeController::class, 'edit'])->name('admin.employee.edit')->middleware('can:employee.edit');
+        Route::put('/employee/{employee}', [EmployeeController::class, 'update'])->name('admin.employee.update')->middleware('can:employee.edit');
+        Route::patch('/employee/{employee}/toggle-status', [EmployeeController::class, 'toggleStatus'])->name('admin.employee.toggle-status')->middleware('can:employee.toggle_status');
+        Route::delete('/employee/{employee}', [EmployeeController::class, 'destroy'])->name('admin.employee.destroy')->middleware('can:employee.delete');
+        Route::post('/employee/{id}/restore', [EmployeeController::class, 'restore'])->name('admin.employee.restore')->middleware('can:employee.restore');
+        Route::delete('/employee/document/{document}', [EmployeeController::class, 'destroyDocument'])->name('admin.employee.document.destroy')->middleware('can:employee.edit');
+    });
 
     // Essential HRM Modules Routes
-    Route::get('/hrm/attendance', [\App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('admin.hrm.attendance.index');
-    Route::post('/hrm/attendance', [\App\Http\Controllers\Admin\AttendanceController::class, 'store'])->name('admin.hrm.attendance.store');
+    Route::middleware('can:attendance.view')->group(function () {
+        Route::get('/hrm/attendance', [\App\Http\Controllers\Admin\AttendanceController::class, 'index'])->name('admin.hrm.attendance.index');
+        Route::post('/hrm/attendance', [\App\Http\Controllers\Admin\AttendanceController::class, 'store'])->name('admin.hrm.attendance.store')->middleware('can:attendance.create');
+    });
 
-    Route::get('/hrm/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('admin.hrm.leave.index');
-    Route::post('/hrm/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'store'])->name('admin.hrm.leave.store');
-    Route::post('/hrm/leave/{leave}/approve', [\App\Http\Controllers\Admin\LeaveController::class, 'approve'])->name('admin.hrm.leave.approve');
-    Route::post('/hrm/leave/{leave}/reject', [\App\Http\Controllers\Admin\LeaveController::class, 'reject'])->name('admin.hrm.leave.reject');
+    Route::middleware('can:leave.view')->group(function () {
+        Route::get('/hrm/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'index'])->name('admin.hrm.leave.index');
+        Route::post('/hrm/leave', [\App\Http\Controllers\Admin\LeaveController::class, 'store'])->name('admin.hrm.leave.store')->middleware('can:leave.create');
+        Route::post('/hrm/leave/{leave}/approve', [\App\Http\Controllers\Admin\LeaveController::class, 'approve'])->name('admin.hrm.leave.approve')->middleware('can:leave.approve');
+        Route::post('/hrm/leave/{leave}/reject', [\App\Http\Controllers\Admin\LeaveController::class, 'reject'])->name('admin.hrm.leave.reject')->middleware('can:leave.reject');
+    });
 
-    Route::get('/hrm/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('admin.hrm.payroll.index');
-    Route::post('/hrm/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'store'])->name('admin.hrm.payroll.store');
-    Route::get('/hrm/payroll/{id}', [\App\Http\Controllers\Admin\PayrollController::class, 'show'])->name('admin.hrm.payroll.show');
-    Route::post('/hrm/payroll/{id}/disburse', [\App\Http\Controllers\Admin\PayrollController::class, 'disburse'])->name('admin.hrm.payroll.disburse');
-    Route::get('/hrm/payroll/slip/{uuid}', [\App\Http\Controllers\Admin\PayrollController::class, 'salarySlip'])->name('admin.hrm.payroll.slip');
+    Route::middleware('can:payroll.view')->group(function () {
+        Route::get('/hrm/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('admin.hrm.payroll.index');
+        Route::post('/hrm/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'store'])->name('admin.hrm.payroll.store')->middleware('can:payroll.process');
+        Route::get('/hrm/payroll/{id}', [\App\Http\Controllers\Admin\PayrollController::class, 'show'])->name('admin.hrm.payroll.show');
+        Route::post('/hrm/payroll/{id}/disburse', [\App\Http\Controllers\Admin\PayrollController::class, 'disburse'])->name('admin.hrm.payroll.disburse')->middleware('can:payroll.disburse');
+        Route::get('/hrm/payroll/slip/{uuid}', [\App\Http\Controllers\Admin\PayrollController::class, 'salarySlip'])->name('admin.hrm.payroll.slip');
+    });
 
-    Route::get('/hrm/letters', [\App\Http\Controllers\Admin\HrLetterController::class, 'index'])->name('admin.hrm.letters.index');
-    Route::get('/hrm/letters/{employee}/generate', [\App\Http\Controllers\Admin\HrLetterController::class, 'generate'])->name('admin.hrm.letters.generate');
-    Route::get('/hrm/letters/{employee}/id-card', [\App\Http\Controllers\Admin\HrLetterController::class, 'idCard'])->name('admin.hrm.letters.id-card');
+    Route::middleware('can:hr_letter.view')->group(function () {
+        Route::get('/hrm/letters', [\App\Http\Controllers\Admin\HrLetterController::class, 'index'])->name('admin.hrm.letters.index');
+        Route::get('/hrm/letters/{employee}/generate', [\App\Http\Controllers\Admin\HrLetterController::class, 'generate'])->name('admin.hrm.letters.generate')->middleware('can:hr_letter.generate');
+        Route::get('/hrm/letters/{employee}/id-card', [\App\Http\Controllers\Admin\HrLetterController::class, 'idCard'])->name('admin.hrm.letters.id-card');
+    });
 
-    Route::get('/hrm/reports', [\App\Http\Controllers\Admin\HrReportController::class, 'index'])->name('admin.hrm.reports.index');
+    Route::get('/hrm/reports', [\App\Http\Controllers\Admin\HrReportController::class, 'index'])->name('admin.hrm.reports.index')->middleware('can:hr_reports.view');
 
     // Module 6: Customer & Member Management Routes
-    Route::get('/customer', [CustomerController::class, 'index'])->name('admin.customer.index');
-    Route::get('/customer/create', [CustomerController::class, 'create'])->name('admin.customer.create');
-    Route::post('/customer', [CustomerController::class, 'store'])->name('admin.customer.store');
-    Route::get('/customer/{customer}', [CustomerController::class, 'show'])->name('admin.customer.show');
-    Route::get('/customer/{customer}/edit', [CustomerController::class, 'edit'])->name('admin.customer.edit');
-    Route::put('/customer/{customer}', [CustomerController::class, 'update'])->name('admin.customer.update');
-    Route::patch('/customer/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])->name('admin.customer.toggle-status');
-    Route::delete('/customer/{customer}', [CustomerController::class, 'destroy'])->name('admin.customer.destroy');
-    Route::post('/customer/{id}/restore', [CustomerController::class, 'restore'])->name('admin.customer.restore');
+    Route::middleware('can:customer.view')->group(function () {
+        Route::get('/customer', [CustomerController::class, 'index'])->name('admin.customer.index');
+        Route::get('/customer/create', [CustomerController::class, 'create'])->name('admin.customer.create')->middleware('can:customer.create');
+        Route::post('/customer', [CustomerController::class, 'store'])->name('admin.customer.store')->middleware('can:customer.create');
+        Route::get('/customer/{customer}', [CustomerController::class, 'show'])->name('admin.customer.show');
+        Route::get('/customer/{customer}/edit', [CustomerController::class, 'edit'])->name('admin.customer.edit')->middleware('can:customer.edit');
+        Route::put('/customer/{customer}', [CustomerController::class, 'update'])->name('admin.customer.update')->middleware('can:customer.edit');
+        Route::patch('/customer/{customer}/toggle-status', [CustomerController::class, 'toggleStatus'])->name('admin.customer.toggle-status')->middleware('can:customer.change_status');
+        Route::delete('/customer/{customer}', [CustomerController::class, 'destroy'])->name('admin.customer.destroy')->middleware('can:customer.delete');
+        Route::post('/customer/{id}/restore', [CustomerController::class, 'restore'])->name('admin.customer.restore')->middleware('can:customer.restore');
 
-    // Customer KYC Routes
-    Route::post('/customer/{customer}/kyc', [CustomerKycController::class, 'store'])->name('admin.customer.kyc.store');
-    Route::get('/customer/kyc/{kyc}/download', [CustomerKycController::class, 'download'])->name('admin.customer.kyc.download');
-    Route::post('/customer/kyc/{kyc}/verify', [CustomerKycController::class, 'verify'])->name('admin.customer.kyc.verify');
-    Route::delete('/customer/kyc/{kyc}', [CustomerKycController::class, 'destroy'])->name('admin.customer.kyc.destroy');
+        // Customer KYC Routes
+        Route::post('/customer/{customer}/kyc', [CustomerKycController::class, 'store'])->name('admin.customer.kyc.store')->middleware('can:customer.verify_kyc');
+        Route::get('/customer/kyc/{kyc}/download', [CustomerKycController::class, 'download'])->name('admin.customer.kyc.download');
+        Route::post('/customer/kyc/{kyc}/verify', [CustomerKycController::class, 'verify'])->name('admin.customer.kyc.verify')->middleware('can:customer.verify_kyc');
+        Route::delete('/customer/kyc/{kyc}', [CustomerKycController::class, 'destroy'])->name('admin.customer.kyc.destroy')->middleware('can:customer.verify_kyc');
 
-    // Customer Guarantor Routes
-    Route::post('/customer/{customer}/guarantor', [CustomerGuarantorController::class, 'store'])->name('admin.customer.guarantor.store');
-    Route::get('/customer/guarantor/{guarantor}/download-kyc', [CustomerGuarantorController::class, 'downloadKyc'])->name('admin.customer.guarantor.download-kyc');
-    Route::delete('/customer/guarantor/{guarantor}', [CustomerGuarantorController::class, 'destroy'])->name('admin.customer.guarantor.destroy');
+        // Customer Guarantor Routes
+        Route::post('/customer/{customer}/guarantor', [CustomerGuarantorController::class, 'store'])->name('admin.customer.guarantor.store')->middleware('can:customer.manage_guarantor');
+        Route::get('/customer/guarantor/{guarantor}/download-kyc', [CustomerGuarantorController::class, 'downloadKyc'])->name('admin.customer.guarantor.download-kyc');
+        Route::delete('/customer/guarantor/{guarantor}', [CustomerGuarantorController::class, 'destroy'])->name('admin.customer.guarantor.destroy')->middleware('can:customer.manage_guarantor');
 
-    // Customer Nominee Routes
-    Route::post('/customer/{customer}/nominee', [CustomerNomineeController::class, 'store'])->name('admin.customer.nominee.store');
-    Route::delete('/customer/nominee/{nominee}', [CustomerNomineeController::class, 'destroy'])->name('admin.customer.nominee.destroy');
+        // Customer Nominee Routes
+        Route::post('/customer/{customer}/nominee', [CustomerNomineeController::class, 'store'])->name('admin.customer.nominee.store')->middleware('can:customer.manage_nominee');
+        Route::delete('/customer/nominee/{nominee}', [CustomerNomineeController::class, 'destroy'])->name('admin.customer.nominee.destroy')->middleware('can:customer.manage_nominee');
+    });
 
     // Customer Group Management Routes
-    Route::get('/customer-group', [CustomerGroupController::class, 'index'])->name('admin.customer-group.index');
-    Route::get('/customer-group/create', [CustomerGroupController::class, 'create'])->name('admin.customer-group.create');
-    Route::post('/customer-group', [CustomerGroupController::class, 'store'])->name('admin.customer-group.store');
-    Route::get('/customer-group/{group}', [CustomerGroupController::class, 'show'])->name('admin.customer-group.show');
-    Route::get('/customer-group/{group}/edit', [CustomerGroupController::class, 'edit'])->name('admin.customer-group.edit');
-    Route::put('/customer-group/{group}', [CustomerGroupController::class, 'update'])->name('admin.customer-group.update');
-    Route::delete('/customer-group/{group}', [CustomerGroupController::class, 'destroy'])->name('admin.customer-group.destroy');
-    Route::patch('/customer-group/{group}/toggle-status', [CustomerGroupController::class, 'toggleStatus'])->name('admin.customer-group.toggle-status');
-    Route::post('/customer-group/{group}/member', [CustomerGroupController::class, 'addMember'])->name('admin.customer-group.member.store');
-    Route::delete('/customer-group/{group}/member/{customer}', [CustomerGroupController::class, 'removeMember'])->name('admin.customer-group.member.destroy');
-    Route::post('/customer-group/{group}/assign-leader', [CustomerGroupController::class, 'assignLeader'])->name('admin.customer-group.assign-leader');
+    Route::middleware('can:group.view')->group(function () {
+        Route::get('/customer-group', [CustomerGroupController::class, 'index'])->name('admin.customer-group.index');
+        Route::get('/customer-group/create', [CustomerGroupController::class, 'create'])->name('admin.customer-group.create')->middleware('can:group.create');
+        Route::post('/customer-group', [CustomerGroupController::class, 'store'])->name('admin.customer-group.store')->middleware('can:group.create');
+        Route::get('/customer-group/{group}', [CustomerGroupController::class, 'show'])->name('admin.customer-group.show');
+        Route::get('/customer-group/{group}/edit', [CustomerGroupController::class, 'edit'])->name('admin.customer-group.edit')->middleware('can:group.edit');
+        Route::put('/customer-group/{group}', [CustomerGroupController::class, 'update'])->name('admin.customer-group.update')->middleware('can:group.edit');
+        Route::delete('/customer-group/{group}', [CustomerGroupController::class, 'destroy'])->name('admin.customer-group.destroy')->middleware('can:group.delete');
+        Route::patch('/customer-group/{group}/toggle-status', [CustomerGroupController::class, 'toggleStatus'])->name('admin.customer-group.toggle-status')->middleware('can:group.change_status');
+        Route::post('/customer-group/{group}/member', [CustomerGroupController::class, 'addMember'])->name('admin.customer-group.member.store')->middleware('can:group.manage_members');
+        Route::delete('/customer-group/{group}/member/{customer}', [CustomerGroupController::class, 'removeMember'])->name('admin.customer-group.member.destroy')->middleware('can:group.manage_members');
+        Route::post('/customer-group/{group}/assign-leader', [CustomerGroupController::class, 'assignLeader'])->name('admin.customer-group.assign-leader')->middleware('can:group.assign_leader');
+    });
 
     // Module 7 — Phase 7.1 Routes (Loan Schemes, Product Catalog, Generic Inventory)
-    Route::resource('loan-scheme', LoanSchemeController::class, ['as' => 'admin']);
-    Route::resource('product', AdminProductController::class, ['as' => 'admin']);
+    Route::resource('loan-scheme', LoanSchemeController::class, ['as' => 'admin'])->middleware('can:loan_scheme.view');
+    Route::resource('product-brand', ProductBrandController::class, ['as' => 'admin'])->except(['show'])->middleware('can:product_brand.view');
+    Route::resource('product-category', ProductCategoryController::class, ['as' => 'admin'])->except(['show'])->middleware('can:product_category.view');
+    Route::resource('product', AdminProductController::class, ['as' => 'admin'])->middleware('can:product.view');
     
-    Route::get('/inventory', [InventoryController::class, 'index'])->name('admin.inventory.index');
-    Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('admin.inventory.movements');
-    Route::post('/inventory/restock', [InventoryController::class, 'restock'])->name('admin.inventory.restock');
-    Route::post('/inventory/adjust', [InventoryController::class, 'adjust'])->name('admin.inventory.adjust');
+    Route::middleware('can:inventory.view')->group(function () {
+        Route::get('/inventory', [InventoryController::class, 'index'])->name('admin.inventory.index');
+        Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('admin.inventory.movements');
+        Route::post('/inventory/restock', [InventoryController::class, 'restock'])->name('admin.inventory.restock')->middleware('can:inventory.restock');
+        Route::post('/inventory/adjust', [InventoryController::class, 'adjust'])->name('admin.inventory.adjust')->middleware('can:inventory.adjust');
+    });
 
     // Branch-to-Branch Inventory Transfer Routes
-    Route::get('/inventory/transfers', [InventoryTransferController::class, 'index'])->name('admin.inventory-transfer.index');
-    Route::get('/inventory/transfers/create', [InventoryTransferController::class, 'create'])->name('admin.inventory-transfer.create');
-    Route::post('/inventory/transfers', [InventoryTransferController::class, 'store'])->name('admin.inventory-transfer.store');
-    Route::get('/inventory/transfers/{inventoryTransfer}', [InventoryTransferController::class, 'show'])->name('admin.inventory-transfer.show');
-    Route::post('/inventory/transfers/{inventoryTransfer}/request', [InventoryTransferController::class, 'requestTransfer'])->name('admin.inventory-transfer.request');
-    Route::post('/inventory/transfers/{inventoryTransfer}/approve', [InventoryTransferController::class, 'approve'])->name('admin.inventory-transfer.approve');
-    Route::post('/inventory/transfers/{inventoryTransfer}/reject', [InventoryTransferController::class, 'reject'])->name('admin.inventory-transfer.reject');
-    Route::post('/inventory/transfers/{inventoryTransfer}/dispatch', [InventoryTransferController::class, 'dispatchTransfer'])->name('admin.inventory-transfer.dispatch');
-    Route::post('/inventory/transfers/{inventoryTransfer}/receive', [InventoryTransferController::class, 'receive'])->name('admin.inventory-transfer.receive');
-    Route::post('/inventory/transfers/{inventoryTransfer}/cancel', [InventoryTransferController::class, 'cancel'])->name('admin.inventory-transfer.cancel');
+    Route::middleware('can:inventory.transfer.view')->group(function () {
+        Route::get('/inventory/transfers', [InventoryTransferController::class, 'index'])->name('admin.inventory-transfer.index');
+        Route::get('/inventory/transfers/create', [InventoryTransferController::class, 'create'])->name('admin.inventory-transfer.create')->middleware('can:inventory.transfer.create');
+        Route::post('/inventory/transfers', [InventoryTransferController::class, 'store'])->name('admin.inventory-transfer.store')->middleware('can:inventory.transfer.create');
+        Route::get('/inventory/transfers/{inventoryTransfer}', [InventoryTransferController::class, 'show'])->name('admin.inventory-transfer.show');
+        Route::post('/inventory/transfers/{inventoryTransfer}/request', [InventoryTransferController::class, 'requestTransfer'])->name('admin.inventory-transfer.request')->middleware('can:inventory.transfer.create');
+        Route::post('/inventory/transfers/{inventoryTransfer}/approve', [InventoryTransferController::class, 'approve'])->name('admin.inventory-transfer.approve')->middleware('can:inventory.transfer.approve');
+        Route::post('/inventory/transfers/{inventoryTransfer}/reject', [InventoryTransferController::class, 'reject'])->name('admin.inventory-transfer.reject')->middleware('can:inventory.transfer.reject');
+        Route::post('/inventory/transfers/{inventoryTransfer}/dispatch', [InventoryTransferController::class, 'dispatchTransfer'])->name('admin.inventory-transfer.dispatch')->middleware('can:inventory.transfer.dispatch');
+        Route::post('/inventory/transfers/{inventoryTransfer}/receive', [InventoryTransferController::class, 'receive'])->name('admin.inventory-transfer.receive')->middleware('can:inventory.transfer.receive');
+        Route::post('/inventory/transfers/{inventoryTransfer}/cancel', [InventoryTransferController::class, 'cancel'])->name('admin.inventory-transfer.cancel')->middleware('can:inventory.transfer.cancel');
+    });
 
     // Product Purchase / Procurement Management Routes
-    Route::resource('inventory/purchases', ProductPurchaseController::class)->names('admin.product-purchase');
-    Route::post('/inventory/purchases/{productPurchase}/confirm', [ProductPurchaseController::class, 'confirm'])->name('admin.product-purchase.confirm');
-    Route::post('/inventory/purchases/{productPurchase}/receive', [ProductPurchaseController::class, 'receive'])->name('admin.product-purchase.receive');
+    Route::middleware('can:purchase.view')->group(function () {
+        Route::resource('inventory/purchases', ProductPurchaseController::class)->names('admin.product-purchase');
+        Route::post('/inventory/purchases/{productPurchase}/confirm', [ProductPurchaseController::class, 'confirm'])->name('admin.product-purchase.confirm')->middleware('can:purchase.confirm');
+        Route::post('/inventory/purchases/{productPurchase}/receive', [ProductPurchaseController::class, 'receive'])->name('admin.product-purchase.receive')->middleware('can:purchase.receive');
+    });
+
     // Module 7 — Phase 7.2 Routes (Loan Applications & Approvals)
-    Route::resource('loan-application', LoanApplicationController::class, ['as' => 'admin']);
-    Route::post('/loan-application/{loanApplication}/submit', [LoanApplicationController::class, 'submitApplication'])->name('admin.loan-application.submit');
-    Route::post('/loan-application/{loanApplication}/start-review', [LoanApplicationController::class, 'startReview'])->name('admin.loan-application.start-review');
-    Route::post('/loan-application/{loanApplication}/approve', [LoanApplicationController::class, 'approve'])->name('admin.loan-application.approve');
-    Route::post('/loan-application/{loanApplication}/reject', [LoanApplicationController::class, 'reject'])->name('admin.loan-application.reject');
-    Route::post('/loan-application/{loanApplication}/cancel', [LoanApplicationController::class, 'cancel'])->name('admin.loan-application.cancel');
+    Route::middleware('can:loan_application.view')->group(function () {
+        Route::resource('loan-application', LoanApplicationController::class, ['as' => 'admin']);
+        Route::post('/loan-application/{loanApplication}/submit', [LoanApplicationController::class, 'submitApplication'])->name('admin.loan-application.submit')->middleware('can:loan_application.submit');
+        Route::post('/loan-application/{loanApplication}/start-review', [LoanApplicationController::class, 'startReview'])->name('admin.loan-application.start-review')->middleware('can:loan_application.review');
+        Route::post('/loan-application/{loanApplication}/approve', [LoanApplicationController::class, 'approve'])->name('admin.loan-application.approve')->middleware('can:loan_application.approve');
+        Route::post('/loan-application/{loanApplication}/reject', [LoanApplicationController::class, 'reject'])->name('admin.loan-application.reject')->middleware('can:loan_application.reject');
+        Route::post('/loan-application/{loanApplication}/cancel', [LoanApplicationController::class, 'cancel'])->name('admin.loan-application.cancel')->middleware('can:loan_application.cancel');
+    });
+
     // Module 7 — Phase 7.3 Routes (Loan Accounts, Sanction, Down Payment, Disbursement & EMI Schedule)
-    Route::resource('loan-account', LoanAccountController::class, ['as' => 'admin'])->only(['index', 'show']);
-    Route::post('/loan-account/sanction', [LoanAccountController::class, 'sanction'])->name('admin.loan-account.sanction');
-    Route::get('/loan-account/{loanAccount}/statement', [LoanAccountController::class, 'statement'])->name('admin.loan-account.statement');
-    Route::post('/loan-account/{loanAccount}/down-payment', [LoanAccountController::class, 'recordDownPayment'])->name('admin.loan-account.record-down-payment');
-    Route::post('/loan-account/{loanAccount}/disburse-cash', [LoanAccountController::class, 'disburseCash'])->name('admin.loan-account.disburse-cash');
-    Route::post('/loan-account/{loanAccount}/issue-product', [LoanAccountController::class, 'issueProduct'])->name('admin.loan-account.issue-product');
-    Route::post('/loan-account/{loanAccount}/repayment', [LoanAccountController::class, 'recordRepayment'])->name('admin.loan-account.record-repayment');
+    Route::middleware('can:loan.view')->group(function () {
+        Route::resource('loan-account', LoanAccountController::class, ['as' => 'admin'])->only(['index', 'show']);
+        Route::post('/loan-account/sanction', [LoanAccountController::class, 'sanction'])->name('admin.loan-account.sanction')->middleware('can:loan.sanction');
+        Route::get('/loan-account/{loanAccount}/statement', [LoanAccountController::class, 'statement'])->name('admin.loan-account.statement');
+        Route::post('/loan-account/{loanAccount}/down-payment', [LoanAccountController::class, 'recordDownPayment'])->name('admin.loan-account.record-down-payment')->middleware('can:loan.record_down_payment');
+        Route::post('/loan-account/{loanAccount}/disburse-cash', [LoanAccountController::class, 'disburseCash'])->name('admin.loan-account.disburse-cash')->middleware('can:loan.disburse');
+        Route::post('/loan-account/{loanAccount}/issue-product', [LoanAccountController::class, 'issueProduct'])->name('admin.loan-account.issue-product')->middleware('can:loan.issue_product');
+        Route::post('/loan-account/{loanAccount}/repayment', [LoanAccountController::class, 'recordRepayment'])->name('admin.loan-account.record-repayment')->middleware('can:loan.record_repayment');
+        Route::get('/loan-account/{loanAccount}/noc', [LoanSettlementController::class, 'noc'])->name('admin.loan-account.noc')->middleware('can:loan_closure.certificate');
+    });
+
+    // Loan Settlement, Foreclosure, OTS & Early Closure Management Routes
+    Route::prefix('loan-settlement')->name('admin.loan-settlement.')->group(function () {
+        Route::get('/', [LoanSettlementController::class, 'index'])->name('index')->middleware('can:loan_closure.view');
+        Route::get('/quote/{loanAccount}', [LoanSettlementController::class, 'quote'])->name('quote')->middleware('can:loan_closure.calculate');
+        Route::post('/foreclose/{loanAccount}', [LoanSettlementController::class, 'foreclose'])->name('foreclose')->middleware('can:loan_foreclosure.process');
+        Route::post('/request-ots/{loanAccount}', [LoanSettlementController::class, 'requestOts'])->name('request-ots')->middleware('can:loan_settlement.request');
+        Route::post('/request-write-off/{loanAccount}', [LoanSettlementController::class, 'requestWriteOff'])->name('request-write-off')->middleware('can:loan_write_off.request');
+        Route::get('/{settlementRequest}', [LoanSettlementController::class, 'show'])->name('show')->middleware('can:loan_closure.view');
+        Route::post('/{settlementRequest}/approve', [LoanSettlementController::class, 'approve'])->name('approve')->middleware('can:loan_settlement.approve');
+        Route::post('/{settlementRequest}/reject', [LoanSettlementController::class, 'reject'])->name('reject')->middleware('can:loan_settlement.approve');
+        Route::post('/{settlementRequest}/execute', [LoanSettlementController::class, 'execute'])->name('execute')->middleware('can:loan_foreclosure.process');
+    });
     
     // Dedicated Repayment & EMI Collection Module Routes
-    Route::get('/emi-collection', [EmiCollectionController::class, 'index'])->name('admin.emi-collection.index');
-    Route::get('/emi-collection/receipt/{repayment}', [EmiCollectionController::class, 'receipt'])->name('admin.emi-collection.receipt');
-    Route::get('/emi-collection/thermal-receipt/{repayment}', [EmiCollectionController::class, 'thermalReceipt'])->name('admin.emi-collection.thermal-receipt');
+    Route::middleware('can:collection.view')->group(function () {
+        Route::get('/emi-collection', [EmiCollectionController::class, 'index'])->name('admin.emi-collection.index');
+        Route::get('/emi-collection/receipt/{repayment}', [EmiCollectionController::class, 'receipt'])->name('admin.emi-collection.receipt');
+        Route::get('/emi-collection/thermal-receipt/{repayment}', [EmiCollectionController::class, 'thermalReceipt'])->name('admin.emi-collection.thermal-receipt');
+    });
+
+    // Overdue & DPD Management Routes
+    Route::prefix('overdue')->name('admin.overdue.')->middleware('can:overdue.view')->group(function () {
+        Route::get('/', [OverdueController::class, 'dashboard'])->name('dashboard');
+        Route::get('/loans', [OverdueController::class, 'loans'])->name('loans');
+        Route::get('/installments', [OverdueController::class, 'installments'])->name('installments');
+        Route::get('/customers', [OverdueController::class, 'customers'])->name('customers');
+        Route::get('/customer/{customer}', [OverdueController::class, 'customerProfile'])->name('customer-profile');
+        Route::get('/branch-aging', [OverdueController::class, 'branchReport'])->name('branch-aging');
+    });
+
+    // Automatic Penalty & Late Fee Management Routes
+    Route::prefix('penalties')->name('admin.penalties.')->group(function () {
+        Route::get('/ledger', [LoanPenaltyController::class, 'ledger'])->name('ledger')->middleware('can:penalty.view');
+        Route::post('/waive/{loanAccount}', [LoanPenaltyController::class, 'waive'])->name('waive')->middleware('can:loans.waive_penalty');
+    });
 
     Route::get('/loan', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Loan Management', 'moduleSlug' => 'loan']); });
     Route::get('/savings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Savings Accounts', 'moduleSlug' => 'savings']); });
-    Route::get('/collection', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Field Collections', 'moduleSlug' => 'collection']); });
-    Route::get('/billing', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Billing & Counter Invoices', 'moduleSlug' => 'billing']); });
-    Route::get('/accounting', function () { return view('admin.placeholders.module', ['moduleTitle' => 'General Ledger Accounting', 'moduleSlug' => 'accounting']); });
-    Route::get('/reports', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Financial Reports', 'moduleSlug' => 'reports']); });
+
+    // Module 10: General Ledger & Double-Entry Accounting Routes
+    Route::prefix('accounting')->name('admin.accounting.')->middleware('can:accounting.view')->group(function () {
+        Route::get('/', [AccountingDashboardController::class, 'index'])->name('dashboard');
+        Route::resource('chart-of-accounts', ChartOfAccountController::class);
+        Route::resource('bank-accounts', BankAccountController::class);
+        Route::resource('vouchers', VoucherController::class)->except(['edit', 'update', 'destroy']);
+        Route::post('vouchers/{voucher}/reverse', [VoucherController::class, 'reverse'])->name('vouchers.reverse');
+    });
+
+    // Central Reports Center Routes
+    Route::prefix('reports')->name('admin.reports.')->middleware('can:reports.view')->group(function () {
+        Route::get('/', [ReportsController::class, 'index'])->name('index');
+        Route::get('/{category}/{type}', [ReportsController::class, 'show'])->name('show');
+        Route::get('/{category}/{type}/print', [ReportsController::class, 'print'])->name('print');
+        Route::get('/{category}/{type}/export', [ReportsController::class, 'export'])->name('export')->middleware('can:reports.export');
+    });
 
     // Website CMS Module
-    Route::prefix('cms')->group(function () {
-        // Website Settings
+    Route::prefix('cms')->middleware('can:website.manage')->group(function () {
         Route::get('/settings', [WebsiteSettingController::class, 'edit'])->name('admin.cms.settings.edit');
         Route::put('/settings', [WebsiteSettingController::class, 'update'])->name('admin.cms.settings.update');
-
-        // Homepage Sections CRUD & Status Toggle
         Route::get('/homepage', [HomepageSectionController::class, 'index'])->name('admin.cms.homepage.index');
         Route::get('/homepage/create', [HomepageSectionController::class, 'create'])->name('admin.cms.homepage.create');
         Route::post('/homepage', [HomepageSectionController::class, 'store'])->name('admin.cms.homepage.store');
@@ -339,8 +434,6 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::put('/homepage/{homepage_section}', [HomepageSectionController::class, 'update'])->name('admin.cms.homepage.update');
         Route::patch('/homepage/{homepage_section}/toggle-status', [HomepageSectionController::class, 'toggleStatus'])->name('admin.cms.homepage.toggle-status');
         Route::delete('/homepage/{homepage_section}', [HomepageSectionController::class, 'destroy'])->name('admin.cms.homepage.destroy');
-
-        // Banners CRUD & Status Toggle
         Route::get('/banners', [BannerController::class, 'index'])->name('admin.cms.banners.index');
         Route::get('/banners/create', [BannerController::class, 'create'])->name('admin.cms.banners.create');
         Route::post('/banners', [BannerController::class, 'store'])->name('admin.cms.banners.store');
@@ -348,8 +441,6 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::put('/banners/{banner}', [BannerController::class, 'update'])->name('admin.cms.banners.update');
         Route::patch('/banners/{banner}/toggle-status', [BannerController::class, 'toggleStatus'])->name('admin.cms.banners.toggle-status');
         Route::delete('/banners/{banner}', [BannerController::class, 'destroy'])->name('admin.cms.banners.destroy');
-
-        // Pages CRUD & Status Toggle
         Route::get('/pages', [PageController::class, 'index'])->name('admin.cms.pages.index');
         Route::get('/pages/create', [PageController::class, 'create'])->name('admin.cms.pages.create');
         Route::post('/pages', [PageController::class, 'store'])->name('admin.cms.pages.store');
@@ -357,8 +448,6 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::put('/pages/{page}', [PageController::class, 'update'])->name('admin.cms.pages.update');
         Route::patch('/pages/{page}/toggle-status', [PageController::class, 'toggleStatus'])->name('admin.cms.pages.toggle-status');
         Route::delete('/pages/{page}', [PageController::class, 'destroy'])->name('admin.cms.pages.destroy');
-
-        // Loan Products CRUD & Status Toggle
         Route::get('/loan-products', [CmsLoanProductController::class, 'index'])->name('admin.cms.loan-products.index');
         Route::get('/loan-products/create', [CmsLoanProductController::class, 'create'])->name('admin.cms.loan-products.create');
         Route::post('/loan-products', [CmsLoanProductController::class, 'store'])->name('admin.cms.loan-products.store');
@@ -366,8 +455,6 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::put('/loan-products/{loan_product}', [CmsLoanProductController::class, 'update'])->name('admin.cms.loan-products.update');
         Route::patch('/loan-products/{loan_product}/toggle-status', [CmsLoanProductController::class, 'toggleStatus'])->name('admin.cms.loan-products.toggle-status');
         Route::delete('/loan-products/{loan_product}', [CmsLoanProductController::class, 'destroy'])->name('admin.cms.loan-products.destroy');
-
-        // Savings Products CRUD & Status Toggle
         Route::get('/savings-products', [CmsSavingsProductController::class, 'index'])->name('admin.cms.savings-products.index');
         Route::get('/savings-products/create', [CmsSavingsProductController::class, 'create'])->name('admin.cms.savings-products.create');
         Route::post('/savings-products', [CmsSavingsProductController::class, 'store'])->name('admin.cms.savings-products.store');
@@ -375,81 +462,6 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::put('/savings-products/{savings_product}', [CmsSavingsProductController::class, 'update'])->name('admin.cms.savings-products.update');
         Route::patch('/savings-products/{savings_product}/toggle-status', [CmsSavingsProductController::class, 'toggleStatus'])->name('admin.cms.savings-products.toggle-status');
         Route::delete('/savings-products/{savings_product}', [CmsSavingsProductController::class, 'destroy'])->name('admin.cms.savings-products.destroy');
-
-        // News CRUD & Status Toggle
-        Route::get('/news', [NewsController::class, 'index'])->name('admin.cms.news.index');
-        Route::get('/news/create', [NewsController::class, 'create'])->name('admin.cms.news.create');
-        Route::post('/news', [NewsController::class, 'store'])->name('admin.cms.news.store');
-        Route::get('/news/{news}/edit', [NewsController::class, 'edit'])->name('admin.cms.news.edit');
-        Route::put('/news/{news}', [NewsController::class, 'update'])->name('admin.cms.news.update');
-        Route::patch('/news/{news}/toggle-status', [NewsController::class, 'toggleStatus'])->name('admin.cms.news.toggle-status');
-        Route::delete('/news/{news}', [NewsController::class, 'destroy'])->name('admin.cms.news.destroy');
-
-        // Gallery CRUD & Status Toggle
-        Route::get('/gallery', [GalleryController::class, 'index'])->name('admin.cms.gallery.index');
-        Route::get('/gallery/create', [GalleryController::class, 'create'])->name('admin.cms.gallery.create');
-        Route::post('/gallery', [GalleryController::class, 'store'])->name('admin.cms.gallery.store');
-        Route::get('/gallery/{gallery}/edit', [GalleryController::class, 'edit'])->name('admin.cms.gallery.edit');
-        Route::put('/gallery/{gallery}', [GalleryController::class, 'update'])->name('admin.cms.gallery.update');
-        Route::patch('/gallery/{gallery}/toggle-status', [GalleryController::class, 'toggleStatus'])->name('admin.cms.gallery.toggle-status');
-        Route::delete('/gallery/{gallery}', [GalleryController::class, 'destroy'])->name('admin.cms.gallery.destroy');
-
-        // Downloads CRUD & Status Toggle
-        Route::get('/downloads', [DownloadController::class, 'index'])->name('admin.cms.downloads.index');
-        Route::get('/downloads/create', [DownloadController::class, 'create'])->name('admin.cms.downloads.create');
-        Route::post('/downloads', [DownloadController::class, 'store'])->name('admin.cms.downloads.store');
-        Route::get('/downloads/{download}/edit', [DownloadController::class, 'edit'])->name('admin.cms.downloads.edit');
-        Route::put('/downloads/{download}', [DownloadController::class, 'update'])->name('admin.cms.downloads.update');
-        Route::patch('/downloads/{download}/toggle-status', [DownloadController::class, 'toggleStatus'])->name('admin.cms.downloads.toggle-status');
-        Route::delete('/downloads/{download}', [DownloadController::class, 'destroy'])->name('admin.cms.downloads.destroy');
-
-        // FAQ CRUD & Status Toggle
-        Route::get('/faq', [FaqController::class, 'index'])->name('admin.cms.faq.index');
-        Route::get('/faq/create', [FaqController::class, 'create'])->name('admin.cms.faq.create');
-        Route::post('/faq', [FaqController::class, 'store'])->name('admin.cms.faq.store');
-        Route::get('/faq/{faq}/edit', [FaqController::class, 'edit'])->name('admin.cms.faq.edit');
-        Route::put('/faq/{faq}', [FaqController::class, 'update'])->name('admin.cms.faq.update');
-        Route::patch('/faq/{faq}/toggle-status', [FaqController::class, 'toggleStatus'])->name('admin.cms.faq.toggle-status');
-        Route::delete('/faq/{faq}', [FaqController::class, 'destroy'])->name('admin.cms.faq.destroy');
-
-        // Footer CMS Edit & Update
-        Route::get('/footer', [FooterSettingController::class, 'edit'])->name('admin.cms.footer.edit');
-        Route::put('/footer', [FooterSettingController::class, 'update'])->name('admin.cms.footer.update');
-
-        // SEO CMS CRUD & Status Toggle
-        Route::get('/seo', [SeoSettingController::class, 'index'])->name('admin.cms.seo.index');
-        Route::get('/seo/create', [SeoSettingController::class, 'create'])->name('admin.cms.seo.create');
-        Route::post('/seo', [SeoSettingController::class, 'store'])->name('admin.cms.seo.store');
-        Route::get('/seo/{seo}/edit', [SeoSettingController::class, 'edit'])->name('admin.cms.seo.edit');
-        Route::put('/seo/{seo}', [SeoSettingController::class, 'update'])->name('admin.cms.seo.update');
-        Route::patch('/seo/{seo}/toggle-status', [SeoSettingController::class, 'toggleStatus'])->name('admin.cms.seo.toggle-status');
-        Route::delete('/seo/{seo}', [SeoSettingController::class, 'destroy'])->name('admin.cms.seo.destroy');
-
-        // Contact Inquiries CMS Inbox, Show, Toggle Read & Delete
-        Route::get('/contact', [ContactInquiryController::class, 'index'])->name('admin.cms.contact.index');
-        Route::get('/contact/{contact}', [ContactInquiryController::class, 'show'])->name('admin.cms.contact.show');
-        Route::patch('/contact/{contact}/toggle-status', [ContactInquiryController::class, 'toggleStatus'])->name('admin.cms.contact.toggle-status');
-        Route::delete('/contact/{contact}', [ContactInquiryController::class, 'destroy'])->name('admin.cms.contact.destroy');
-
-        // Why Choose Us CRUD & Status Toggle
-        Route::get('/why-choose-us', [WhyChooseUsController::class, 'index'])->name('admin.cms.why-choose-us.index');
-        Route::get('/why-choose-us/create', [WhyChooseUsController::class, 'create'])->name('admin.cms.why-choose-us.create');
-        Route::post('/why-choose-us', [WhyChooseUsController::class, 'store'])->name('admin.cms.why-choose-us.store');
-        Route::get('/why-choose-us/{why_choose_u}/edit', [WhyChooseUsController::class, 'edit'])->name('admin.cms.why-choose-us.edit');
-        Route::put('/why-choose-us/{why_choose_u}', [WhyChooseUsController::class, 'update'])->name('admin.cms.why-choose-us.update');
-        Route::patch('/why-choose-us/{why_choose_u}/toggle-status', [WhyChooseUsController::class, 'toggleStatus'])->name('admin.cms.why-choose-us.toggle-status');
-        Route::delete('/why-choose-us/{why_choose_u}', [WhyChooseUsController::class, 'destroy'])->name('admin.cms.why-choose-us.destroy');
-
-        // Team Members CRUD & Status Toggle
-        Route::get('/team', [TeamMemberController::class, 'index'])->name('admin.cms.team.index');
-        Route::get('/team/create', [TeamMemberController::class, 'create'])->name('admin.cms.team.create');
-        Route::post('/team', [TeamMemberController::class, 'store'])->name('admin.cms.team.store');
-        Route::get('/team/{team}/edit', [TeamMemberController::class, 'edit'])->name('admin.cms.team.edit');
-        Route::put('/team/{team}', [TeamMemberController::class, 'update'])->name('admin.cms.team.update');
-        Route::patch('/team/{team}/toggle-status', [TeamMemberController::class, 'toggleStatus'])->name('admin.cms.team.toggle-status');
-        Route::delete('/team/{team}', [TeamMemberController::class, 'destroy'])->name('admin.cms.team.destroy');
-
-        // Interest Rates CRUD & Status Toggle
         Route::get('/interest-rates', [InterestRateController::class, 'index'])->name('admin.cms.interest-rates.index');
         Route::get('/interest-rates/create', [InterestRateController::class, 'create'])->name('admin.cms.interest-rates.create');
         Route::post('/interest-rates', [InterestRateController::class, 'store'])->name('admin.cms.interest-rates.store');
@@ -457,8 +469,6 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::put('/interest-rates/{interest_rate}', [InterestRateController::class, 'update'])->name('admin.cms.interest-rates.update');
         Route::patch('/interest-rates/{interest_rate}/toggle-status', [InterestRateController::class, 'toggleStatus'])->name('admin.cms.interest-rates.toggle-status');
         Route::delete('/interest-rates/{interest_rate}', [InterestRateController::class, 'destroy'])->name('admin.cms.interest-rates.destroy');
-
-        // Services CRUD & Status Toggle
         Route::get('/services', [CmsServiceController::class, 'index'])->name('admin.cms.services.index');
         Route::get('/services/create', [CmsServiceController::class, 'create'])->name('admin.cms.services.create');
         Route::post('/services', [CmsServiceController::class, 'store'])->name('admin.cms.services.store');
@@ -466,8 +476,41 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::put('/services/{service}', [CmsServiceController::class, 'update'])->name('admin.cms.services.update');
         Route::patch('/services/{service}/toggle-status', [CmsServiceController::class, 'toggleStatus'])->name('admin.cms.services.toggle-status');
         Route::delete('/services/{service}', [CmsServiceController::class, 'destroy'])->name('admin.cms.services.destroy');
-
-        // Careers CRUD & Status Toggle
+        Route::get('/news', [NewsController::class, 'index'])->name('admin.cms.news.index');
+        Route::get('/news/create', [NewsController::class, 'create'])->name('admin.cms.news.create');
+        Route::post('/news', [NewsController::class, 'store'])->name('admin.cms.news.store');
+        Route::get('/news/{news}/edit', [NewsController::class, 'edit'])->name('admin.cms.news.edit');
+        Route::put('/news/{news}', [NewsController::class, 'update'])->name('admin.cms.news.update');
+        Route::patch('/news/{news}/toggle-status', [NewsController::class, 'toggleStatus'])->name('admin.cms.news.toggle-status');
+        Route::delete('/news/{news}', [NewsController::class, 'destroy'])->name('admin.cms.news.destroy');
+        Route::get('/gallery', [GalleryController::class, 'index'])->name('admin.cms.gallery.index');
+        Route::get('/gallery/create', [GalleryController::class, 'create'])->name('admin.cms.gallery.create');
+        Route::post('/gallery', [GalleryController::class, 'store'])->name('admin.cms.gallery.store');
+        Route::get('/gallery/{gallery}/edit', [GalleryController::class, 'edit'])->name('admin.cms.gallery.edit');
+        Route::put('/gallery/{gallery}', [GalleryController::class, 'update'])->name('admin.cms.gallery.update');
+        Route::patch('/gallery/{gallery}/toggle-status', [GalleryController::class, 'toggleStatus'])->name('admin.cms.gallery.toggle-status');
+        Route::delete('/gallery/{gallery}', [GalleryController::class, 'destroy'])->name('admin.cms.gallery.destroy');
+        Route::get('/downloads', [DownloadController::class, 'index'])->name('admin.cms.downloads.index');
+        Route::get('/downloads/create', [DownloadController::class, 'create'])->name('admin.cms.downloads.create');
+        Route::post('/downloads', [DownloadController::class, 'store'])->name('admin.cms.downloads.store');
+        Route::get('/downloads/{download}/edit', [DownloadController::class, 'edit'])->name('admin.cms.downloads.edit');
+        Route::put('/downloads/{download}', [DownloadController::class, 'update'])->name('admin.cms.downloads.update');
+        Route::patch('/downloads/{download}/toggle-status', [DownloadController::class, 'toggleStatus'])->name('admin.cms.downloads.toggle-status');
+        Route::delete('/downloads/{download}', [DownloadController::class, 'destroy'])->name('admin.cms.downloads.destroy');
+        Route::get('/faq', [FaqController::class, 'index'])->name('admin.cms.faq.index');
+        Route::get('/faq/create', [FaqController::class, 'create'])->name('admin.cms.faq.create');
+        Route::post('/faq', [FaqController::class, 'store'])->name('admin.cms.faq.store');
+        Route::get('/faq/{faq}/edit', [FaqController::class, 'edit'])->name('admin.cms.faq.edit');
+        Route::put('/faq/{faq}', [FaqController::class, 'update'])->name('admin.cms.faq.update');
+        Route::patch('/faq/{faq}/toggle-status', [FaqController::class, 'toggleStatus'])->name('admin.cms.faq.toggle-status');
+        Route::delete('/faq/{faq}', [FaqController::class, 'destroy'])->name('admin.cms.faq.destroy');
+        Route::get('/footer', [FooterSettingController::class, 'edit'])->name('admin.cms.footer.edit');
+        Route::put('/footer', [FooterSettingController::class, 'update'])->name('admin.cms.footer.update');
+        Route::get('/seo', [SeoSettingController::class, 'edit'])->name('admin.cms.seo.edit');
+        Route::put('/seo', [SeoSettingController::class, 'update'])->name('admin.cms.seo.update');
+        Route::get('/contact', [ContactInquiryController::class, 'index'])->name('admin.cms.contact.index');
+        Route::get('/contact/{contact}', [ContactInquiryController::class, 'show'])->name('admin.cms.contact.show');
+        Route::delete('/contact/{contact}', [ContactInquiryController::class, 'destroy'])->name('admin.cms.contact.destroy');
         Route::get('/careers', [CareerController::class, 'index'])->name('admin.cms.careers.index');
         Route::get('/careers/create', [CareerController::class, 'create'])->name('admin.cms.careers.create');
         Route::post('/careers', [CareerController::class, 'store'])->name('admin.cms.careers.store');
@@ -475,5 +518,13 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::put('/careers/{career}', [CareerController::class, 'update'])->name('admin.cms.careers.update');
         Route::patch('/careers/{career}/toggle-status', [CareerController::class, 'toggleStatus'])->name('admin.cms.careers.toggle-status');
         Route::delete('/careers/{career}', [CareerController::class, 'destroy'])->name('admin.cms.careers.destroy');
+        Route::get('/team', [TeamMemberController::class, 'index'])->name('admin.cms.team.index');
+        Route::get('/team/create', [TeamMemberController::class, 'create'])->name('admin.cms.team.create');
+        Route::post('/team', [TeamMemberController::class, 'store'])->name('admin.cms.team.store');
+        Route::get('/team/{team_member}/edit', [TeamMemberController::class, 'edit'])->name('admin.cms.team.edit');
+        Route::put('/team/{team_member}', [TeamMemberController::class, 'update'])->name('admin.cms.team.update');
+        Route::patch('/team/{team_member}/toggle-status', [TeamMemberController::class, 'toggleStatus'])->name('admin.cms.team.toggle-status');
+        Route::delete('/team/{team_member}', [TeamMemberController::class, 'destroy'])->name('admin.cms.team.destroy');
     });
 });
+

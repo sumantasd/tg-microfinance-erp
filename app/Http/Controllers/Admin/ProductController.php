@@ -7,6 +7,8 @@ use App\Http\Requests\Admin\StoreProductRequest;
 use App\Http\Requests\Admin\UpdateProductRequest;
 use App\Models\Company;
 use App\Models\Product;
+use App\Models\ProductBrand;
+use App\Models\ProductCategory;
 use App\Services\InventoryService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -18,17 +20,22 @@ class ProductController extends Controller
 
     public function index(Request $request): View
     {
-        $filters = $request->only(['search', 'company_id', 'category', 'is_active']);
+        $filters = $request->only(['search', 'company_id', 'category', 'category_id', 'brand_id', 'is_active']);
         $products = $this->inventoryService->getPaginatedProducts($filters);
         $companies = Company::where('is_active', true)->get();
+        $categories = ProductCategory::where('is_active', true)->orderBy('name')->get();
+        $brands = ProductBrand::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.products.index', compact('products', 'filters', 'companies'));
+        return view('admin.products.index', compact('products', 'filters', 'companies', 'categories', 'brands'));
     }
 
     public function create(): View
     {
         $companies = Company::where('is_active', true)->get();
-        return view('admin.products.create', compact('companies'));
+        $categories = ProductCategory::where('is_active', true)->orderBy('name')->get();
+        $brands = ProductBrand::where('is_active', true)->orderBy('name')->get();
+
+        return view('admin.products.create', compact('companies', 'categories', 'brands'));
     }
 
     public function store(StoreProductRequest $request): RedirectResponse
@@ -47,7 +54,10 @@ class ProductController extends Controller
     public function edit(Product $product): View
     {
         $companies = Company::where('is_active', true)->get();
-        return view('admin.products.edit', compact('product', 'companies'));
+        $categories = ProductCategory::where('is_active', true)->orderBy('name')->get();
+        $brands = ProductBrand::where('is_active', true)->orderBy('name')->get();
+
+        return view('admin.products.edit', compact('product', 'companies', 'categories', 'brands'));
     }
 
     public function update(UpdateProductRequest $request, Product $product): RedirectResponse

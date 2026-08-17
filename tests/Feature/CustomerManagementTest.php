@@ -28,20 +28,7 @@ class CustomerManagementTest extends TestCase
     {
         parent::setUp();
 
-        // Create Super Admin role and permissions
-        $role = Role::create(['name' => 'Super Admin', 'guard_name' => 'web']);
-        
-        $permissions = [
-            'customer.view', 'customer.create', 'customer.edit', 'customer.delete',
-            'customer.restore', 'customer.verify_kyc', 'customer.manage_guarantor',
-            'customer.manage_nominee', 'customer.change_status'
-        ];
-
-        foreach ($permissions as $p) {
-            Permission::create(['name' => $p, 'guard_name' => 'web']);
-        }
-
-        $role->syncPermissions(Permission::all());
+        $this->seed(\Database\Seeders\RbacSeeder::class);
 
         $this->company = Company::create([
             'name' => 'Grihalaxmi Finance HO',

@@ -132,9 +132,9 @@
             <div class="col-md-3">
                 <label class="form-label fw-bold small">Repayment Frequency <span class="text-danger">*</span></label>
                 <select name="repayment_frequency" class="form-select @error('repayment_frequency') is-invalid @enderror" required>
-                    <option value="monthly" {{ old('repayment_frequency', $scheme->repayment_frequency) === 'monthly' ? 'selected' : '' }}>Monthly</option>
-                    <option value="bi_weekly" {{ old('repayment_frequency', $scheme->repayment_frequency) === 'bi_weekly' ? 'selected' : '' }}>Bi-Weekly</option>
                     <option value="weekly" {{ old('repayment_frequency', $scheme->repayment_frequency) === 'weekly' ? 'selected' : '' }}>Weekly</option>
+                    <option value="bi_weekly" {{ old('repayment_frequency', $scheme->repayment_frequency) === 'bi_weekly' ? 'selected' : '' }}>15 Days</option>
+                    <option value="monthly" {{ old('repayment_frequency', $scheme->repayment_frequency) === 'monthly' ? 'selected' : '' }}>Monthly</option>
                 </select>
                 @error('repayment_frequency') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
@@ -154,15 +154,88 @@
             </div>
 
             <div class="col-md-3">
-                <label class="form-label fw-bold small">Late Penalty (%)</label>
-                <input type="number" step="0.01" name="late_fee_percentage" class="form-control @error('late_fee_percentage') is-invalid @enderror" value="{{ old('late_fee_percentage', $scheme->late_fee_percentage) }}">
+                <label class="form-label fw-bold small">Penalty Calculation Mode <span class="text-danger">*</span></label>
+                <select name="penalty_type" id="penaltyTypeSelect" class="form-select @error('penalty_type') is-invalid @enderror" onchange="togglePenaltyFields()">
+                    <option value="none" {{ old('penalty_type', $scheme->penalty_type) === 'none' ? 'selected' : '' }}>None (No Penalty)</option>
+                    <option value="percentage_one_time" {{ old('penalty_type', $scheme->penalty_type ?? 'percentage_one_time') === 'percentage_one_time' ? 'selected' : '' }}>Percentage (One-Time)</option>
+                    <option value="percentage_per_day" {{ old('penalty_type', $scheme->penalty_type) === 'percentage_per_day' ? 'selected' : '' }}>Percentage (Per Day)</option>
+                    <option value="flat_one_time" {{ old('penalty_type', $scheme->penalty_type) === 'flat_one_time' ? 'selected' : '' }}>Flat Fee (One-Time)</option>
+                    <option value="flat_per_day" {{ old('penalty_type', $scheme->penalty_type) === 'flat_per_day' ? 'selected' : '' }}>Flat Fee (Per Day)</option>
+                </select>
+                @error('penalty_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-3" id="gracePeriodContainer">
+                <label class="form-label fw-bold small">Grace Period (Days)</label>
+                <input type="number" name="grace_period_days" class="form-control @error('grace_period_days') is-invalid @enderror" value="{{ old('grace_period_days', $scheme->grace_period_days) }}" min="0">
+                <div class="form-text small">Days before penalty begins</div>
+                @error('grace_period_days') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-3" id="lateFeePercentageContainer">
+                <label class="form-label fw-bold small" id="lateFeeLabel">Late Penalty (%)</label>
+                <input type="number" step="0.01" name="late_fee_percentage" class="form-control @error('late_fee_percentage') is-invalid @enderror" value="{{ old('late_fee_percentage', $scheme->late_fee_percentage) }}" min="0" max="100">
+                <div class="form-text small" id="lateFeeHelp">Calculated on unpaid installment balance</div>
                 @error('late_fee_percentage') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
+            <div class="col-md-3" id="flatPenaltyContainer">
+                <label class="form-label fw-bold small" id="flatPenaltyLabel">Flat Penalty Amount (₹)</label>
+                <input type="number" step="0.01" name="flat_penalty_amount" class="form-control @error('flat_penalty_amount') is-invalid @enderror" value="{{ old('flat_penalty_amount', $scheme->flat_penalty_amount) }}" min="0">
+                <div class="form-text small" id="flatPenaltyHelp">Fixed late fee charge</div>
+                @error('flat_penalty_amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-3" id="maxPenaltyAmountContainer">
+                <label class="form-label fw-bold small">Max Penalty Cap (₹)</label>
+                <input type="number" step="0.01" name="max_penalty_amount" class="form-control @error('max_penalty_amount') is-invalid @enderror" value="{{ old('max_penalty_amount', $scheme->max_penalty_amount) }}" placeholder="No Cap" min="0">
+                <div class="form-text small">Absolute maximum late fee cap</div>
+                @error('max_penalty_amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-3" id="maxPenaltyPctContainer">
+                <label class="form-label fw-bold small">Max Penalty Cap (%)</label>
+                <input type="number" step="0.01" name="max_penalty_percentage" class="form-control @error('max_penalty_percentage') is-invalid @enderror" value="{{ old('max_penalty_percentage', $scheme->max_penalty_percentage) }}" placeholder="No Cap" min="0" max="100">
+                <div class="form-text small">Max % of installment balance</div>
+                @error('max_penalty_percentage') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">4. Foreclosure & Pre-Closure Policy</h5>
+
             <div class="col-md-3">
-                <label class="form-label fw-bold small">Grace Period (Days)</label>
-                <input type="number" name="grace_period_days" class="form-control @error('grace_period_days') is-invalid @enderror" value="{{ old('grace_period_days', $scheme->grace_period_days) }}">
-                @error('grace_period_days') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <div class="form-check form-switch mt-4">
+                    <input class="form-check-input" type="checkbox" name="allow_foreclosure" id="allowForeclosureSwitch" value="1" {{ old('allow_foreclosure', $scheme->allow_foreclosure ?? true) ? 'checked' : '' }}>
+                    <label class="form-check-label fw-bold small" for="allowForeclosureSwitch">Allow Early Foreclosure</label>
+                </div>
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label fw-bold small">Foreclosure Fee Mode</label>
+                <select name="foreclosure_fee_type" class="form-select @error('foreclosure_fee_type') is-invalid @enderror">
+                    <option value="none" {{ old('foreclosure_fee_type', $scheme->foreclosure_fee_type ?? 'none') === 'none' ? 'selected' : '' }}>None (0% Free Foreclosure)</option>
+                    <option value="percentage" {{ old('foreclosure_fee_type', $scheme->foreclosure_fee_type) === 'percentage' ? 'selected' : '' }}>Percentage of Outstanding Principal</option>
+                    <option value="flat" {{ old('foreclosure_fee_type', $scheme->foreclosure_fee_type) === 'flat' ? 'selected' : '' }}>Flat Fee Amount</option>
+                </select>
+                @error('foreclosure_fee_type') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label fw-bold small">Foreclosure Fee (%)</label>
+                <input type="number" step="0.01" name="foreclosure_fee_percentage" class="form-control @error('foreclosure_fee_percentage') is-invalid @enderror" value="{{ old('foreclosure_fee_percentage', $scheme->foreclosure_fee_percentage ?? '0.00') }}" min="0" max="100">
+                @error('foreclosure_fee_percentage') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label fw-bold small">Flat Foreclosure Fee (₹)</label>
+                <input type="number" step="0.01" name="foreclosure_flat_fee" class="form-control @error('foreclosure_flat_fee') is-invalid @enderror" value="{{ old('foreclosure_flat_fee', $scheme->foreclosure_flat_fee ?? '0.00') }}" min="0">
+                @error('foreclosure_flat_fee') <div class="invalid-feedback">{{ $message }}</div> @enderror
+            </div>
+
+            <div class="col-md-2">
+                <label class="form-label fw-bold small">Lock-In Period (Months)</label>
+                <input type="number" name="min_months_before_foreclosure" class="form-control @error('min_months_before_foreclosure') is-invalid @enderror" value="{{ old('min_months_before_foreclosure', $scheme->min_months_before_foreclosure ?? 0) }}" min="0">
+                <div class="form-text small">0 = Immediate payoff</div>
+                @error('min_months_before_foreclosure') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-12 mt-3">
@@ -179,3 +252,58 @@
     </form>
 </x-ui.card>
 @endsection
+
+@push('scripts')
+<script>
+function togglePenaltyFields() {
+    const pType = document.getElementById('penaltyTypeSelect').value;
+    const graceContainer = document.getElementById('gracePeriodContainer');
+    const lateFeeContainer = document.getElementById('lateFeePercentageContainer');
+    const flatPenaltyContainer = document.getElementById('flatPenaltyContainer');
+    const maxPenaltyAmountContainer = document.getElementById('maxPenaltyAmountContainer');
+    const maxPenaltyPctContainer = document.getElementById('maxPenaltyPctContainer');
+    const lateFeeLabel = document.getElementById('lateFeeLabel');
+    const flatPenaltyLabel = document.getElementById('flatPenaltyLabel');
+
+    if (pType === 'none') {
+        graceContainer.style.display = 'none';
+        lateFeeContainer.style.display = 'none';
+        flatPenaltyContainer.style.display = 'none';
+        maxPenaltyAmountContainer.style.display = 'none';
+        maxPenaltyPctContainer.style.display = 'none';
+    } else if (pType === 'percentage_one_time') {
+        graceContainer.style.display = 'block';
+        lateFeeContainer.style.display = 'block';
+        flatPenaltyContainer.style.display = 'none';
+        maxPenaltyAmountContainer.style.display = 'block';
+        maxPenaltyPctContainer.style.display = 'block';
+        lateFeeLabel.innerText = 'Late Penalty (% One-Time)';
+    } else if (pType === 'percentage_per_day') {
+        graceContainer.style.display = 'block';
+        lateFeeContainer.style.display = 'block';
+        flatPenaltyContainer.style.display = 'none';
+        maxPenaltyAmountContainer.style.display = 'block';
+        maxPenaltyPctContainer.style.display = 'block';
+        lateFeeLabel.innerText = 'Late Penalty (% Per Day)';
+    } else if (pType === 'flat_one_time') {
+        graceContainer.style.display = 'block';
+        lateFeeContainer.style.display = 'none';
+        flatPenaltyContainer.style.display = 'block';
+        maxPenaltyAmountContainer.style.display = 'block';
+        maxPenaltyPctContainer.style.display = 'block';
+        flatPenaltyLabel.innerText = 'Flat Penalty Fee (₹ One-Time)';
+    } else if (pType === 'flat_per_day') {
+        graceContainer.style.display = 'block';
+        lateFeeContainer.style.display = 'none';
+        flatPenaltyContainer.style.display = 'block';
+        maxPenaltyAmountContainer.style.display = 'block';
+        maxPenaltyPctContainer.style.display = 'block';
+        flatPenaltyLabel.innerText = 'Flat Penalty Fee (₹ Per Day)';
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    togglePenaltyFields();
+});
+</script>
+@endpush

@@ -62,7 +62,7 @@ class LoanApplicationService
             $this->validateSchemeCompatibility($scheme, $data['loan_type'], $data['borrower_type']);
 
             $requestedAmount = (float) $data['requested_amount'];
-            $tenureMonths = (int) $data['tenure_months'];
+            $tenureMonths = (int) ($data['tenure_months'] ?? $scheme->min_tenure_months);
 
             if ($requestedAmount < $scheme->min_amount || $requestedAmount > $scheme->max_amount) {
                 throw ValidationException::withMessages([
@@ -145,6 +145,10 @@ class LoanApplicationService
                     $product = Product::findOrFail($p['product_id']);
                     if (!$product->is_active) {
                         throw ValidationException::withMessages(['products' => "Product '{$product->name}' is inactive."]);
+                    }
+
+                    if (!empty($p['category_id']) && $product->category_id && (int) $product->category_id !== (int) $p['category_id']) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected category."]);
                     }
 
                     $qty = (int) $p['quantity'];
@@ -277,6 +281,9 @@ class LoanApplicationService
             if ($application->loan_type === 'product' && !empty($products)) {
                 foreach ($products as $p) {
                     $product = Product::findOrFail($p['product_id']);
+                    if (!empty($p['category_id']) && $product->category_id && (int) $product->category_id !== (int) $p['category_id']) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected category."]);
+                    }
                     $qty = (int) $p['quantity'];
                     $unitPrice = isset($p['unit_price']) ? (float) $p['unit_price'] : (float) $product->unit_price;
                     $lineTotal = round($qty * $unitPrice, 2);

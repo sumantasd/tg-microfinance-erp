@@ -16,6 +16,8 @@ class Product extends Model
         'company_id',
         'sku',
         'name',
+        'brand_id',
+        'category_id',
         'brand',
         'model_number',
         'category',
@@ -38,6 +40,16 @@ class Product extends Model
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);
+    }
+
+    public function brandRel(): BelongsTo
+    {
+        return $this->belongsTo(ProductBrand::class, 'brand_id');
+    }
+
+    public function categoryRel(): BelongsTo
+    {
+        return $this->belongsTo(ProductCategory::class, 'category_id');
     }
 
     public function stocks(): HasMany

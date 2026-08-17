@@ -49,12 +49,9 @@ class EmiCollectionController extends Controller
             ->when($branchId, fn($q) => $q->whereHas('loanAccount', fn($b) => $b->where('branch_id', $branchId)))
             ->count();
 
-        $overdueQuery = LoanAccount::whereIn('status', ['active', 'defaulted'])
-            ->whereHas('installments', fn($q) => $q->where('due_date', '<', $todayStr)->where('status', '!=', 'paid'));
-        if ($branchId) {
-            $overdueQuery->where('branch_id', $branchId);
-        }
-        $overdueTotal = (float) $overdueQuery->sum('total_outstanding');
+        $companyId = $user?->company_id ?? ($branchId ? Branch::find($branchId)?->company_id : null) ?? (Company::first()?->id ?? 1);
+        $overdueService = app(\App\Services\OverdueService::class);
+        $overdueTotal = $overdueService->calculateTotalOverdueAmount($companyId, $branchId, $todayStr);
 
         $metrics = [
             'today_total' => round($todayTotal, 0),

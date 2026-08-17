@@ -12,6 +12,7 @@ use App\Models\CustomerGroup;
 use App\Models\LoanApplication;
 use App\Models\LoanScheme;
 use App\Models\Product;
+use App\Models\ProductCategory;
 use App\Services\LoanApplicationService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -44,9 +45,10 @@ class LoanApplicationController extends Controller
         $schemes = LoanScheme::where('is_active', true)->get();
         $customers = Customer::where('status', 'active')->get();
         $groups = CustomerGroup::with('members.customer')->where('status', 'active')->get();
-        $products = Product::where('is_active', true)->get();
+        $categories = ProductCategory::where('is_active', true)->orderBy('name')->get();
+        $products = Product::with(['categoryRel', 'brandRel'])->where('is_active', true)->get();
 
-        return view('admin.loans.applications.create', compact('companies', 'branches', 'schemes', 'customers', 'groups', 'products'));
+        return view('admin.loans.applications.create', compact('companies', 'branches', 'schemes', 'customers', 'groups', 'categories', 'products'));
     }
 
     public function store(StoreLoanApplicationRequest $request): RedirectResponse
@@ -78,9 +80,10 @@ class LoanApplicationController extends Controller
         $schemes = LoanScheme::where('is_active', true)->get();
         $customers = Customer::where('status', 'active')->get();
         $groups = CustomerGroup::with('members.customer')->where('status', 'active')->get();
-        $products = Product::where('is_active', true)->get();
+        $categories = ProductCategory::where('is_active', true)->orderBy('name')->get();
+        $products = Product::with(['categoryRel', 'brandRel'])->where('is_active', true)->get();
 
-        return view('admin.loans.applications.edit', compact('loanApplication', 'companies', 'branches', 'schemes', 'customers', 'groups', 'products'));
+        return view('admin.loans.applications.edit', compact('loanApplication', 'companies', 'branches', 'schemes', 'customers', 'groups', 'categories', 'products'));
     }
 
     public function update(UpdateLoanApplicationRequest $request, LoanApplication $loanApplication): RedirectResponse

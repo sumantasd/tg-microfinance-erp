@@ -43,6 +43,32 @@ class InventoryService
             $user = Auth::user();
             if ($user && !$user->isSuperAdmin()) {
                 $data['company_id'] = $user->company_id;
+            } elseif (empty($data['company_id'])) {
+                $data['company_id'] = \App\Models\Company::first()->id ?? 1;
+            }
+
+            if (!empty($data['brand_id'])) {
+                $brand = \App\Models\ProductBrand::find($data['brand_id']);
+                if ($brand) {
+                    $data['brand'] = $brand->name;
+                }
+            } elseif (!empty($data['brand'])) {
+                $brand = \App\Models\ProductBrand::where('company_id', $data['company_id'])->where('name', $data['brand'])->first();
+                if ($brand) {
+                    $data['brand_id'] = $brand->id;
+                }
+            }
+
+            if (!empty($data['category_id'])) {
+                $cat = \App\Models\ProductCategory::find($data['category_id']);
+                if ($cat) {
+                    $data['category'] = $cat->name;
+                }
+            } elseif (!empty($data['category'])) {
+                $cat = \App\Models\ProductCategory::where('company_id', $data['company_id'])->where('name', $data['category'])->first();
+                if ($cat) {
+                    $data['category_id'] = $cat->id;
+                }
             }
 
             if (empty($data['sku'])) {
@@ -63,6 +89,40 @@ class InventoryService
     public function updateProduct(Product $product, array $data): Product
     {
         return DB::transaction(function () use ($product, $data) {
+            $companyId = $data['company_id'] ?? $product->company_id;
+
+            if (array_key_exists('brand_id', $data)) {
+                if (!empty($data['brand_id'])) {
+                    $brand = \App\Models\ProductBrand::find($data['brand_id']);
+                    if ($brand) {
+                        $data['brand'] = $brand->name;
+                    }
+                } else {
+                    $data['brand_id'] = null;
+                }
+            } elseif (!empty($data['brand'])) {
+                $brand = \App\Models\ProductBrand::where('company_id', $companyId)->where('name', $data['brand'])->first();
+                if ($brand) {
+                    $data['brand_id'] = $brand->id;
+                }
+            }
+
+            if (array_key_exists('category_id', $data)) {
+                if (!empty($data['category_id'])) {
+                    $cat = \App\Models\ProductCategory::find($data['category_id']);
+                    if ($cat) {
+                        $data['category'] = $cat->name;
+                    }
+                } else {
+                    $data['category_id'] = null;
+                }
+            } elseif (!empty($data['category'])) {
+                $cat = \App\Models\ProductCategory::where('company_id', $companyId)->where('name', $data['category'])->first();
+                if ($cat) {
+                    $data['category_id'] = $cat->id;
+                }
+            }
+
             $data['updated_by'] = Auth::id();
             if (isset($data['is_active'])) {
                 $data['is_active'] = (bool) $data['is_active'];

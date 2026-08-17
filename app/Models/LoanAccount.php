@@ -46,6 +46,11 @@ class LoanAccount extends Model
         'sanction_date',
         'disbursement_date',
         'maturity_date',
+        'closed_at',
+        'closure_type',
+        'closure_remarks',
+        'closure_approved_by',
+        'closure_approved_at',
         'created_by',
         'updated_by',
     ];
@@ -72,6 +77,8 @@ class LoanAccount extends Model
         'sanction_date' => 'date',
         'disbursement_date' => 'date',
         'maturity_date' => 'date',
+        'closed_at' => 'datetime',
+        'closure_approved_at' => 'datetime',
     ];
 
     public function company(): BelongsTo
@@ -127,6 +134,26 @@ class LoanAccount extends Model
     public function repayments(): HasMany
     {
         return $this->hasMany(LoanRepayment::class, 'loan_account_id')->orderBy('id', 'desc');
+    }
+
+    public function penaltyCharges(): HasMany
+    {
+        return $this->hasMany(LoanPenaltyCharge::class, 'loan_account_id')->orderBy('charge_date', 'desc');
+    }
+
+    public function penaltyWaivers(): HasMany
+    {
+        return $this->hasMany(LoanPenaltyWaiver::class, 'loan_account_id')->orderBy('waiver_date', 'desc');
+    }
+
+    public function settlementRequests(): HasMany
+    {
+        return $this->hasMany(LoanSettlementRequest::class, 'loan_account_id')->orderBy('id', 'desc');
+    }
+
+    public function closureApprover(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'closure_approved_by');
     }
 
     public function creator(): BelongsTo

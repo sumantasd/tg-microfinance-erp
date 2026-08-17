@@ -50,4 +50,9 @@ class LoanRepayment extends Model
     {
         return $this->belongsTo(User::class, 'received_by');
     }
+
+    public function accountingVoucher(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(Voucher::class, 'reference_id')->where('reference_type', 'loan_repayment');
+    }
 }

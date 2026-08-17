@@ -20,7 +20,13 @@ class CompanyPolicy
      */
     public function view(User $user, Company $company): bool
     {
-        return $user->hasPermissionTo('company.view');
+        if (!$user->hasPermissionTo('company.view')) {
+            return false;
+        }
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        return (int) $user->company_id === (int) $company->id;
     }
 
     /**
@@ -36,7 +42,13 @@ class CompanyPolicy
      */
     public function update(User $user, Company $company): bool
     {
-        return $user->hasPermissionTo('company.edit');
+        if (!$user->hasPermissionTo('company.edit')) {
+            return false;
+        }
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        return (int) $user->company_id === (int) $company->id;
     }
 
     /**
@@ -44,7 +56,13 @@ class CompanyPolicy
      */
     public function delete(User $user, Company $company): bool
     {
-        return $user->hasPermissionTo('company.delete');
+        if (!$user->hasPermissionTo('company.delete')) {
+            return false;
+        }
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        return false; // Only Super Admin can delete companies
     }
 
     /**
@@ -52,6 +70,12 @@ class CompanyPolicy
      */
     public function restore(User $user, Company $company): bool
     {
-        return $user->hasPermissionTo('company.delete');
+        if (!$user->hasPermissionTo('company.restore')) {
+            return false;
+        }
+        if ($user->isSuperAdmin()) {
+            return true;
+        }
+        return false;
     }
 }

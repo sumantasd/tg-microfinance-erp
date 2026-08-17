@@ -8,15 +8,21 @@
         <h4 class="fw-bold text-dark mb-1">
             <i class="bi bi-box-seam-fill text-info me-2"></i>Product Catalog Master
         </h4>
-        <p class="text-muted small mb-0">Manage products, SKUs, MRP pricing, tax rates, and brand catalog for Product Loans.</p>
+        <p class="text-muted small mb-0">Manage products, SKUs, MRP pricing, tax rates, brand masters, and category classifications for Product Loans.</p>
     </div>
-    @can('product.create')
-        <div class="mt-3 mt-md-0">
+    <div class="mt-3 mt-md-0 d-flex gap-2 flex-wrap">
+        <a href="{{ route('admin.product-brand.index') }}" class="btn btn-outline-primary rounded-pill px-3">
+            <i class="bi bi-tag-fill me-1"></i> Brand Master
+        </a>
+        <a href="{{ route('admin.product-category.index') }}" class="btn btn-outline-success rounded-pill px-3">
+            <i class="bi bi-grid-3x3-gap-fill me-1"></i> Category Master
+        </a>
+        @can('product.create')
             <a href="{{ route('admin.product.create') }}" class="btn btn-info text-white fw-bold shadow-sm rounded-pill px-4">
                 <i class="bi bi-plus-circle me-1"></i> Add Product
             </a>
-        </div>
-    @endcan
+        @endcan
+    </div>
 </div>
 
 @if(session('success'))
@@ -26,23 +32,45 @@
     </div>
 @endif
 
+@if(session('error'))
+    <div class="alert alert-danger alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
+        <i class="bi bi-exclamation-triangle-fill me-2"></i> {{ session('error') }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+    </div>
+@endif
+
 <!-- Filter Card -->
 <x-ui.card class="mb-4 shadow-sm border-0">
     <form method="GET" action="{{ route('admin.product.index') }}" class="row g-3">
-        <div class="col-md-5">
+        <div class="col-md-4">
             <label class="form-label small fw-bold text-muted">Search Product</label>
             <div class="input-group">
                 <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
-                <input type="text" name="search" class="form-control border-start-0" placeholder="Product Name, SKU, Brand, Model..." value="{{ $filters['search'] ?? '' }}">
+                <input type="text" name="search" class="form-control border-start-0" placeholder="Product Name, SKU, Model..." value="{{ $filters['search'] ?? '' }}">
             </div>
         </div>
 
-        <div class="col-md-4">
+        <div class="col-md-3">
             <label class="form-label small fw-bold text-muted">Category</label>
-            <input type="text" name="category" class="form-control" placeholder="e.g. Solar, Electronics, Sewing" value="{{ $filters['category'] ?? '' }}">
+            <select name="category_id" class="form-select">
+                <option value="">All Categories</option>
+                @foreach($categories as $cat)
+                    <option value="{{ $cat->id }}" {{ ($filters['category_id'] ?? '') == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
+                @endforeach
+            </select>
         </div>
 
         <div class="col-md-3">
+            <label class="form-label small fw-bold text-muted">Brand</label>
+            <select name="brand_id" class="form-select">
+                <option value="">All Brands</option>
+                @foreach($brands as $brand)
+                    <option value="{{ $brand->id }}" {{ ($filters['brand_id'] ?? '') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+                @endforeach
+            </select>
+        </div>
+
+        <div class="col-md-2">
             <label class="form-label small fw-bold text-muted">Status</label>
             <select name="is_active" class="form-select">
                 <option value="">All</option>
@@ -77,8 +105,13 @@
                     <div class="small font-monospace text-info fw-bold">{{ $product->sku }}</div>
                 </td>
                 <td class="px-3 py-3 small">
-                    <div class="fw-bold text-dark">{{ $product->brand ?? 'N/A' }} {{ $product->model_number ? '('.$product->model_number.')' : '' }}</div>
-                    <div class="text-muted">{{ $product->category ?? 'General Product' }}</div>
+                    <div class="fw-bold text-dark">
+                        <i class="bi bi-tag text-primary me-1"></i>{{ $product->brandRel->name ?? $product->brand ?? 'N/A' }} 
+                        {{ $product->model_number ? '('.$product->model_number.')' : '' }}
+                    </div>
+                    <div class="text-muted">
+                        <i class="bi bi-grid-3x3-gap text-success me-1"></i>{{ $product->categoryRel->name ?? $product->category ?? 'General Product' }}
+                    </div>
                 </td>
                 <td class="px-3 py-3 small font-monospace fw-bold text-dark">
                     ₹{{ number_format($product->unit_price, 2) }}
@@ -103,6 +136,13 @@
                                 <i class="bi bi-pencil"></i>
                             </a>
                         @endcan
+                        <form action="{{ route('admin.product.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete product \'{{ $product->name }}\'?');" class="d-inline">
+                            @csrf
+                            @method('DELETE')
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="Delete Product">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
                     </div>
                 </td>
             </tr>

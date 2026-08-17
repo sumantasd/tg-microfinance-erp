@@ -101,7 +101,7 @@
                 </td>
                 <td class="px-3 py-3 small">
                     <div class="fw-bold text-success">{{ $scheme->interest_rate_per_annum }}% p.a. ({{ ucfirst(str_replace('_', ' ', $scheme->interest_type)) }})</div>
-                    <div class="text-muted">{{ $scheme->min_tenure_months }} - {{ $scheme->max_tenure_months }} Mos ({{ ucfirst($scheme->repayment_frequency) }})</div>
+                    <div class="text-muted">{{ $scheme->min_tenure_months }} - {{ $scheme->max_tenure_months }} Mos ({{ $scheme->repayment_frequency === 'bi_weekly' ? '15 Days' : ($scheme->repayment_frequency === 'weekly' ? 'Weekly' : 'Monthly') }})</div>
                 </td>
                 <td class="px-3 py-3 small">
                     <div>Processing: {{ $scheme->processing_fee_percentage }}%</div>

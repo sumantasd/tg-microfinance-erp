@@ -17,6 +17,8 @@ class StoreProductRequest extends FormRequest
             'company_id' => 'nullable|exists:companies,id',
             'sku' => 'nullable|string|max:50|unique:products,sku',
             'name' => 'required|string|max:150',
+            'brand_id' => 'nullable|exists:product_brands,id',
+            'category_id' => 'nullable|exists:product_categories,id',
             'brand' => 'nullable|string|max:100',
             'model_number' => 'nullable|string|max:100',
             'category' => 'nullable|string|max:100',

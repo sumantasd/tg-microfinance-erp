@@ -51,7 +51,7 @@
         <x-ui.card class="p-3 shadow-sm border-0 bg-info-subtle">
             <div class="small text-muted fw-bold uppercase">Tenure Range</div>
             <div class="fw-bold text-info fs-5 mt-1">{{ $scheme->min_tenure_months }} to {{ $scheme->max_tenure_months }} Months</div>
-            <div class="small text-muted text-capitalize">{{ ucfirst($scheme->repayment_frequency) }} Repayments</div>
+            <div class="small text-muted text-capitalize">{{ $scheme->repayment_frequency === 'bi_weekly' ? '15 Days' : ($scheme->repayment_frequency === 'weekly' ? 'Weekly' : 'Monthly') }} Repayments</div>
         </x-ui.card>
     </div>
 

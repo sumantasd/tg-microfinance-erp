@@ -7,6 +7,8 @@ use App\Models\InventoryStock;
 use App\Models\InventoryStockMovement;
 use App\Models\LoanAccount;
 use App\Models\LoanApplication;
+use App\Models\LoanDisbursement;
+use App\Models\LoanRepayment;
 use App\Repositories\InventoryRepositoryInterface;
 use App\Repositories\LoanAccountRepositoryInterface;
 use Carbon\Carbon;
@@ -20,7 +22,8 @@ class LoanAccountService
     public function __construct(
         protected LoanAccountRepositoryInterface $accountRepository,
         protected InventoryRepositoryInterface $inventoryRepository,
-        protected ActivityLogService $activityLogService
+        protected ActivityLogService $activityLogService,
+        protected AccountingService $accountingService
     ) {}
 
     public function getPaginatedAccounts(array $filters = [], int $perPage = 10): LengthAwarePaginator
@@ -111,18 +114,18 @@ class LoanAccountService
                 'repayment_frequency' => $app->repayment_frequency,
                 'interest_type' => $app->interest_type,
                 'interest_rate_per_annum' => $app->interest_rate_per_annum,
-                'processing_fee_percentage' => $app->processing_fee_percentage,
-                'processing_fee_amount' => $app->processing_fee_amount,
-                'insurance_fee_percentage' => $app->insurance_fee_percentage,
-                'insurance_fee_amount' => $app->insurance_fee_amount,
+                'processing_fee_percentage' => $app->processing_fee_percentage ?? 0.00,
+                'processing_fee_amount' => $app->processing_fee_amount ?? 0.00,
+                'insurance_fee_percentage' => $app->insurance_fee_percentage ?? 0.00,
+                'insurance_fee_amount' => $app->insurance_fee_amount ?? 0.00,
                 'other_charges_amount' => $otherChargesAmount,
                 'total_interest_amount' => $scheduleData['total_interest'],
                 'total_repayment_amount' => $scheduleData['total_repayment'],
                 'principal_outstanding' => $sanctionedPrincipal,
                 'interest_outstanding' => $scheduleData['total_interest'],
-                'fee_outstanding' => round($app->processing_fee_amount + $app->insurance_fee_amount + $otherChargesAmount, 2),
+                'fee_outstanding' => round(($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount, 2),
                 'penalty_outstanding' => 0.00,
-                'total_outstanding' => round($sanctionedPrincipal + $scheduleData['total_interest'] + $app->processing_fee_amount + $app->insurance_fee_amount + $otherChargesAmount, 2),
+                'total_outstanding' => round($sanctionedPrincipal + $scheduleData['total_interest'] + ($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount, 2),
                 'status' => 'sanctioned',
                 'sanction_date' => $sDate->toDateString(),
                 'maturity_date' => $scheduleData['maturity_date'],
@@ -157,6 +160,11 @@ class LoanAccountService
                     'received_by' => Auth::id(),
                     'remarks' => 'Initial down payment at loan sanction',
                 ]);
+
+                $downPayment = $loanAccount->downPayments()->latest('id')->first();
+                if ($downPayment) {
+                    $this->accountingService->postProductLoanDownPayment($downPayment, $loanAccount);
+                }
             }
 
             $this->activityLogService->log('loan_sanctioned', $loanAccount);
@@ -183,6 +191,11 @@ class LoanAccountService
                 'remarks' => $remarks,
             ]);
 
+            $downPayment = $updated->downPayments()->latest('id')->first();
+            if ($downPayment) {
+                $this->accountingService->postProductLoanDownPayment($downPayment, $updated);
+            }
+
             $this->activityLogService->log('down_payment_received', $updated);
             return $updated;
         });
@@ -206,6 +219,16 @@ class LoanAccountService
             $application = $loanAccount->application;
             if (!$application || $application->products->count() === 0) {
                 throw ValidationException::withMessages(['products' => 'No product items associated with this loan application.']);
+            }
+
+            // CRITICAL: Block if product cost price is missing or zero
+            foreach ($application->products as $item) {
+                $product = $item->product;
+                if (!$product || $product->cost_price === null || (float) $product->cost_price <= 0) {
+                    throw ValidationException::withMessages([
+                        'products' => "Product cost price is required before this product can be issued under a Product Loan.",
+                    ]);
+                }
             }
 
             // Verify and deduct physical inventory stock for each product line item!
@@ -251,7 +274,7 @@ class LoanAccountService
             }
 
             $disbNo = $this->accountRepository->generateDisbursementNumber($loanAccount->branch_id);
-            $this->accountRepository->recordDisbursement($loanAccount, [
+            $updated = $this->accountRepository->recordDisbursement($loanAccount, [
                 'disbursement_number' => $disbNo,
                 'disbursement_date' => now()->toDateString(),
                 'disbursed_amount' => $loanAccount->sanctioned_amount,
@@ -260,10 +283,17 @@ class LoanAccountService
                 'remarks' => $remarks ?? "Physical product fulfillment for Product Loan #{$loanAccount->loan_number}",
             ]);
 
-            $this->activityLogService->log('product_issued_against_loan', $loanAccount);
-            $this->activityLogService->log('loan_disbursed', $loanAccount);
+            $disbursement = LoanDisbursement::where('disbursement_number', $disbNo)->first();
 
-            return $loanAccount->fresh();
+            // Automatic General Ledger Posting for Product Loan Issue
+            if ($disbursement) {
+                $this->accountingService->postProductLoanIssue($updated, $disbursement);
+            }
+
+            $this->activityLogService->log('product_issued_against_loan', $updated);
+            $this->activityLogService->log('loan_disbursed', $updated);
+
+            return $updated->fresh();
         });
     }
 
@@ -292,6 +322,13 @@ class LoanAccountService
                 'disbursed_by' => Auth::id(),
                 'remarks' => $remarks ?? "Cash disbursement for Loan #{$loanAccount->loan_number}",
             ]);
+
+            $disbursement = LoanDisbursement::where('disbursement_number', $disbNo)->first();
+
+            // Automatic General Ledger Posting for Cash Loan Disbursement
+            if ($disbursement) {
+                $this->accountingService->postCashLoanDisbursement($updated, $disbursement);
+            }
 
             $this->activityLogService->log('loan_disbursed', $updated);
             return $updated;
@@ -578,6 +615,9 @@ class LoanAccountService
             if ($newStatus !== 'closed' && $principalPaid > 0) {
                 $this->recalculateFutureSchedule($loanAccount->fresh(), $adjustmentMode);
             }
+
+            // Automatic General Ledger Posting for Loan Repayment / EMI Collection
+            $this->accountingService->postLoanRepayment($repayment, $loanAccount);
 
             $this->activityLogService->log('loan_repayment_received', $loanAccount);
             return $loanAccount->fresh(['repayments', 'installments']);

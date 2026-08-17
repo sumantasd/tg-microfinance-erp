@@ -85,6 +85,22 @@ class User extends Authenticatable
     }
 
     /**
+     * Relationship to Company.
+     */
+    public function company()
+    {
+        return $this->belongsTo(Company::class);
+    }
+
+    /**
+     * Relationship to Branch.
+     */
+    public function branch()
+    {
+        return $this->belongsTo(Branch::class);
+    }
+
+    /**
      * Relationship to creator user.
      */
     public function creator()
@@ -98,5 +114,62 @@ class User extends Authenticatable
     public function editor()
     {
         return $this->belongsTo(User::class, 'updated_by');
+    }
+
+    /**
+     * Check if user can access a specific branch.
+     */
+    public function canAccessBranch(?int $branchId): bool
+    {
+        if ($this->isSuperAdmin() || $this->isCompanyAdmin()) {
+            return true;
+        }
+
+        if (!$branchId) {
+            return true;
+        }
+
+        return $this->branch_id && (int) $this->branch_id === (int) $branchId;
+    }
+
+    /**
+     * Check if user can access a specific company.
+     */
+    public function canAccessCompany(?int $companyId): bool
+    {
+        if ($this->isSuperAdmin()) {
+            return true;
+        }
+
+        if (!$companyId) {
+            return true;
+        }
+
+        return $this->company_id && (int) $this->company_id === (int) $companyId;
+    }
+
+    /**
+     * Derive authoritative server-side branch ID for queries.
+     * Never trusts request input for branch-locked staff.
+     */
+    public function resolveScopedBranchId(?int $requestedBranchId = null): ?int
+    {
+        if ($this->isSuperAdmin() || $this->isCompanyAdmin()) {
+            return $requestedBranchId ? (int) $requestedBranchId : null;
+        }
+
+        return $this->branch_id ? (int) $this->branch_id : null;
+    }
+
+    /**
+     * Derive authoritative server-side company ID for queries.
+     */
+    public function resolveScopedCompanyId(?int $requestedCompanyId = null): int
+    {
+        if ($this->isSuperAdmin()) {
+            return $requestedCompanyId ? (int) $requestedCompanyId : (Company::first()?->id ?? 1);
+        }
+
+        return $this->company_id ? (int) $this->company_id : (Company::first()?->id ?? 1);
     }
 }

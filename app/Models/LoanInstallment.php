@@ -51,4 +51,14 @@ class LoanInstallment extends Model
     {
         return $this->belongsTo(LoanAccount::class, 'loan_account_id');
     }
+
+    public function penaltyCharges(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LoanPenaltyCharge::class, 'loan_installment_id')->orderBy('charge_date', 'desc');
+    }
+
+    public function penaltyWaivers(): \Illuminate\Database\Eloquent\Relations\HasMany
+    {
+        return $this->hasMany(LoanPenaltyWaiver::class, 'loan_installment_id')->orderBy('waiver_date', 'desc');
+    }
 }

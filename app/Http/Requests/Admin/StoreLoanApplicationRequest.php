@@ -13,6 +13,16 @@ class StoreLoanApplicationRequest extends FormRequest
 
     protected function prepareForValidation(): void
     {
+        if ($this->loan_scheme_id) {
+            $scheme = \App\Models\LoanScheme::find($this->loan_scheme_id);
+            if ($scheme) {
+                $this->merge([
+                    'tenure_months' => $scheme->min_tenure_months,
+                    'repayment_frequency' => $this->repayment_frequency ?: $scheme->repayment_frequency,
+                ]);
+            }
+        }
+
         if ($this->borrower_type === 'individual') {
             $this->request->remove('customer_group_id');
             $this->request->remove('members');
@@ -36,7 +46,7 @@ class StoreLoanApplicationRequest extends FormRequest
             'customer_group_id' => 'required_if:borrower_type,group|nullable|exists:customer_groups,id',
             'application_date' => 'required|date',
             'requested_amount' => 'required|numeric|min:1',
-            'tenure_months' => 'required|integer|min:1',
+            'tenure_months' => 'nullable|integer|min:1',
             'repayment_frequency' => 'nullable|string|in:weekly,bi_weekly,monthly',
             'purpose' => 'nullable|string|max:255',
             'remarks' => 'nullable|string|max:255',
@@ -49,6 +59,7 @@ class StoreLoanApplicationRequest extends FormRequest
 
             // Product Line Items
             'products' => 'required_if:loan_type,product|nullable|array',
+            'products.*.category_id' => 'nullable|exists:product_categories,id',
             'products.*.product_id' => 'required_with:products|exists:products,id',
             'products.*.quantity' => 'required_with:products|integer|min:1',
             'products.*.unit_price' => 'nullable|numeric|min:0',
