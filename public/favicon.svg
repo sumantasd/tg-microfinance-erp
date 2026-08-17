@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+    <defs>
+        <linearGradient id="gmfGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#2563eb" />
+            <stop offset="100%" stop-color="#1e40af" />
+        </linearGradient>
+        <linearGradient id="goldGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fbbf24" />
+            <stop offset="100%" stop-color="#f59e0b" />
+        </linearGradient>
+    </defs>
+    <!-- Rounded Background Container -->
+    <rect width="64" height="64" rx="14" fill="url(#gmfGrad)" />
+    
+    <!-- Bank Pediment / Roof -->
+    <path d="M32 12 L50 22 L14 22 Z" fill="#ffffff" />
+    <!-- Pediment Gold Crest -->
+    <circle cx="32" cy="18" r="2.5" fill="url(#goldGrad)" />
+    
+    <!-- Architrave Beam -->
+    <rect x="14" y="23" width="36" height="3" rx="1" fill="#ffffff" />
+    
+    <!-- 4 Bank Pillars (Stability & Trust) -->
+    <rect x="17" y="28" width="5" height="17" rx="1" fill="#ffffff" />
+    <rect x="25" y="28" width="5" height="17" rx="1" fill="#ffffff" />
+    <rect x="34" y="28" width="5" height="17" rx="1" fill="#ffffff" />
+    <rect x="42" y="28" width="5" height="17" rx="1" fill="#ffffff" />
+    
+    <!-- Base Plinth -->
+    <rect x="12" y="46" width="40" height="4" rx="1.5" fill="#ffffff" />
+    <rect x="10" y="51" width="44" height="3" rx="1" fill="url(#goldGrad)" />
+</svg>

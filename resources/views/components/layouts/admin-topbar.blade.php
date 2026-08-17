@@ -1,7 +1,13 @@
 @php
     $settings = \App\Models\WebsiteSetting::first();
-    $companyName = $settings->company_name ?? 'TG Microfinance';
+    $companyName = $settings->company_name ?? 'Grihalaxmi Finance';
     $companyLogo = $settings->logo_url ?? null;
+    
+    $authUser = auth()->user();
+    $companyId = $authUser ? $authUser->resolveScopedCompanyId() : 1;
+    $scopedBranchId = $authUser ? $authUser->resolveScopedBranchId() : null;
+    $branches = \App\Models\Branch::where('company_id', $companyId)->where('is_active', true)->get();
+    $currentBranchName = $scopedBranchId ? ($branches->firstWhere('id', $scopedBranchId)?->name ?? 'Assigned Branch') : 'All Branches (Consolidated)';
 @endphp
 
 <!-- Admin ERP Light SaaS Topbar Header -->
@@ -16,21 +22,38 @@
         <div class="dropdown">
             <button class="btn btn-light btn-sm rounded-pill border dropdown-toggle fw-semibold d-flex align-items-center gap-2" type="button" id="branchSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-building-gear text-primary"></i>
-                <span>Head Office Branch</span>
+                <span>{{ $currentBranchName }}</span>
             </button>
             <ul class="dropdown-menu shadow-lg border-0 rounded-3 mt-1" aria-labelledby="branchSelectorDropdown">
-                <li><h6 class="dropdown-header">Switch Active Branch</h6></li>
-                <li><a class="dropdown-item active fw-bold" href="#"><i class="bi bi-check2 text-primary me-2"></i>Head Office Branch</a></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-building me-2"></i>Commercial Market Branch</a></li>
-                <li><a class="dropdown-item" href="#"><i class="bi bi-building me-2"></i>Eastern Agricultural Branch</a></li>
+                <li><h6 class="dropdown-header">Active Branch Scope</h6></li>
+                @if($authUser && ($authUser->isSuperAdmin() || $authUser->isCompanyAdmin()))
+                    <li><a class="dropdown-item {{ !$scopedBranchId ? 'active fw-bold' : '' }}" href="{{ route('admin.dashboard') }}"><i class="bi bi-globe me-2"></i>All Branches (Consolidated)</a></li>
+                @endif
+                @foreach($branches as $b)
+                    <li>
+                        <a class="dropdown-item {{ $scopedBranchId == $b->id ? 'active fw-bold' : '' }}" href="{{ route('admin.dashboard', ['branch_id' => $b->id]) }}">
+                            <i class="bi bi-building me-2"></i>{{ $b->name }}
+                        </a>
+                    </li>
+                @endforeach
             </ul>
         </div>
 
-        <!-- Global Search Input -->
-        <div class="topbar-search position-relative d-none d-md-block">
-            <i class="bi bi-search search-icon"></i>
-            <input type="text" id="global-search-input" class="form-control bg-light border-0" placeholder="Search members, loans, collections, branches...">
-            <span class="position-absolute end-0 top-50 translate-middle-y me-2 badge bg-white text-muted border font-monospace small">Ctrl K</span>
+        <!-- Global Search Input & Live Autocomplete -->
+        <div class="topbar-search position-relative d-none d-md-block" style="min-width: 380px;">
+            <form method="GET" action="{{ route('admin.search') }}" id="topbar-search-form" class="m-0 position-relative">
+                <i class="bi bi-search search-icon"></i>
+                <input type="text" id="global-search-input" name="q" class="form-control bg-light border-0" placeholder="Search members, loans, applications, products..." autocomplete="off">
+                <span class="position-absolute end-0 top-50 translate-middle-y me-2 badge bg-white text-muted border font-monospace small" style="pointer-events: none;">Ctrl K</span>
+            </form>
+
+            <!-- Autocomplete Suggestions Dropdown -->
+            <div id="search-autocomplete-dropdown" class="dropdown-menu shadow-lg border-0 rounded-3 p-0 mt-1 position-absolute w-100" style="display: none; max-height: 420px; overflow-y: auto; z-index: 1060; left: 0; right: 0;">
+                <div id="search-results-container" class="p-2"></div>
+                <div id="search-view-all-container" class="p-2 border-top bg-light text-center" style="display: none;">
+                    <a href="#" id="search-view-all-link" class="btn btn-sm btn-link text-primary fw-bold text-decoration-none">View all results <i class="bi bi-arrow-right"></i></a>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -41,39 +64,6 @@
             <i class="bi bi-arrows-fullscreen fs-6 text-secondary"></i>
         </button>
 
-        <!-- Theme Toggle Button -->
-        <button type="button" class="btn btn-light rounded-circle p-2 d-flex align-items-center justify-content-center border" title="Toggle SaaS Theme" style="width: 38px; height: 38px;">
-            <i class="bi bi-moon-stars fs-6 text-secondary"></i>
-        </button>
-
-        <!-- System Notifications Dropdown -->
-        <div class="dropdown">
-            <button type="button" class="btn btn-light rounded-circle p-2 position-relative d-flex align-items-center justify-content-center border" id="notificationsDropdown" data-bs-toggle="dropdown" aria-expanded="false" style="width: 38px; height: 38px;">
-                <i class="bi bi-bell fs-6 text-secondary"></i>
-                <span class="position-absolute top-0 start-100 translate-middle p-1 bg-danger border border-light rounded-circle">
-                    <span class="visually-hidden">New notifications</span>
-                </span>
-            </button>
-            <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-3 mt-1" aria-labelledby="notificationsDropdown" style="width: 320px;">
-                <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
-                    <h6 class="fw-bold mb-0 font-heading">Notifications</h6>
-                    <span class="badge bg-primary-subtle text-primary">3 New</span>
-                </div>
-                <div class="list-group list-group-flush small">
-                    <a href="#" class="list-group-item list-group-item-action px-0 py-2 border-0">
-                        <div class="fw-bold text-dark mb-0"><i class="bi bi-file-earmark-check text-success me-1"></i> Loan Application Approved</div>
-                        <small class="text-muted">Loan #LN-2026-089 approved by Branch Manager</small>
-                    </a>
-                    <a href="#" class="list-group-item list-group-item-action px-0 py-2 border-0">
-                        <div class="fw-bold text-dark mb-0"><i class="bi bi-journal-plus text-primary me-1"></i> Field Collection Posted</div>
-                        <small class="text-muted">Officer John posted ₹12,500 collection sheet</small>
-                    </a>
-                </div>
-            </ul>
-        </div>
-
-        <div class="vr mx-1 opacity-25"></div>
-
         <!-- User Profile Dropdown -->
         <div class="dropdown">
             <a href="#" class="d-flex align-items-center gap-2 text-decoration-none dropdown-toggle" id="userProfileDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -82,12 +72,14 @@
                 </div>
                 <div class="d-none d-md-block text-start">
                     <div class="fw-bold small text-dark lh-1">{{ auth()->check() ? auth()->user()->name : 'Super Admin' }}</div>
-                    <small class="text-muted" style="font-size: 0.725rem;">Administrator</small>
+                    <small class="text-muted" style="font-size: 0.725rem;">{{ auth()->check() && auth()->user()->roles->first() ? auth()->user()->roles->first()->name : 'Staff' }}</small>
                 </div>
             </a>
             <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-3 p-2 mt-1" aria-labelledby="userProfileDropdown">
-                <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url('/admin/system/users') }}"><i class="bi bi-person me-2 text-primary"></i> My Profile</a></li>
-                <li><a class="dropdown-item rounded-2 py-1.5" href="{{ url('/admin/system/settings') }}"><i class="bi bi-gear me-2 text-primary"></i> Account Settings</a></li>
+                <li><a class="dropdown-item rounded-2 py-1.5" href="{{ route('admin.profile.show') }}"><i class="bi bi-person me-2 text-primary"></i> My Profile</a></li>
+                @can('users.view')
+                    <li><a class="dropdown-item rounded-2 py-1.5" href="{{ route('admin.system.users.index') }}"><i class="bi bi-people me-2 text-primary"></i> User Management</a></li>
+                @endcan
                 <li><hr class="dropdown-divider"></li>
                 <li>
                     <form action="{{ route('logout') }}" method="POST">
@@ -101,3 +93,98 @@
         </div>
     </div>
 </header>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('global-search-input');
+    const dropdown = document.getElementById('search-autocomplete-dropdown');
+    const resultsContainer = document.getElementById('search-results-container');
+    const viewAllContainer = document.getElementById('search-view-all-container');
+    const viewAllLink = document.getElementById('search-view-all-link');
+
+    if (!searchInput || !dropdown) return;
+
+    let debounceTimer = null;
+
+    // Keyboard shortcut Ctrl + K
+    document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            e.preventDefault();
+            searchInput.focus();
+            searchInput.select();
+        }
+        if (e.key === 'Escape') {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    // Close dropdown on outside click
+    document.addEventListener('click', function (e) {
+        if (!searchInput.contains(e.target) && !dropdown.contains(e.target)) {
+            dropdown.style.display = 'none';
+        }
+    });
+
+    searchInput.addEventListener('input', function () {
+        const query = searchInput.value.trim();
+        clearTimeout(debounceTimer);
+
+        if (query.length === 0) {
+            dropdown.style.display = 'none';
+            return;
+        }
+
+        debounceTimer = setTimeout(() => {
+            fetchResults(query);
+        }, 250);
+    });
+
+    function fetchResults(query) {
+        resultsContainer.innerHTML = '<div class="text-center py-3 text-muted small"><span class="spinner-border spinner-border-sm me-1"></span> Searching...</div>';
+        dropdown.style.display = 'block';
+
+        fetch(`{{ route('admin.search') }}?q=${encodeURIComponent(query)}&format=json`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success || data.total_results === 0) {
+                    resultsContainer.innerHTML = '<div class="text-center py-3 text-muted small"><i class="bi bi-search me-1"></i> No matching records found.</div>';
+                    viewAllContainer.style.display = 'none';
+                    return;
+                }
+
+                let html = '';
+                for (const [category, items] of Object.entries(data.categories)) {
+                    html += `<div class="px-2 py-1 small fw-bold text-uppercase text-muted" style="font-size: 0.675rem; letter-spacing: 0.5px;">${category}</div>`;
+                    items.forEach(item => {
+                        html += `
+                            <a href="${item.url}" class="d-flex justify-content-between align-items-center p-2 rounded text-decoration-none text-dark search-item-hover">
+                                <div class="d-flex align-items-center gap-2">
+                                    <i class="bi ${item.icon || 'bi-dot'} text-primary fs-6"></i>
+                                    <div>
+                                        <strong class="d-block small lh-1 text-dark">${item.title}</strong>
+                                        <small class="text-muted" style="font-size: 0.7rem;">${item.subtitle}</small>
+                                    </div>
+                                </div>
+                                ${item.badge ? `<span class="badge ${item.badge_class || 'bg-secondary'} rounded-pill" style="font-size: 0.65rem;">${item.badge}</span>` : ''}
+                            </a>
+                        `;
+                    });
+                }
+
+                resultsContainer.innerHTML = html;
+                viewAllLink.href = `{{ route('admin.search') }}?q=${encodeURIComponent(query)}`;
+                viewAllContainer.style.display = 'block';
+            })
+            .catch(err => {
+                resultsContainer.innerHTML = '<div class="text-center py-2 text-danger small">Error loading results.</div>';
+                viewAllContainer.style.display = 'none';
+            });
+    }
+});
+</script>
+
+<style>
+.search-item-hover:hover {
+    background-color: #f8fafc;
+}
+</style>

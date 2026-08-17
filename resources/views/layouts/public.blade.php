@@ -17,8 +17,12 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 
+    <!-- Favicon -->
     @if(isset($settings) && $settings->favicon_url)
         <link rel="icon" href="{{ $settings->favicon_url }}">
+    @else
+        <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
+        <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
     @endif
 
     <!-- Vite Asset Bundle -->

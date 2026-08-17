@@ -17,6 +17,8 @@ use App\Http\Controllers\Admin\Cms\PageController;
 use App\Http\Controllers\Admin\Cms\SeoSettingController;
 use App\Http\Controllers\Admin\Cms\TeamMemberController;
 use App\Http\Controllers\Admin\Cms\WebsiteSettingController;
+use App\Http\Controllers\Admin\DashboardController;
+use App\Http\Controllers\Admin\GlobalSearchController;
 use App\Http\Controllers\Admin\AccountingDashboardController;
 use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\ChartOfAccountController;
@@ -128,8 +130,9 @@ Route::get('/reset-password', function () { return view('auth.reset-password'); 
 */
 
 Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(function () {
-    Route::get('/', function () { return view('admin.dashboard'); })->name('admin.dashboard');
-    Route::get('/dashboard', function () { return view('admin.dashboard'); });
+    Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard');
+    Route::get('/dashboard', [DashboardController::class, 'index']);
+    Route::get('/search', [GlobalSearchController::class, 'search'])->name('admin.search');
 
     // Profile Management Routes
     Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile.show');
@@ -409,6 +412,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     // Module 10: General Ledger & Double-Entry Accounting Routes
     Route::prefix('accounting')->name('admin.accounting.')->middleware('can:accounting.view')->group(function () {
         Route::get('/', [AccountingDashboardController::class, 'index'])->name('dashboard');
+        Route::get('/dashboard', [AccountingDashboardController::class, 'index']);
         Route::resource('chart-of-accounts', ChartOfAccountController::class);
         Route::resource('bank-accounts', BankAccountController::class);
         Route::resource('vouchers', VoucherController::class)->except(['edit', 'update', 'destroy']);
@@ -506,8 +510,13 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::delete('/faq/{faq}', [FaqController::class, 'destroy'])->name('admin.cms.faq.destroy');
         Route::get('/footer', [FooterSettingController::class, 'edit'])->name('admin.cms.footer.edit');
         Route::put('/footer', [FooterSettingController::class, 'update'])->name('admin.cms.footer.update');
-        Route::get('/seo', [SeoSettingController::class, 'edit'])->name('admin.cms.seo.edit');
-        Route::put('/seo', [SeoSettingController::class, 'update'])->name('admin.cms.seo.update');
+        Route::get('/seo', [SeoSettingController::class, 'index'])->name('admin.cms.seo.index');
+        Route::get('/seo/create', [SeoSettingController::class, 'create'])->name('admin.cms.seo.create');
+        Route::post('/seo', [SeoSettingController::class, 'store'])->name('admin.cms.seo.store');
+        Route::get('/seo/{seo}/edit', [SeoSettingController::class, 'edit'])->name('admin.cms.seo.edit');
+        Route::put('/seo/{seo}', [SeoSettingController::class, 'update'])->name('admin.cms.seo.update');
+        Route::patch('/seo/{seo}/toggle-status', [SeoSettingController::class, 'toggleStatus'])->name('admin.cms.seo.toggle-status');
+        Route::delete('/seo/{seo}', [SeoSettingController::class, 'destroy'])->name('admin.cms.seo.destroy');
         Route::get('/contact', [ContactInquiryController::class, 'index'])->name('admin.cms.contact.index');
         Route::get('/contact/{contact}', [ContactInquiryController::class, 'show'])->name('admin.cms.contact.show');
         Route::delete('/contact/{contact}', [ContactInquiryController::class, 'destroy'])->name('admin.cms.contact.destroy');
