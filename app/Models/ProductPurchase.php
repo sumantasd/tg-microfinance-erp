@@ -16,6 +16,7 @@ class ProductPurchase extends Model
         'purchase_number',
         'company_id',
         'branch_id',
+        'supplier_id',
         'supplier_name',
         'supplier_reference',
         'supplier_invoice_number',
@@ -30,6 +31,7 @@ class ProductPurchase extends Model
         'payment_status',
         'payment_method',
         'purchase_status',
+        'is_inventory_processed',
         'received_by',
         'received_at',
         'remarks',
@@ -40,6 +42,7 @@ class ProductPurchase extends Model
     protected $casts = [
         'purchase_date' => 'date',
         'received_at' => 'datetime',
+        'is_inventory_processed' => 'boolean',
         'subtotal' => 'decimal:2',
         'discount_amount' => 'decimal:2',
         'tax_amount' => 'decimal:2',
@@ -59,9 +62,19 @@ class ProductPurchase extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public function supplier(): BelongsTo
+    {
+        return $this->belongsTo(Supplier::class);
+    }
+
     public function items(): HasMany
     {
         return $this->hasMany(ProductPurchaseItem::class, 'purchase_id');
+    }
+
+    public function paymentAllocations(): HasMany
+    {
+        return $this->hasMany(SupplierPaymentAllocation::class, 'product_purchase_id');
     }
 
     public function receiver(): BelongsTo

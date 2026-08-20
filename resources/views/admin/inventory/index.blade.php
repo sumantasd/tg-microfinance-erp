@@ -98,8 +98,12 @@
                     <div class="small text-muted font-monospace">{{ $stk->branch->code ?? '' }}</div>
                 </td>
                 <td class="px-3 py-3">
-                    <a href="{{ route('admin.product.show', $stk->product->id) }}" class="fw-bold text-dark text-decoration-none hover-primary">{{ $stk->product->name }}</a>
-                    <div class="small font-monospace text-info">{{ $stk->product->sku }}</div>
+                    @if($stk->product)
+                        <a href="{{ route('admin.product.show', $stk->product->id) }}" class="fw-bold text-dark text-decoration-none hover-primary">{{ $stk->product->name }}</a>
+                        <div class="small font-monospace text-info">{{ $stk->product->sku }}</div>
+                    @else
+                        <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>Unknown Product (ID: {{ $stk->product_id }})</span>
+                    @endif
                 </td>
                 <td class="px-3 py-3 fs-6 fw-bold text-dark">{{ $stk->current_stock }}</td>
                 <td class="px-3 py-3 text-warning font-monospace">{{ $stk->reserved_stock }}</td>
@@ -126,7 +130,7 @@
                             data-branch="{{ $stk->branch_id }}" 
                             data-product="{{ $stk->product_id }}" 
                             data-current="{{ $stk->current_stock }}"
-                            data-name="{{ $stk->product->name }}"
+                            data-name="{{ $stk->product->name ?? 'Unknown Product' }}"
                             data-bs-toggle="modal" data-bs-target="#adjustModal">
                             <i class="bi bi-sliders"></i> Adjust
                         </button>

@@ -83,10 +83,10 @@
     </div>
 
     <div class="col-md-3">
-        <x-ui.card class="p-3 shadow-sm border-0 bg-info-subtle">
-            <div class="small text-muted fw-bold uppercase">Interest & Fees Snapshot</div>
-            <div class="fs-5 fw-bold text-info mt-1">{{ $application->interest_rate_per_annum }}% p.a. ({{ ucfirst(str_replace('_', ' ', $application->interest_type)) }})</div>
-            <div class="small text-muted">Proc. Fee: ₹{{ number_format($application->processing_fee_amount, 2) }} | Ins. Fee: ₹{{ number_format($application->insurance_fee_amount, 2) }}</div>
+        <x-ui.card class="p-3 shadow-sm border-0 bg-warning-subtle">
+            <div class="small text-muted fw-bold uppercase">Total Upfront Charges</div>
+            <div class="fs-3 fw-bold text-dark mt-1 font-monospace">₹{{ number_format($application->upfront_charges_total, 2) }}</div>
+            <div class="small text-muted">Proc: ₹{{ number_format($application->processing_fee_amount, 2) }} ({{ $application->processing_fee_percentage }}%) | Ins: ₹{{ number_format($application->insurance_fee_amount, 2) }} ({{ $application->insurance_fee_percentage }}%)</div>
         </x-ui.card>
     </div>
 

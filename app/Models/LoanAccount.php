@@ -35,6 +35,8 @@ class LoanAccount extends Model
         'insurance_fee_percentage',
         'insurance_fee_amount',
         'other_charges_amount',
+        'upfront_charges_paid',
+        'upfront_payment_status',
         'total_interest_amount',
         'total_repayment_amount',
         'principal_outstanding',
@@ -126,9 +128,29 @@ class LoanAccount extends Model
         return $this->hasMany(LoanDownPayment::class, 'loan_account_id');
     }
 
+    public function upfrontPayments(): HasMany
+    {
+        return $this->hasMany(LoanUpfrontPayment::class, 'loan_account_id')->orderBy('id', 'desc');
+    }
+
     public function disbursements(): HasMany
     {
         return $this->hasMany(LoanDisbursement::class, 'loan_account_id');
+    }
+
+    public function getUpfrontChargesTotalAttribute(): float
+    {
+        return round(($this->processing_fee_amount ?? 0) + ($this->insurance_fee_amount ?? 0), 2);
+    }
+
+    public function getUpfrontChargesDueAttribute(): float
+    {
+        return max(0, round($this->upfront_charges_total - ($this->upfront_charges_paid ?? 0), 2));
+    }
+
+    public function getIsUpfrontChargesPaidAttribute(): bool
+    {
+        return $this->upfront_charges_total <= 0 || $this->upfront_payment_status === 'paid' || $this->upfront_charges_due <= 0;
     }
 
     public function repayments(): HasMany

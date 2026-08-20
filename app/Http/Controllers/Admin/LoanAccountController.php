@@ -67,6 +67,21 @@ class LoanAccountController extends Controller
         return redirect()->back()->with('success', "Down payment of ₹" . number_format($data['amount'], 2) . " recorded successfully.");
     }
 
+    public function recordUpfrontPayment(Request $request, LoanAccount $loanAccount): RedirectResponse
+    {
+        $validated = $request->validate([
+            'amount' => 'required|numeric|min:0.01',
+            'payment_method' => 'required|string|in:cash,bank_transfer,upi,cheque',
+            'payment_date' => 'nullable|date',
+            'reference_number' => 'nullable|string|max:100',
+            'remarks' => 'nullable|string|max:255',
+        ]);
+
+        $payment = $this->accountService->recordUpfrontPayment($loanAccount, $validated);
+
+        return redirect()->back()->with('success', "Upfront charges payment of ₹" . number_format($payment->amount, 2) . " recorded successfully (Receipt: {$payment->receipt_number}).");
+    }
+
     public function disburseCash(Request $request, LoanAccount $loanAccount): RedirectResponse
     {
         $request->validate([

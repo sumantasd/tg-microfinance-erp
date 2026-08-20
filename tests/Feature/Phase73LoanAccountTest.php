@@ -580,4 +580,85 @@ class Phase73LoanAccountTest extends TestCase
         ]);
         $response2->assertSessionHasErrors('reference_number');
     }
+
+    public function test_upfront_charge_payment_lifecycle_and_disbursement_lock(): void
+    {
+        $app = LoanApplication::create([
+            'application_number' => 'LN-APP-PAT01-2026-000222',
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch->id,
+            'loan_type' => 'cash',
+            'borrower_type' => 'individual',
+            'customer_id' => $this->customerA->id,
+            'loan_scheme_id' => $this->cashScheme->id,
+            'application_date' => date('Y-m-d'),
+            'requested_amount' => 50000.00,
+            'approved_amount' => 50000.00,
+            'tenure_months' => 12,
+            'repayment_frequency' => 'monthly',
+            'interest_type' => 'flat',
+            'interest_rate_per_annum' => 12.00,
+            'processing_fee_percentage' => 1.50,
+            'processing_fee_amount' => 750.00,
+            'insurance_fee_percentage' => 0.50,
+            'insurance_fee_amount' => 250.00,
+            'status' => 'approved',
+        ]);
+
+        $this->actingAs($this->adminUser)->post(route('admin.loan-account.sanction'), ['loan_application_id' => $app->id]);
+        $account = LoanAccount::where('loan_application_id', $app->id)->first();
+        $this->assertNotNull($account);
+
+        // Initial State: Total 1000, Paid 0, Due 1000, Status pending, Disbursement Locked!
+        $this->assertEquals(1000.00, $account->upfront_charges_total);
+        $this->assertEquals(0.00, $account->upfront_charges_paid);
+        $this->assertEquals(1000.00, $account->upfront_charges_due);
+        $this->assertEquals('pending', $account->upfront_payment_status);
+        $this->assertFalse($account->is_upfront_charges_paid);
+
+        // Overpayment Validation Test (> 1000)
+        $invalidRes = $this->actingAs($this->adminUser)->post(route('admin.loan-account.record-upfront-payment', $account->id), [
+            'amount' => 1500.00,
+            'payment_method' => 'cash',
+        ]);
+        $invalidRes->assertSessionHasErrors('amount');
+
+        // Zero Amount Validation Test
+        $zeroRes = $this->actingAs($this->adminUser)->post(route('admin.loan-account.record-upfront-payment', $account->id), [
+            'amount' => 0.00,
+            'payment_method' => 'cash',
+        ]);
+        $zeroRes->assertSessionHasErrors('amount');
+
+        // 1. Record Partial Payment of ₹400
+        $partialRes = $this->actingAs($this->adminUser)->post(route('admin.loan-account.record-upfront-payment', $account->id), [
+            'amount' => 400.00,
+            'payment_method' => 'bank_transfer',
+            'reference_number' => 'NEFT-UPF-001',
+            'remarks' => 'Partial upfront fee payment',
+        ]);
+        $partialRes->assertRedirect();
+
+        $freshAcc1 = $account->fresh();
+        $this->assertEquals(400.00, $freshAcc1->upfront_charges_paid);
+        $this->assertEquals(600.00, $freshAcc1->upfront_charges_due);
+        $this->assertEquals('partial', $freshAcc1->upfront_payment_status);
+        $this->assertFalse($freshAcc1->is_upfront_charges_paid);
+        $this->assertEquals('sanctioned', $freshAcc1->status); // Still locked!
+
+        // 2. Record Final Payment of ₹600
+        $finalRes = $this->actingAs($this->adminUser)->post(route('admin.loan-account.record-upfront-payment', $account->id), [
+            'amount' => 600.00,
+            'payment_method' => 'cash',
+            'remarks' => 'Final upfront fee payment',
+        ]);
+        $finalRes->assertRedirect();
+
+        $freshAcc2 = $account->fresh();
+        $this->assertEquals(1000.00, $freshAcc2->upfront_charges_paid);
+        $this->assertEquals(0.00, $freshAcc2->upfront_charges_due);
+        $this->assertEquals('paid', $freshAcc2->upfront_payment_status);
+        $this->assertTrue($freshAcc2->is_upfront_charges_paid);
+        $this->assertEquals('ready_for_disbursement', $freshAcc2->status); // UNLOCKED!
+    }
 }

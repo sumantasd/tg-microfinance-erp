@@ -59,9 +59,10 @@ class StoreLoanApplicationRequest extends FormRequest
 
             // Product Line Items
             'products' => 'required_if:loan_type,product|nullable|array',
-            'products.*.category_id' => 'nullable|exists:product_categories,id',
-            'products.*.product_id' => 'required_with:products|exists:products,id',
-            'products.*.quantity' => 'required_with:products|integer|min:1',
+            'products.*.category_id' => 'required_if:loan_type,product|nullable|exists:product_categories,id',
+            'products.*.brand_id' => 'required_if:loan_type,product|nullable|exists:product_brands,id',
+            'products.*.product_id' => 'required_if:loan_type,product|nullable|exists:products,id',
+            'products.*.quantity' => 'required_if:loan_type,product|nullable|integer|min:1',
             'products.*.unit_price' => 'nullable|numeric|min:0',
             'products.*.remarks' => 'nullable|string|max:255',
         ];

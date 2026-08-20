@@ -12,17 +12,26 @@
 
 <!-- Admin ERP Light SaaS Topbar Header -->
 <header id="admin-topbar">
-    <div class="d-flex align-items-center gap-3">
-        <!-- Sidebar Toggle Mobile Button -->
-        <button class="btn btn-light d-lg-none p-1.5 border" type="button" id="sidebar-toggler" aria-label="Toggle Sidebar">
+    <div class="d-flex align-items-center gap-2 gap-md-3">
+        <!-- Sidebar / Mobile Drawer Toggle Button -->
+        <button class="btn btn-light d-lg-none p-1.5 border" type="button" data-bs-toggle="offcanvas" data-bs-target="#mobileAppDrawer" aria-controls="mobileAppDrawer" aria-label="Open Navigation Menu">
             <i class="bi bi-list fs-5 text-dark"></i>
         </button>
 
+        <!-- Real Company Brand Logo on Mobile -->
+        <a href="{{ url('/admin') }}" class="d-lg-none text-decoration-none d-flex align-items-center my-auto me-auto">
+            @if($companyLogo)
+                <img src="{{ $companyLogo }}" alt="{{ $companyName }}" style="max-height: 34px; width: auto; max-width: 160px; object-fit: contain;">
+            @else
+                <span class="fw-bold font-heading text-dark fs-6 text-truncate">{{ $companyName }}</span>
+            @endif
+        </a>
+
         <!-- Active Branch Selector Dropdown -->
-        <div class="dropdown">
+        <div class="dropdown d-none d-sm-block">
             <button class="btn btn-light btn-sm rounded-pill border dropdown-toggle fw-semibold d-flex align-items-center gap-2" type="button" id="branchSelectorDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-building-gear text-primary"></i>
-                <span>{{ $currentBranchName }}</span>
+                <span class="text-truncate" style="max-width: 140px;">{{ $currentBranchName }}</span>
             </button>
             <ul class="dropdown-menu shadow-lg border-0 rounded-3 mt-1" aria-labelledby="branchSelectorDropdown">
                 <li><h6 class="dropdown-header">Active Branch Scope</h6></li>
@@ -39,8 +48,8 @@
             </ul>
         </div>
 
-        <!-- Global Search Input & Live Autocomplete -->
-        <div class="topbar-search position-relative d-none d-md-block" style="min-width: 380px;">
+        <!-- Global Search Input & Live Autocomplete (Desktop) -->
+        <div class="topbar-search position-relative d-none d-md-block" style="min-width: 340px;">
             <form method="GET" action="{{ route('admin.search') }}" id="topbar-search-form" class="m-0 position-relative">
                 <i class="bi bi-search search-icon"></i>
                 <input type="text" id="global-search-input" name="q" class="form-control bg-light border-0" placeholder="Search members, loans, applications, products..." autocomplete="off">
@@ -59,8 +68,13 @@
 
     <!-- Right Side Controls & Profile -->
     <div class="d-flex align-items-center gap-2">
-        <!-- Fullscreen Button -->
-        <button type="button" class="btn btn-light rounded-circle p-2 d-flex align-items-center justify-content-center border" id="btn-fullscreen-toggle" title="Toggle Fullscreen" style="width: 38px; height: 38px;">
+        <!-- Mobile Search Trigger Button -->
+        <button type="button" class="btn btn-light rounded-circle p-2 d-flex align-items-center justify-content-center border d-md-none" data-bs-toggle="modal" data-bs-target="#mobileSearchModal" title="Search" style="width: 36px; height: 36px;">
+            <i class="bi bi-search fs-6 text-dark"></i>
+        </button>
+
+        <!-- Fullscreen Button (Desktop) -->
+        <button type="button" class="btn btn-light rounded-circle p-2 d-none d-md-flex align-items-center justify-content-center border" id="btn-fullscreen-toggle" title="Toggle Fullscreen" style="width: 38px; height: 38px;">
             <i class="bi bi-arrows-fullscreen fs-6 text-secondary"></i>
         </button>
 

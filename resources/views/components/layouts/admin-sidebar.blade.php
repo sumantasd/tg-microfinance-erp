@@ -119,8 +119,8 @@
             @endcan
             @can('loan_closure.view')
             <a class="sidebar-nav-link {{ request()->is('admin/loan-settlement*') ? 'active' : '' }}" href="{{ route('admin.loan-settlement.index') }}">
-                <i class="bi bi-handshake nav-icon text-info"></i>
-                <span>Settlements & Foreclosure</span>
+                <i class="bi bi-file-earmark-check nav-icon text-info"></i>
+                <span>Settlements & Foreclosures</span>
             </a>
             @endcan
         </div>
@@ -174,6 +174,12 @@
                 <span>Product Purchases</span>
             </a>
             @endcan
+            @canany(['supplier.view', 'suppliers.view'])
+            <a class="sidebar-nav-link {{ request()->is('admin/suppliers*') ? 'active' : '' }}" href="{{ route('admin.suppliers.index') }}">
+                <i class="bi bi-truck nav-icon text-info"></i>
+                <span>Suppliers / Vendors</span>
+            </a>
+            @endcanany
         </div>
         @endcanany
 

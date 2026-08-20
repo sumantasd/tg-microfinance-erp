@@ -60,15 +60,13 @@
                     @endforeach
                 </select>
                 @error('loan_scheme_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
-            </div>
-
-            <!-- Product Items Section if product loan -->
+            </div>            <!-- Product Items Section if product loan -->
             @if($loanApplication->loan_type === 'product')
                 <div class="col-12 mt-4" id="productItemsContainer">
                     <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
                         <div>
                             <h5 class="fw-bold text-dark mb-0"><i class="bi bi-cart-plus text-primary me-2"></i>Product Loan Line Items</h5>
-                            <small class="text-muted">Select Product Category first, then choose product items from that category.</small>
+                            <small class="text-muted">Select Product Category, Product Brand, and Search Product sequentially for each line item.</small>
                         </div>
                         <button type="button" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3" id="btnAddProductRow">
                             <i class="bi bi-plus-lg me-1"></i> Add Product Item
@@ -77,27 +75,44 @@
 
                     <div id="productRowsContainer">
                         @foreach($loanApplication->products as $idx => $item)
+                            @php
+                                $catId = $item->product->category_id ?? '';
+                                $brandId = $item->product->brand_id ?? '';
+                            @endphp
                             <div class="row g-2 mb-3 product-item-row border rounded p-2.5 bg-light-subtle align-items-center">
-                                <div class="col-md-4">
-                                    <label class="form-label small fw-bold text-muted mb-1">Step 1: Category</label>
-                                    <select class="form-select form-select-sm category-select">
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted mb-1">Product Category <span class="text-danger">*</span></label>
+                                    <select name="products[{{ $idx }}][category_id]" class="form-select form-select-sm category-select" required>
                                         <option value="">Select Category</option>
                                         @foreach($categories as $cat)
-                                            <option value="{{ $cat->id }}" data-name="{{ $cat->name }}" {{ ($item->product->category_id == $cat->id || $item->product->category == $cat->name) ? 'selected' : '' }}>{{ $cat->name }}</option>
+                                            <option value="{{ $cat->id }}" {{ $catId == $cat->id ? 'selected' : '' }}>{{ $cat->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
-                                <div class="col-md-5">
-                                    <label class="form-label small fw-bold text-muted mb-1">Step 2: Product <span class="text-danger">*</span></label>
-                                    <select name="products[{{ $idx }}][product_id]" class="form-select form-select-sm product-select" required>
-                                        <option value="{{ $item->product_id }}" data-price="{{ $item->unit_price_snapshot }}" selected>
-                                            {{ $item->product_name_snapshot }} (SKU: {{ $item->product_sku_snapshot }}) - ₹{{ number_format($item->unit_price_snapshot, 2) }}
-                                        </option>
+                                <div class="col-md-3">
+                                    <label class="form-label small fw-bold text-muted mb-1">Product Brand <span class="text-danger">*</span></label>
+                                    <select name="products[{{ $idx }}][brand_id]" class="form-select form-select-sm brand-select" required>
+                                        <option value="">Select Brand</option>
+                                        @foreach($brands as $b)
+                                            <option value="{{ $b->id }}" {{ $brandId == $b->id ? 'selected' : '' }}>{{ $b->name }} ({{ $b->code }})</option>
+                                        @endforeach
                                     </select>
-                                    <input type="hidden" name="products[{{ $idx }}][category_id]" class="row-category-id" value="{{ $item->product->category_id ?? '' }}">
                                 </div>
-                                <div class="col-md-2">
-                                    <label class="form-label small fw-bold text-muted mb-1">Quantity <span class="text-danger">*</span></label>
+                                <div class="col-md-4 position-relative">
+                                    <label class="form-label small fw-bold text-muted mb-1">Select Product <span class="text-danger">*</span></label>
+                                    <input type="hidden" name="products[{{ $idx }}][product_id]" class="product-id-input" value="{{ $item->product_id }}" required>
+                                    <input type="hidden" class="product-unit-price-input" value="{{ $item->unit_price_snapshot }}">
+                                    <div class="input-group input-group-sm">
+                                        <input type="text" class="form-control form-control-sm product-search-input" value="{{ $item->product_name_snapshot }} (SKU: {{ $item->product_sku_snapshot }}) - ₹{{ number_format($item->unit_price_snapshot, 2) }}" placeholder="Type to search product..." autocomplete="off">
+                                        <button type="button" class="btn btn-outline-secondary btn-clear-product" title="Clear product selection">
+                                            <i class="bi bi-x-lg"></i>
+                                        </button>
+                                    </div>
+                                    <div class="dropdown-menu w-100 shadow-lg p-0 product-search-results border mt-1" style="max-height: 250px; overflow-y: auto; z-index: 1050;">
+                                    </div>
+                                </div>
+                                <div class="col-md-1">
+                                    <label class="form-label small fw-bold text-muted mb-1">Qty <span class="text-danger">*</span></label>
                                     <input type="number" name="products[{{ $idx }}][quantity]" class="form-control form-control-sm product-qty" placeholder="Qty" min="1" value="{{ $item->quantity }}" required>
                                 </div>
                                 <div class="col-md-1 d-flex align-items-end justify-content-center">
@@ -169,7 +184,6 @@
         const productRowsContainer = document.getElementById('productRowsContainer');
         const btnAddProductRow = document.getElementById('btnAddProductRow');
 
-        const productsCatalog = @json($products);
         let productRowIndex = {{ $loanApplication->products ? count($loanApplication->products) : 0 }};
 
         function handleSchemeChange() {
@@ -192,44 +206,144 @@
         if (productRowsContainer) {
             function setupProductRow(row) {
                 const catSelect = row.querySelector('.category-select');
-                const prodSelect = row.querySelector('.product-select');
-                const catIdHidden = row.querySelector('.row-category-id');
+                const brandSelect = row.querySelector('.brand-select');
+                const prodIdInput = row.querySelector('.product-id-input');
+                const prodPriceInput = row.querySelector('.product-unit-price-input');
+                const searchInput = row.querySelector('.product-search-input');
+                const clearBtn = row.querySelector('.btn-clear-product');
+                const resultsContainer = row.querySelector('.product-search-results');
                 const removeBtn = row.querySelector('.btn-remove-product');
 
-                if (!catSelect || !prodSelect) return;
+                let searchDebounce = null;
 
-                catSelect.addEventListener('change', function () {
-                    const selectedCatId = this.value;
-                    const selectedCatName = this.options[this.selectedIndex] ? this.options[this.selectedIndex].dataset.name : '';
+                function clearProductSelection() {
+                    if (prodIdInput) prodIdInput.value = '';
+                    if (prodPriceInput) prodPriceInput.value = '0';
+                    if (searchInput) {
+                        searchInput.value = '';
+                    }
+                    if (clearBtn) clearBtn.classList.add('d-none');
+                    if (resultsContainer) {
+                        resultsContainer.innerHTML = '';
+                        resultsContainer.classList.remove('show');
+                    }
+                }
 
-                    if (catIdHidden) {
-                        catIdHidden.value = selectedCatId;
+                if (catSelect) {
+                    catSelect.addEventListener('change', function () {
+                        const catId = this.value;
+                        clearProductSelection();
+
+                        if (!catId) {
+                            brandSelect.innerHTML = '<option value="">Select category first</option>';
+                            brandSelect.disabled = true;
+                            searchInput.disabled = true;
+                            searchInput.placeholder = 'Select category and brand first';
+                            return;
+                        }
+
+                        brandSelect.disabled = true;
+                        brandSelect.innerHTML = '<option value="">Loading brands...</option>';
+
+                        fetch(`{{ route('admin.loan-application.ajax.brands-by-category') }}?category_id=${catId}`)
+                            .then(res => res.json())
+                            .then(brands => {
+                                brandSelect.innerHTML = '<option value="">Select Product Brand</option>';
+                                brands.forEach(b => {
+                                    const opt = document.createElement('option');
+                                    opt.value = b.id;
+                                    opt.textContent = `${b.name} (${b.code})`;
+                                    brandSelect.appendChild(opt);
+                                });
+                                brandSelect.disabled = false;
+                            })
+                            .catch(err => {
+                                console.error('Error fetching brands:', err);
+                                brandSelect.innerHTML = '<option value="">Error loading brands</option>';
+                            });
+                    });
+                }
+
+                if (brandSelect) {
+                    brandSelect.addEventListener('change', function () {
+                        const brandId = this.value;
+                        clearProductSelection();
+
+                        if (!brandId) {
+                            searchInput.disabled = true;
+                            searchInput.placeholder = 'Select category and brand first';
+                            return;
+                        }
+
+                        searchInput.disabled = false;
+                        searchInput.placeholder = 'Type to search product (Name, SKU, Model)...';
+                        searchInput.focus();
+                    });
+                }
+
+                if (searchInput) {
+                    function performSearch() {
+                        const catId = catSelect ? catSelect.value : '';
+                        const brandId = brandSelect ? brandSelect.value : '';
+                        const query = searchInput.value.trim();
+
+                        if (!catId || !brandId) return;
+
+                        fetch(`{{ route('admin.loan-application.ajax.search-products') }}?category_id=${catId}&brand_id=${brandId}&q=${encodeURIComponent(query)}`)
+                            .then(res => res.json())
+                            .then(products => {
+                                resultsContainer.innerHTML = '';
+                                if (products.length === 0) {
+                                    resultsContainer.innerHTML = '<div class="p-3 text-muted small text-center"><i class="bi bi-info-circle me-1"></i>No products found matching criteria.</div>';
+                                } else {
+                                    products.forEach(p => {
+                                        const item = document.createElement('a');
+                                        item.href = '#';
+                                        item.className = 'dropdown-item py-2 px-3 border-bottom text-wrap';
+                                        item.innerHTML = `
+                                            <div class="fw-bold text-dark mb-0">${p.name} <span class="badge bg-light text-dark font-monospace">${p.sku}</span></div>
+                                            <div class="small text-muted">Model: ${p.model_number} | Price: ₹${parseFloat(p.unit_price).toFixed(2)}</div>
+                                        `;
+                                        item.addEventListener('click', function (e) {
+                                            e.preventDefault();
+                                            if (prodIdInput) prodIdInput.value = p.id;
+                                            if (prodPriceInput) prodPriceInput.value = p.unit_price;
+                                            searchInput.value = `${p.name} (SKU: ${p.sku}) - ₹${parseFloat(p.unit_price).toFixed(2)}`;
+                                            if (clearBtn) clearBtn.classList.remove('d-none');
+                                            resultsContainer.classList.remove('show');
+                                        });
+                                        resultsContainer.appendChild(item);
+                                    });
+                                }
+                                resultsContainer.classList.add('show');
+                            });
                     }
 
-                    prodSelect.innerHTML = '<option value="">Select Product</option>';
-
-                    if (!selectedCatId) {
-                        prodSelect.disabled = true;
-                        prodSelect.innerHTML = '<option value="">First select category</option>';
-                        return;
-                    }
-
-                    const filteredProducts = productsCatalog.filter(p => {
-                        return (p.category_id && p.category_id == selectedCatId) || (p.category && p.category === selectedCatName);
+                    searchInput.addEventListener('input', function () {
+                        clearTimeout(searchDebounce);
+                        searchDebounce = setTimeout(performSearch, 250);
                     });
 
-                    if (filteredProducts.length === 0) {
-                        prodSelect.disabled = true;
-                        prodSelect.innerHTML = '<option value="">No products found in this category</option>';
-                    } else {
-                        prodSelect.disabled = false;
-                        filteredProducts.forEach(p => {
-                            const opt = document.createElement('option');
-                            opt.value = p.id;
-                            opt.dataset.price = p.unit_price;
-                            opt.textContent = `${p.name} (SKU: ${p.sku}) - ₹${parseFloat(p.unit_price).toFixed(2)}`;
-                            prodSelect.appendChild(opt);
-                        });
+                    searchInput.addEventListener('focus', function () {
+                        if (!searchInput.disabled && catSelect.value && brandSelect.value) {
+                            performSearch();
+                        }
+                    });
+                }
+
+                if (clearBtn) {
+                    clearBtn.addEventListener('click', function (e) {
+                        e.preventDefault();
+                        clearProductSelection();
+                        if (!brandSelect.disabled && brandSelect.value) {
+                            searchInput.focus();
+                        }
+                    });
+                }
+
+                document.addEventListener('click', function (e) {
+                    if (resultsContainer && !row.contains(e.target)) {
+                        resultsContainer.classList.remove('show');
                     }
                 });
 
@@ -238,9 +352,24 @@
                         const allRows = productRowsContainer.querySelectorAll('.product-item-row');
                         if (allRows.length > 1) {
                             row.remove();
+                            updateRemoveButtons();
                         }
                     });
                 }
+            }
+
+            function updateRemoveButtons() {
+                const allRows = productRowsContainer.querySelectorAll('.product-item-row');
+                allRows.forEach((r) => {
+                    const btn = r.querySelector('.btn-remove-product');
+                    if (btn) {
+                        if (allRows.length === 1) {
+                            btn.classList.add('disabled');
+                        } else {
+                            btn.classList.remove('disabled');
+                        }
+                    }
+                });
             }
 
             const initialRows = productRowsContainer.querySelectorAll('.product-item-row');
@@ -253,28 +382,40 @@
                     const newRow = firstRow.cloneNode(true);
 
                     const catSelect = newRow.querySelector('.category-select');
+                    catSelect.name = `products[${productRowIndex}][category_id]`;
                     catSelect.selectedIndex = 0;
 
-                    const prodSelect = newRow.querySelector('.product-select');
-                    prodSelect.name = `products[${productRowIndex}][product_id]`;
-                    prodSelect.innerHTML = '<option value="">First select category</option>';
-                    prodSelect.disabled = true;
+                    const brandSelect = newRow.querySelector('.brand-select');
+                    brandSelect.name = `products[${productRowIndex}][brand_id]`;
+                    brandSelect.innerHTML = '<option value="">Select category first</option>';
+                    brandSelect.disabled = true;
 
-                    const catIdHidden = newRow.querySelector('.row-category-id');
-                    if (catIdHidden) {
-                        catIdHidden.name = `products[${productRowIndex}][category_id]`;
-                        catIdHidden.value = '';
-                    }
+                    const prodIdInput = newRow.querySelector('.product-id-input');
+                    prodIdInput.name = `products[${productRowIndex}][product_id]`;
+                    prodIdInput.value = '';
+
+                    const prodPriceInput = newRow.querySelector('.product-unit-price-input');
+                    prodPriceInput.value = '0';
+
+                    const searchInput = newRow.querySelector('.product-search-input');
+                    searchInput.value = '';
+                    searchInput.disabled = true;
+                    searchInput.placeholder = 'Select category and brand first';
+
+                    const clearBtn = newRow.querySelector('.btn-clear-product');
+                    clearBtn.classList.add('d-none');
+
+                    const resultsContainer = newRow.querySelector('.product-search-results');
+                    resultsContainer.innerHTML = '';
+                    resultsContainer.classList.remove('show');
 
                     const qtyInput = newRow.querySelector('.product-qty');
                     qtyInput.name = `products[${productRowIndex}][quantity]`;
                     qtyInput.value = 1;
 
-                    const removeBtn = newRow.querySelector('.btn-remove-product');
-                    removeBtn.classList.remove('disabled');
-
                     productRowsContainer.appendChild(newRow);
                     setupProductRow(newRow);
+                    updateRemoveButtons();
                 });
             }
         }

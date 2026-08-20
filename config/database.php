@@ -49,7 +49,9 @@ return [
             'url' => env('DB_URL'),
             'host' => env('DB_HOST', '127.0.0.1'),
             'port' => env('DB_PORT', '3306'),
-            'database' => env('DB_DATABASE', 'laravel'),
+            'database' => (env('APP_ENV') === 'testing' || defined('PHPUNIT_RUNNING') || isset($_SERVER['PHPUNIT_COMPOSER_INSTALL']))
+                ? (env('DB_DATABASE') === 'microfinance_erp' ? 'microfinance_erp_test' : env('DB_DATABASE', 'microfinance_erp_test'))
+                : env('DB_DATABASE', 'microfinance_erp'),
             'username' => env('DB_USERNAME', 'root'),
             'password' => env('DB_PASSWORD', ''),
             'unix_socket' => env('DB_SOCKET', ''),

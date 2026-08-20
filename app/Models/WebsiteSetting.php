@@ -40,12 +40,22 @@ class WebsiteSetting extends Model
         'support_box_desc',
         'support_box_button_text',
         'support_box_button_url',
+
+        // System Loan Charges Settings
+        'loan_processing_fee_percentage',
+        'loan_processing_fee_enabled',
+        'loan_insurance_percentage',
+        'loan_insurance_enabled',
     ];
 
     protected $casts = [
         'social_links' => 'array',
         'calc_tenure_options' => 'array',
         'calc_enabled' => 'boolean',
+        'loan_processing_fee_percentage' => 'decimal:2',
+        'loan_processing_fee_enabled' => 'boolean',
+        'loan_insurance_percentage' => 'decimal:2',
+        'loan_insurance_enabled' => 'boolean',
     ];
 
     /**

@@ -133,30 +133,66 @@ class LoanApplicationService
                 }
             }
 
-            // Product Loan Items Validation
+            // Product Loan Items Validation & Deduplication
             $productsData = [];
             if ($data['loan_type'] === 'product') {
                 if (empty($products)) {
                     throw ValidationException::withMessages(['products' => 'At least one product line item is required for product loans.']);
                 }
 
+                $aggregatedProducts = [];
+                foreach ($products as $idx => $p) {
+                    $itemNum = $idx + 1;
+                    if (empty($p['category_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product Category is required for line item #{$itemNum}."]);
+                    }
+                    if (empty($p['brand_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product Brand is required for line item #{$itemNum}."]);
+                    }
+                    if (empty($p['product_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product selection is required for line item #{$itemNum}."]);
+                    }
+
+                    $pId = (int) $p['product_id'];
+                    $qty = (int) ($p['quantity'] ?? 0);
+                    if ($qty <= 0) {
+                        throw ValidationException::withMessages(['products' => "Quantity for line item #{$itemNum} must be greater than zero."]);
+                    }
+
+                    if (!isset($aggregatedProducts[$pId])) {
+                        $aggregatedProducts[$pId] = [
+                            'category_id' => (int) $p['category_id'],
+                            'brand_id' => (int) $p['brand_id'],
+                            'product_id' => $pId,
+                            'quantity' => 0,
+                            'unit_price' => isset($p['unit_price']) ? (float) $p['unit_price'] : null,
+                            'remarks' => $p['remarks'] ?? null,
+                        ];
+                    }
+                    $aggregatedProducts[$pId]['quantity'] += $qty;
+                }
+
                 $productTotal = 0;
-                foreach ($products as $p) {
+                foreach ($aggregatedProducts as $p) {
                     $product = Product::findOrFail($p['product_id']);
                     if (!$product->is_active) {
                         throw ValidationException::withMessages(['products' => "Product '{$product->name}' is inactive."]);
                     }
 
-                    if (!empty($p['category_id']) && $product->category_id && (int) $product->category_id !== (int) $p['category_id']) {
+                    if ($branch->company_id && $product->company_id && (int) $product->company_id !== (int) $branch->company_id) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected company."]);
+                    }
+
+                    if ($product->category_id && (int) $product->category_id !== (int) $p['category_id']) {
                         throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected category."]);
                     }
 
-                    $qty = (int) $p['quantity'];
-                    if ($qty <= 0) {
-                        throw ValidationException::withMessages(['products' => "Quantity for product '{$product->name}' must be greater than zero."]);
+                    if ($product->brand_id && (int) $product->brand_id !== (int) $p['brand_id']) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected brand."]);
                     }
 
-                    $unitPrice = isset($p['unit_price']) ? (float) $p['unit_price'] : (float) $product->unit_price;
+                    $qty = $p['quantity'];
+                    $unitPrice = $p['unit_price'] !== null ? $p['unit_price'] : (float) $product->unit_price;
                     $lineTotal = round($qty * $unitPrice, 2);
                     $productTotal += $lineTotal;
 
@@ -182,10 +218,14 @@ class LoanApplicationService
                 }
             }
 
-            // Calculate fees from Loan Scheme snapshots
-            $proFeeRate = (float) $scheme->processing_fee_percentage;
+            // Calculate fees from Admin System Settings
+            $settings = \App\Models\WebsiteSetting::first();
+            $proFeeEnabled = $settings ? (bool) $settings->loan_processing_fee_enabled : true;
+            $proFeeRate = $proFeeEnabled ? (float) ($settings ? $settings->loan_processing_fee_percentage : $scheme->processing_fee_percentage) : 0.00;
             $proFeeAmount = round($requestedAmount * ($proFeeRate / 100), 2);
-            $insFeeRate = (float) $scheme->insurance_fee_percentage;
+
+            $insFeeEnabled = $settings ? (bool) $settings->loan_insurance_enabled : true;
+            $insFeeRate = $insFeeEnabled ? (float) ($settings ? $settings->loan_insurance_percentage : $scheme->insurance_fee_percentage) : 0.00;
             $insFeeAmount = round($requestedAmount * ($insFeeRate / 100), 2);
 
             $applicationNumber = $this->applicationRepository->generateApplicationNumber($branch->id);
@@ -243,9 +283,13 @@ class LoanApplicationService
                 ]);
             }
 
-            $proFeeRate = (float) $scheme->processing_fee_percentage;
+            $settings = \App\Models\WebsiteSetting::first();
+            $proFeeEnabled = $settings ? (bool) $settings->loan_processing_fee_enabled : true;
+            $proFeeRate = $proFeeEnabled ? (float) ($settings ? $settings->loan_processing_fee_percentage : $scheme->processing_fee_percentage) : 0.00;
             $proFeeAmount = round($requestedAmount * ($proFeeRate / 100), 2);
-            $insFeeRate = (float) $scheme->insurance_fee_percentage;
+
+            $insFeeEnabled = $settings ? (bool) $settings->loan_insurance_enabled : true;
+            $insFeeRate = $insFeeEnabled ? (float) ($settings ? $settings->loan_insurance_percentage : $scheme->insurance_fee_percentage) : 0.00;
             $insFeeAmount = round($requestedAmount * ($insFeeRate / 100), 2);
 
             $masterData = [
@@ -279,11 +323,35 @@ class LoanApplicationService
             // Re-process products if product loan
             $productsData = [];
             if ($application->loan_type === 'product' && !empty($products)) {
-                foreach ($products as $p) {
+                foreach ($products as $idx => $p) {
+                    $itemNum = $idx + 1;
+                    if (empty($p['category_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product Category is required for line item #{$itemNum}."]);
+                    }
+                    if (empty($p['brand_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product Brand is required for line item #{$itemNum}."]);
+                    }
+                    if (empty($p['product_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product selection is required for line item #{$itemNum}."]);
+                    }
+
                     $product = Product::findOrFail($p['product_id']);
-                    if (!empty($p['category_id']) && $product->category_id && (int) $product->category_id !== (int) $p['category_id']) {
+                    if (!$product->is_active) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' is inactive."]);
+                    }
+
+                    if ($application->company_id && $product->company_id && (int) $product->company_id !== (int) $application->company_id) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected company."]);
+                    }
+
+                    if ($product->category_id && (int) $product->category_id !== (int) $p['category_id']) {
                         throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected category."]);
                     }
+
+                    if ($product->brand_id && (int) $product->brand_id !== (int) $p['brand_id']) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected brand."]);
+                    }
+
                     $qty = (int) $p['quantity'];
                     $unitPrice = isset($p['unit_price']) ? (float) $p['unit_price'] : (float) $product->unit_price;
                     $lineTotal = round($qty * $unitPrice, 2);

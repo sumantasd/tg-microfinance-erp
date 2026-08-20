@@ -119,6 +119,8 @@ class LoanAccountService
                 'insurance_fee_percentage' => $app->insurance_fee_percentage ?? 0.00,
                 'insurance_fee_amount' => $app->insurance_fee_amount ?? 0.00,
                 'other_charges_amount' => $otherChargesAmount,
+                'upfront_charges_paid' => 0.00,
+                'upfront_payment_status' => (round(($app->processing_fee_amount ?? 0) + ($app->insurance_fee_amount ?? 0), 2) <= 0) ? 'paid' : 'pending',
                 'total_interest_amount' => $scheduleData['total_interest'],
                 'total_repayment_amount' => $scheduleData['total_repayment'],
                 'principal_outstanding' => $sanctionedPrincipal,
@@ -126,7 +128,7 @@ class LoanAccountService
                 'fee_outstanding' => round(($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount, 2),
                 'penalty_outstanding' => 0.00,
                 'total_outstanding' => round($sanctionedPrincipal + $scheduleData['total_interest'] + ($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount, 2),
-                'status' => 'sanctioned',
+                'status' => (round(($app->processing_fee_amount ?? 0) + ($app->insurance_fee_amount ?? 0), 2) <= 0) ? 'ready_for_disbursement' : 'sanctioned',
                 'sanction_date' => $sDate->toDateString(),
                 'maturity_date' => $scheduleData['maturity_date'],
                 'created_by' => Auth::id(),
@@ -202,6 +204,81 @@ class LoanAccountService
     }
 
     /**
+     * Record Upfront Charges Payment (Processing Fee + Insurance Fee)
+     */
+    public function recordUpfrontPayment(LoanAccount $loanAccount, array $data): \App\Models\LoanUpfrontPayment
+    {
+        $amount = round((float) ($data['amount'] ?? 0), 2);
+        $upfrontDue = $loanAccount->upfront_charges_due;
+
+        if ($amount <= 0) {
+            throw ValidationException::withMessages(['amount' => 'Payment amount must be greater than zero.']);
+        }
+
+        if ($amount > $upfrontDue) {
+            throw ValidationException::withMessages(['amount' => "Payment amount (₹" . number_format($amount, 2) . ") cannot exceed remaining upfront charges due (₹" . number_format($upfrontDue, 2) . ")."]);
+        }
+
+        return DB::transaction(function () use ($loanAccount, $data, $amount) {
+            $alreadyProPaid = (float) $loanAccount->upfrontPayments()->sum('processing_fee_paid');
+            $alreadyInsPaid = (float) $loanAccount->upfrontPayments()->sum('insurance_fee_paid');
+
+            $proFeeDue = max(0, round(($loanAccount->processing_fee_amount ?? 0) - $alreadyProPaid, 2));
+            $insFeeDue = max(0, round(($loanAccount->insurance_fee_amount ?? 0) - $alreadyInsPaid, 2));
+
+            $proPaidNow = min($amount, $proFeeDue);
+            $remainingForIns = round($amount - $proPaidNow, 2);
+            $insPaidNow = min($remainingForIns, $insFeeDue);
+
+            $seq = str_pad($loanAccount->upfrontPayments()->count() + 1, 4, '0', STR_PAD_LEFT);
+            $receiptNumber = "RCP-UPF-" . date('Y') . "-" . str_pad($loanAccount->id, 4, '0', STR_PAD_LEFT) . "-{$seq}";
+
+            $payment = \App\Models\LoanUpfrontPayment::create([
+                'receipt_number' => $receiptNumber,
+                'loan_account_id' => $loanAccount->id,
+                'customer_id' => $loanAccount->customer_id,
+                'amount' => $amount,
+                'processing_fee_paid' => $proPaidNow,
+                'insurance_fee_paid' => $insPaidNow,
+                'payment_date' => $data['payment_date'] ?? now()->toDateString(),
+                'payment_method' => $data['payment_method'] ?? 'cash',
+                'reference_number' => $data['reference_number'] ?? null,
+                'received_by' => Auth::id(),
+                'remarks' => $data['remarks'] ?? null,
+            ]);
+
+            $totalPaid = round((float) $loanAccount->upfrontPayments()->sum('amount'), 2);
+            $upfrontTotal = $loanAccount->upfront_charges_total;
+
+            $status = 'pending';
+            if ($totalPaid >= $upfrontTotal) {
+                $status = 'paid';
+            } elseif ($totalPaid > 0) {
+                $status = 'partial';
+            }
+
+            $loanAccount->upfront_charges_paid = $totalPaid;
+            $loanAccount->upfront_payment_status = $status;
+
+            if ($status === 'paid' && $loanAccount->status === 'sanctioned') {
+                $loanAccount->status = 'ready_for_disbursement';
+            }
+
+            $loanAccount->save();
+
+            $this->accountingService->postUpfrontChargePayment($payment, $loanAccount);
+
+            $this->activityLogService->log('upfront_payment_received', $loanAccount, null, [
+                'receipt_number' => $receiptNumber,
+                'amount' => $amount,
+                'status' => $status,
+            ]);
+
+            return $payment;
+        });
+    }
+
+    /**
      * Fulfill Product Loan & Issue Physical Inventory Stock
      * ATOMICALLY DEDUCTS PHYSICAL INVENTORY STOCK!
      */
@@ -213,6 +290,12 @@ class LoanAccountService
 
         if (in_array($loanAccount->status, ['active', 'closed', 'cancelled'])) {
             throw ValidationException::withMessages(['status' => "Loan account is already in status '{$loanAccount->status}'."]);
+        }
+
+        if (!$loanAccount->is_upfront_charges_paid) {
+            throw ValidationException::withMessages([
+                'disbursement' => "Loan disbursement is locked. Borrower must pay required upfront charges (₹" . number_format($loanAccount->upfront_charges_due, 2) . " remaining) before disbursement."
+            ]);
         }
 
         return DB::transaction(function () use ($loanAccount, $remarks) {
@@ -310,6 +393,12 @@ class LoanAccountService
             throw ValidationException::withMessages(['status' => "Loan account is already in status '{$loanAccount->status}'."]);
         }
 
+        if (!$loanAccount->is_upfront_charges_paid) {
+            throw ValidationException::withMessages([
+                'disbursement' => "Loan disbursement is locked. Borrower must pay required upfront charges (₹" . number_format($loanAccount->upfront_charges_due, 2) . " remaining) before disbursement."
+            ]);
+        }
+
         return DB::transaction(function () use ($loanAccount, $paymentMethod, $refNo, $remarks) {
             $disbNo = $this->accountRepository->generateDisbursementNumber($loanAccount->branch_id);
 
@@ -362,13 +451,13 @@ class LoanAccountService
         $installments = [];
         $totalInterest = 0.00;
         $currentDate = $startDate->copy();
-        $openingPrincipal = round($principal, 0);
+        $openingPrincipal = round($principal, 2);
 
         if ($interestType === 'flat') {
-            // Total Interest calculation (whole rupees)
-            $totalInterest = round($principal * ($annualInterestRate / 100) * ($tenureMonths / 12), 0);
-            $baseInterest = round($totalInterest / $numPeriods, 0);
-            $basePrincipal = round($principal / $numPeriods, 0);
+            // Total Interest calculation (2-decimal precision)
+            $totalInterest = round($principal * ($annualInterestRate / 100) * ($tenureMonths / 12), 2);
+            $baseInterest = round($totalInterest / $numPeriods, 2);
+            $basePrincipal = round($principal / $numPeriods, 2);
 
             $accumulatedPrincipal = 0.00;
             $accumulatedInterest = 0.00;
@@ -377,8 +466,8 @@ class LoanAccountService
                 $currentDate = $this->getNextDueDate($currentDate, $frequency);
 
                 if ($i === $numPeriods) {
-                    $instPrincipal = round(max(0, $principal - $accumulatedPrincipal), 0);
-                    $instInterest = round(max(0, $totalInterest - $accumulatedInterest), 0);
+                    $instPrincipal = round(max(0, $principal - $accumulatedPrincipal), 2);
+                    $instInterest = round(max(0, $totalInterest - $accumulatedInterest), 2);
                 } else {
                     $instPrincipal = min($openingPrincipal, $basePrincipal);
                     $instInterest = $baseInterest;
@@ -387,8 +476,8 @@ class LoanAccountService
                 $accumulatedPrincipal += $instPrincipal;
                 $accumulatedInterest += $instInterest;
 
-                $closingPrincipal = max(0, round($openingPrincipal - $instPrincipal, 0));
-                $instAmount = round($instPrincipal + $instInterest, 0);
+                $closingPrincipal = max(0, round($openingPrincipal - $instPrincipal, 2));
+                $instAmount = round($instPrincipal + $instInterest, 2);
 
                 $installments[] = [
                     'installment_number' => $i,
@@ -406,12 +495,12 @@ class LoanAccountService
                 $openingPrincipal = $closingPrincipal;
             }
         } else {
-            // Reducing Balance EMI Formula
+            // Reducing Balance EMI Formula (2-decimal precision)
             $periodRate = ($annualInterestRate / 100) / $periodsPerYear;
             if ($periodRate > 0) {
-                $emi = round(($principal * $periodRate * pow(1 + $periodRate, $numPeriods)) / (pow(1 + $periodRate, $numPeriods) - 1), 0);
+                $emi = round(($principal * $periodRate * pow(1 + $periodRate, $numPeriods)) / (pow(1 + $periodRate, $numPeriods) - 1), 2);
             } else {
-                $emi = round($principal / $numPeriods, 0);
+                $emi = round($principal / $numPeriods, 2);
             }
 
             $accumulatedPrincipal = 0.00;
@@ -419,21 +508,21 @@ class LoanAccountService
 
             for ($i = 1; $i <= $numPeriods; $i++) {
                 $currentDate = $this->getNextDueDate($currentDate, $frequency);
-                $rawInterest = round($openingPrincipal * $periodRate, 0);
+                $rawInterest = round($openingPrincipal * $periodRate, 2);
 
                 if ($i === $numPeriods) {
-                    $instPrincipal = round($openingPrincipal, 0);
+                    $instPrincipal = round($openingPrincipal, 2);
                     $instInterest = $rawInterest;
                 } else {
                     $instInterest = $rawInterest;
-                    $instPrincipal = round(min($openingPrincipal, max(0, $emi - $instInterest)), 0);
+                    $instPrincipal = round(min($openingPrincipal, max(0, $emi - $instInterest)), 2);
                 }
 
                 $accumulatedPrincipal += $instPrincipal;
                 $accumulatedInterest += $instInterest;
 
-                $closingPrincipal = max(0, round($openingPrincipal - $instPrincipal, 0));
-                $instAmount = round($instPrincipal + $instInterest, 0);
+                $closingPrincipal = max(0, round($openingPrincipal - $instPrincipal, 2));
+                $instAmount = round($instPrincipal + $instInterest, 2);
 
                 $installments[] = [
                     'installment_number' => $i,
@@ -451,11 +540,11 @@ class LoanAccountService
                 $openingPrincipal = $closingPrincipal;
             }
 
-            $totalInterest = $accumulatedInterest;
+            $totalInterest = round($accumulatedInterest, 2);
         }
 
-        $totalInterest = round($totalInterest, 0);
-        $totalRepayment = round($principal + $totalInterest, 0);
+        $totalInterest = round($totalInterest, 2);
+        $totalRepayment = round($principal + $totalInterest, 2);
         $maturityDate = $currentDate->toDateString();
 
         return [

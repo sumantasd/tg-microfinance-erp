@@ -33,6 +33,7 @@ class AppServiceProvider extends ServiceProvider
         $this->app->bind(\App\Repositories\InventoryRepositoryInterface::class, \App\Repositories\InventoryRepository::class);
         $this->app->bind(\App\Repositories\InventoryTransferRepositoryInterface::class, \App\Repositories\InventoryTransferRepository::class);
         $this->app->bind(\App\Repositories\ProductPurchaseRepositoryInterface::class, \App\Repositories\ProductPurchaseRepository::class);
+        $this->app->bind(\App\Repositories\SupplierRepositoryInterface::class, \App\Repositories\SupplierRepository::class);
         $this->app->bind(\App\Repositories\LoanApplicationRepositoryInterface::class, \App\Repositories\LoanApplicationRepository::class);
         $this->app->bind(\App\Repositories\LoanAccountRepositoryInterface::class, \App\Repositories\LoanAccountRepository::class);
     }

@@ -59,11 +59,21 @@ class ProductPurchaseService
             // Compute Financial Totals & Items Snapshots
             $computed = $this->calculateFinancials($items, $data['discount_amount'] ?? 0, $data['other_charges'] ?? 0, $data['paid_amount'] ?? 0);
 
+            $supplierId = $data['supplier_id'] ?? null;
+            $supplierName = $data['supplier_name'] ?? null;
+            if ($supplierId && empty($supplierName)) {
+                $supplier = \App\Models\Supplier::find($supplierId);
+                if ($supplier) {
+                    $supplierName = $supplier->supplier_name;
+                }
+            }
+
             $masterData = [
                 'purchase_number' => $purchaseNumber,
                 'company_id' => $branch->company_id,
                 'branch_id' => $branch->id,
-                'supplier_name' => $data['supplier_name'],
+                'supplier_id' => $supplierId,
+                'supplier_name' => $supplierName ?? 'General Supplier',
                 'supplier_reference' => $data['supplier_reference'] ?? null,
                 'supplier_invoice_number' => $data['supplier_invoice_number'] ?? null,
                 'purchase_date' => $data['purchase_date'] ?? now()->toDateString(),
@@ -98,8 +108,18 @@ class ProductPurchaseService
         return DB::transaction(function () use ($purchase, $data, $items) {
             $computed = $this->calculateFinancials($items, $data['discount_amount'] ?? 0, $data['other_charges'] ?? 0, $data['paid_amount'] ?? 0);
 
+            $supplierId = $data['supplier_id'] ?? $purchase->supplier_id;
+            $supplierName = $data['supplier_name'] ?? null;
+            if ($supplierId && empty($supplierName)) {
+                $supplier = \App\Models\Supplier::find($supplierId);
+                if ($supplier) {
+                    $supplierName = $supplier->supplier_name;
+                }
+            }
+
             $masterData = [
-                'supplier_name' => $data['supplier_name'],
+                'supplier_id' => $supplierId,
+                'supplier_name' => $supplierName ?? $purchase->supplier_name,
                 'supplier_reference' => $data['supplier_reference'] ?? null,
                 'supplier_invoice_number' => $data['supplier_invoice_number'] ?? null,
                 'purchase_date' => $data['purchase_date'],
@@ -125,12 +145,22 @@ class ProductPurchaseService
 
     public function confirmPurchase(ProductPurchase $purchase): ProductPurchase
     {
-        if ($purchase->purchase_status !== 'draft') {
-            throw ValidationException::withMessages(['purchase_status' => 'Only draft purchases can be confirmed.']);
-        }
-
         return DB::transaction(function () use ($purchase) {
-            $updated = $this->purchaseRepository->updateStatus($purchase, 'confirmed', [
+            $locked = ProductPurchase::where('id', $purchase->id)->lockForUpdate()->first();
+            if (!$locked) {
+                $locked = $purchase;
+            }
+
+            if ($locked->purchase_status === 'cancelled') {
+                throw ValidationException::withMessages(['purchase_status' => 'Cannot confirm a cancelled purchase.']);
+            }
+
+            // Auto-update stock on approval if not already processed (Idempotent check)
+            if (!$locked->is_inventory_processed && !\App\Models\InventoryStockMovement::where('reference_type', 'product_purchase')->where('reference_id', $locked->id)->exists()) {
+                $this->processInventoryReceipt($locked);
+            }
+
+            $updated = $this->purchaseRepository->updateStatus($locked, 'confirmed', [
                 'updated_by' => Auth::id(),
             ]);
 
@@ -139,82 +169,92 @@ class ProductPurchaseService
         });
     }
 
-    /**
-     * Receive Purchase & Update Physical Branch Inventory
-     */
     public function receivePurchase(ProductPurchase $purchase): ProductPurchase
     {
-        if ($purchase->purchase_status === 'received') {
-            throw ValidationException::withMessages(['purchase_status' => 'Purchase has already been received. Duplicate receiving is blocked.']);
-        }
-
-        if ($purchase->purchase_status === 'cancelled') {
-            throw ValidationException::withMessages(['purchase_status' => 'Cannot receive a cancelled purchase.']);
-        }
-
         return DB::transaction(function () use ($purchase) {
-            foreach ($purchase->items as $item) {
-                // Lock or initialize inventory_stocks record for (branch_id, product_id)
-                $stock = DB::table('inventory_stocks')
-                    ->where('branch_id', $purchase->branch_id)
-                    ->where('product_id', $item->product_id)
-                    ->lockForUpdate()
-                    ->first();
-
-                $stockBefore = $stock ? $stock->current_stock : 0;
-                $stockAfter = $stockBefore + $item->quantity;
-
-                if ($stock) {
-                    DB::table('inventory_stocks')
-                        ->where('id', $stock->id)
-                        ->update([
-                            'current_stock' => $stockAfter,
-                            'last_restocked_at' => now(),
-                            'updated_at' => now(),
-                        ]);
-                } else {
-                    DB::table('inventory_stocks')->insert([
-                        'company_id' => $purchase->company_id,
-                        'branch_id' => $purchase->branch_id,
-                        'product_id' => $item->product_id,
-                        'current_stock' => $stockAfter,
-                        'reserved_stock' => 0,
-                        'reorder_level' => 5,
-                        'last_restocked_at' => now(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
-                    ]);
-                }
-
-                // Create immutable inventory_stock_movements record
-                $movementCode = $this->inventoryRepository->generateMovementCode($purchase->branch_id);
-                $this->inventoryRepository->recordStockMovement([
-                    'company_id' => $purchase->company_id,
-                    'branch_id' => $purchase->branch_id,
-                    'product_id' => $item->product_id,
-                    'movement_code' => $movementCode,
-                    'movement_type' => 'purchase_in',
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_purchase_cost,
-                    'total_value' => $item->line_total,
-                    'stock_before' => $stockBefore,
-                    'stock_after' => $stockAfter,
-                    'reference_type' => 'product_purchase',
-                    'reference_id' => $purchase->id,
-                    'remarks' => "Received Purchase {$purchase->purchase_number} from Supplier '{$purchase->supplier_name}' (Invoice: {$purchase->supplier_invoice_number}).",
-                    'created_by' => Auth::id(),
-                ]);
+            $locked = ProductPurchase::where('id', $purchase->id)->lockForUpdate()->first();
+            if (!$locked) {
+                $locked = $purchase;
             }
 
-            $updated = $this->purchaseRepository->updateStatus($purchase, 'received', [
+            if ($locked->purchase_status === 'cancelled') {
+                throw ValidationException::withMessages(['purchase_status' => 'Cannot receive a cancelled purchase.']);
+            }
+
+            // Auto-update stock if not already processed (Idempotent check)
+            if (!$locked->is_inventory_processed && !\App\Models\InventoryStockMovement::where('reference_type', 'product_purchase')->where('reference_id', $locked->id)->exists()) {
+                $this->processInventoryReceipt($locked);
+            }
+
+            $updated = $this->purchaseRepository->updateStatus($locked, 'received', [
                 'received_by' => Auth::id(),
-                'received_at' => now(),
+                'received_at' => $locked->received_at ?? now(),
                 'updated_by' => Auth::id(),
             ]);
 
             $this->activityLogService->log('purchase_received', $updated);
             return $updated;
         });
+    }
+
+    protected function processInventoryReceipt(ProductPurchase $purchase): void
+    {
+        foreach ($purchase->items as $item) {
+            $stock = DB::table('inventory_stocks')
+                ->where('branch_id', $purchase->branch_id)
+                ->where('product_id', $item->product_id)
+                ->lockForUpdate()
+                ->first();
+
+            $stockBefore = $stock ? $stock->current_stock : 0;
+            $stockAfter = $stockBefore + $item->quantity;
+
+            if ($stock) {
+                DB::table('inventory_stocks')
+                    ->where('id', $stock->id)
+                    ->update([
+                        'current_stock' => $stockAfter,
+                        'last_restocked_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+            } else {
+                DB::table('inventory_stocks')->insert([
+                    'company_id' => $purchase->company_id,
+                    'branch_id' => $purchase->branch_id,
+                    'product_id' => $item->product_id,
+                    'current_stock' => $stockAfter,
+                    'reserved_stock' => 0,
+                    'reorder_level' => 5,
+                    'last_restocked_at' => now(),
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+
+            $movementCode = $this->inventoryRepository->generateMovementCode($purchase->branch_id);
+            $this->inventoryRepository->recordStockMovement([
+                'company_id' => $purchase->company_id,
+                'branch_id' => $purchase->branch_id,
+                'product_id' => $item->product_id,
+                'movement_code' => $movementCode,
+                'movement_type' => 'purchase_in',
+                'quantity' => $item->quantity,
+                'unit_price' => $item->unit_purchase_cost,
+                'total_value' => $item->line_total,
+                'stock_before' => $stockBefore,
+                'stock_after' => $stockAfter,
+                'reference_type' => 'product_purchase',
+                'reference_id' => $purchase->id,
+                'remarks' => "Received Purchase {$purchase->purchase_number} from Supplier '{$purchase->supplier_name}' (Invoice: {$purchase->supplier_invoice_number}).",
+                'created_by' => Auth::id(),
+            ]);
+        }
+
+        $purchase->update([
+            'is_inventory_processed' => true,
+            'received_at' => now(),
+            'received_by' => Auth::id(),
+        ]);
     }
 
     public function cancelPurchase(ProductPurchase $purchase): ProductPurchase
@@ -239,15 +279,43 @@ class ProductPurchaseService
         $totalTax = 0.0;
         $processedItems = [];
 
-        foreach ($items as $rawItem) {
+        foreach ($items as $idx => $rawItem) {
+            $itemNum = $idx + 1;
+            if (empty($rawItem['category_id'])) {
+                throw ValidationException::withMessages(['items' => "Product Category is required for item #{$itemNum}."]);
+            }
+            if (empty($rawItem['brand_id'])) {
+                throw ValidationException::withMessages(['items' => "Product Brand is required for item #{$itemNum}."]);
+            }
+            if (empty($rawItem['product_id'])) {
+                throw ValidationException::withMessages(['items' => "Product selection is required for item #{$itemNum}."]);
+            }
+
             $product = Product::findOrFail($rawItem['product_id']);
+            if (!$product->is_active) {
+                throw ValidationException::withMessages(['items' => "Product '{$product->name}' is inactive."]);
+            }
+
+            if ($product->category_id && (int) $product->category_id !== (int) $rawItem['category_id']) {
+                throw ValidationException::withMessages(['items' => "Product '{$product->name}' does not belong to the selected category."]);
+            }
+
+            if ($product->brand_id && (int) $product->brand_id !== (int) $rawItem['brand_id']) {
+                throw ValidationException::withMessages(['items' => "Product '{$product->name}' does not belong to the selected brand."]);
+            }
+
+            $user = Auth::user();
+            if ($user && !$user->isSuperAdmin() && $user->company_id && $product->company_id && (int) $product->company_id !== (int) $user->company_id) {
+                throw ValidationException::withMessages(['items' => "Product '{$product->name}' does not belong to your company."]);
+            }
+
             $qty = (int) $rawItem['quantity'];
             if ($qty <= 0) {
                 throw ValidationException::withMessages(['items' => "Quantity for product '{$product->name}' must be greater than zero."]);
             }
 
-            $unitCost = isset($rawItem['unit_purchase_cost']) ? (float) $rawItem['unit_purchase_cost'] : (float) $product->cost_price;
-            $taxRate = isset($rawItem['tax_rate']) ? (float) $rawItem['tax_rate'] : (float) $product->tax_percentage;
+            $unitCost = isset($rawItem['unit_purchase_cost']) ? (float) $rawItem['unit_purchase_cost'] : (float) ($product->cost_price ?? $product->unit_price);
+            $taxRate = isset($rawItem['tax_rate']) ? (float) $rawItem['tax_rate'] : (float) ($product->tax_percentage ?? 18.00);
             $discount = isset($rawItem['discount']) ? (float) $rawItem['discount'] : 0.0;
 
             $lineSubtotal = round(($qty * $unitCost) - $discount, 2);

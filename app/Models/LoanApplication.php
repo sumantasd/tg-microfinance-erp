@@ -129,4 +129,9 @@ class LoanApplication extends Model
     {
         return $this->belongsTo(User::class, 'cancelled_by');
     }
+
+    public function getUpfrontChargesTotalAttribute(): float
+    {
+        return round(($this->processing_fee_amount ?? 0) + ($this->insurance_fee_amount ?? 0), 2);
+    }
 }

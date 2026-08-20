@@ -140,6 +140,9 @@ class ReportService
                     'valuation' => ['title' => 'Stock Valuation Report', 'desc' => 'Inventory asset valuation based on product cost and unit prices.'],
                     'movements' => ['title' => 'Stock Movement Ledger', 'desc' => 'Audit trail of purchases, transfers, adjustments, and loan issues.'],
                     'purchases' => ['title' => 'Product Purchases Report', 'desc' => 'Procurement orders received, unit costs, and supplier info.'],
+                    'supplier_purchases' => ['title' => 'Supplier Purchase Report', 'desc' => 'Purchases breakdown by supplier, branch, date, and payment status.'],
+                    'supplier_outstanding' => ['title' => 'Supplier Outstanding Report', 'desc' => 'Total purchases, total payments, and outstanding due per supplier.'],
+                    'supplier_payments' => ['title' => 'Supplier Payment Register', 'desc' => 'Detailed register of supplier payments recorded across payment methods.'],
                     'transfers' => ['title' => 'Stock Transfers Report', 'desc' => 'Inter-branch stock transfers, dispatch dates, and receipt status.'],
                     'product_loan_issues' => ['title' => 'Product Loan Issue Register', 'desc' => 'Physical stock deductions for fulfilled product loans.'],
                     'revenue' => ['title' => 'Product Loan Sales Revenue', 'desc' => 'Gross sales revenue recognized on product loan fulfillments.'],
@@ -2385,6 +2388,178 @@ class ReportService
     protected function getManagementProductLoanSummaryReport(int $companyId, ?int $branchId, array $filters, bool $paginate, int $perPage): array
     {
         return $this->getInventoryProductLoanIssuesReport($companyId, $branchId, $filters, $paginate, $perPage);
+    }
+
+    protected function getInventorySupplierPurchasesReport(int $companyId, ?int $branchId, array $filters, bool $paginate, int $perPage): array
+    {
+        $query = DB::table('product_purchases')
+            ->leftJoin('suppliers', 'product_purchases.supplier_id', '=', 'suppliers.id')
+            ->leftJoin('branches', 'product_purchases.branch_id', '=', 'branches.id')
+            ->where('product_purchases.company_id', $companyId);
+
+        if ($branchId) {
+            $query->where('product_purchases.branch_id', $branchId);
+        }
+
+        if (!empty($filters['supplier_id'])) {
+            $query->where('product_purchases.supplier_id', $filters['supplier_id']);
+        }
+
+        if (!empty($filters['start_date'])) {
+            $query->whereDate('product_purchases.purchase_date', '>=', $filters['start_date']);
+        }
+
+        if (!empty($filters['end_date'])) {
+            $query->whereDate('product_purchases.purchase_date', '<=', $filters['end_date']);
+        }
+
+        if (!empty($filters['payment_status'])) {
+            $query->where('product_purchases.payment_status', $filters['payment_status']);
+        }
+
+        $kpis = [
+            'total_orders' => (clone $query)->count(),
+            'total_grand_total' => (float) (clone $query)->sum('product_purchases.grand_total'),
+            'total_paid' => (float) (clone $query)->sum('product_purchases.paid_amount'),
+            'total_due' => (float) (clone $query)->sum('product_purchases.due_amount'),
+        ];
+
+        $select = [
+            'product_purchases.id',
+            'product_purchases.purchase_number',
+            'product_purchases.purchase_date',
+            'product_purchases.supplier_name',
+            'suppliers.supplier_code',
+            'branches.name as branch_name',
+            'product_purchases.grand_total',
+            'product_purchases.paid_amount',
+            'product_purchases.due_amount',
+            'product_purchases.payment_status',
+            'product_purchases.purchase_status',
+        ];
+
+        $query->select($select)->orderBy('product_purchases.purchase_date', 'desc');
+
+        $data = $paginate ? $query->paginate($perPage) : $query->get();
+
+        return [
+            'title' => 'Supplier Purchase Report',
+            'kpis' => [
+                ['label' => 'Total Orders', 'value' => number_format($kpis['total_orders'])],
+                ['label' => 'Total Purchase Value', 'value' => '₹' . number_format($kpis['total_grand_total'], 2)],
+                ['label' => 'Total Paid Amount', 'value' => '₹' . number_format($kpis['total_paid'], 2)],
+                ['label' => 'Total Due Amount', 'value' => '₹' . number_format($kpis['total_due'], 2)],
+            ],
+            'columns' => ['Purchase #', 'Date', 'Supplier Name', 'Code', 'Branch', 'Grand Total', 'Paid', 'Due', 'Payment Status', 'Status'],
+            'data' => $data,
+        ];
+    }
+
+    protected function getInventorySupplierOutstandingReport(int $companyId, ?int $branchId, array $filters, bool $paginate, int $perPage): array
+    {
+        $suppliers = \App\Models\Supplier::where('company_id', $companyId);
+        if (!empty($filters['supplier_id'])) {
+            $suppliers->where('id', $filters['supplier_id']);
+        }
+        if (!empty($filters['status'])) {
+            $suppliers->where('status', $filters['status']);
+        }
+
+        $list = $suppliers->get();
+
+        $rows = [];
+        $totalPurchaseSum = 0;
+        $totalPaidSum = 0;
+        $totalOutstandingSum = 0;
+
+        foreach ($list as $sup) {
+            $totPur = $sup->total_purchase;
+            $totPaid = $sup->total_paid;
+            $out = $sup->outstanding_payable;
+
+            $totalPurchaseSum += $totPur;
+            $totalPaidSum += $totPaid;
+            $totalOutstandingSum += $out;
+
+            $rows[] = (object) [
+                'supplier_code' => $sup->supplier_code,
+                'supplier_name' => $sup->supplier_name,
+                'company_name' => $sup->company_name ?: '-',
+                'mobile' => $sup->mobile,
+                'gstin' => $sup->gstin ?: '-',
+                'total_purchase' => $totPur,
+                'total_paid' => $totPaid,
+                'outstanding' => $out,
+                'status' => ucfirst($sup->status),
+            ];
+        }
+
+        $collection = collect($rows);
+
+        return [
+            'title' => 'Supplier Outstanding Report',
+            'kpis' => [
+                ['label' => 'Total Suppliers', 'value' => count($rows)],
+                ['label' => 'Total Purchases', 'value' => '₹' . number_format($totalPurchaseSum, 2)],
+                ['label' => 'Total Paid', 'value' => '₹' . number_format($totalPaidSum, 2)],
+                ['label' => 'Total Outstanding Due', 'value' => '₹' . number_format($totalOutstandingSum, 2)],
+            ],
+            'columns' => ['Code', 'Supplier Name', 'Company', 'Mobile', 'GSTIN', 'Total Purchase', 'Total Paid', 'Outstanding Due', 'Status'],
+            'data' => $collection,
+        ];
+    }
+
+    protected function getInventorySupplierPaymentsReport(int $companyId, ?int $branchId, array $filters, bool $paginate, int $perPage): array
+    {
+        $query = DB::table('supplier_payments')
+            ->join('suppliers', 'supplier_payments.supplier_id', '=', 'suppliers.id')
+            ->leftJoin('branches', 'supplier_payments.branch_id', '=', 'branches.id')
+            ->where('supplier_payments.company_id', $companyId);
+
+        if ($branchId) {
+            $query->where('supplier_payments.branch_id', $branchId);
+        }
+
+        if (!empty($filters['supplier_id'])) {
+            $query->where('supplier_payments.supplier_id', $filters['supplier_id']);
+        }
+
+        if (!empty($filters['start_date'])) {
+            $query->whereDate('supplier_payments.payment_date', '>=', $filters['start_date']);
+        }
+
+        if (!empty($filters['end_date'])) {
+            $query->whereDate('supplier_payments.payment_date', '<=', $filters['end_date']);
+        }
+
+        if (!empty($filters['payment_method'])) {
+            $query->where('supplier_payments.payment_method', $filters['payment_method']);
+        }
+
+        $totalAmount = (float) (clone $query)->sum('supplier_payments.amount');
+
+        $query->select(
+            'supplier_payments.payment_number',
+            'supplier_payments.payment_date',
+            'suppliers.supplier_code',
+            'suppliers.supplier_name',
+            'branches.name as branch_name',
+            'supplier_payments.amount',
+            'supplier_payments.payment_method',
+            'supplier_payments.reference_number',
+            'supplier_payments.notes'
+        )->orderBy('supplier_payments.payment_date', 'desc');
+
+        $data = $paginate ? $query->paginate($perPage) : $query->get();
+
+        return [
+            'title' => 'Supplier Payment Register',
+            'kpis' => [
+                ['label' => 'Total Disbursed Payments', 'value' => '₹' . number_format($totalAmount, 2)],
+            ],
+            'columns' => ['Payment #', 'Date', 'Supplier Code', 'Supplier Name', 'Branch', 'Amount Paid', 'Payment Method', 'Reference #', 'Notes'],
+            'data' => $data,
+        ];
     }
 
     // =========================================================================

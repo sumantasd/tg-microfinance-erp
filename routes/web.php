@@ -46,6 +46,8 @@ use App\Http\Controllers\Admin\LoanSchemeController;
 use App\Http\Controllers\Admin\ProductBrandController;
 use App\Http\Controllers\Admin\ProductCategoryController;
 use App\Http\Controllers\Admin\ProductPurchaseController;
+use App\Http\Controllers\Admin\SupplierController;
+use App\Http\Controllers\Admin\SupplierPaymentController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\ProfileController;
 use App\Http\Controllers\Admin\System\PermissionController;
@@ -169,9 +171,10 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
             Route::delete('/permissions/{permission}', [PermissionController::class, 'destroy'])->name('admin.system.permissions.destroy');
         });
 
-        // System Placeholder Subpages
+        // System Subpages & Settings
         Route::middleware('can:settings.view')->group(function () {
-            Route::get('/settings', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Settings', 'moduleSlug' => 'system/settings']); });
+            Route::get('/settings', [\App\Http\Controllers\Admin\SystemSettingController::class, 'index'])->name('admin.system.settings.index');
+            Route::put('/settings/loan-charges', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateLoanCharges'])->name('admin.system.settings.update-loan-charges');
             Route::get('/media', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Media Library', 'moduleSlug' => 'system/media']); });
             Route::get('/notifications', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Notifications', 'moduleSlug' => 'system/notifications']); });
             Route::get('/audit-logs', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Audit Logs', 'moduleSlug' => 'system/audit-logs']); });
@@ -343,13 +346,23 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
 
     // Product Purchase / Procurement Management Routes
     Route::middleware('can:purchase.view')->group(function () {
-        Route::resource('inventory/purchases', ProductPurchaseController::class)->names('admin.product-purchase');
-        Route::post('/inventory/purchases/{productPurchase}/confirm', [ProductPurchaseController::class, 'confirm'])->name('admin.product-purchase.confirm')->middleware('can:purchase.confirm');
-        Route::post('/inventory/purchases/{productPurchase}/receive', [ProductPurchaseController::class, 'receive'])->name('admin.product-purchase.receive')->middleware('can:purchase.receive');
+        Route::resource('inventory/purchases', ProductPurchaseController::class)->parameters(['purchases' => 'purchase'])->names('admin.product-purchase');
+        Route::post('/inventory/purchases/{purchase}/confirm', [ProductPurchaseController::class, 'confirm'])->name('admin.product-purchase.confirm')->middleware('can:purchase.confirm');
+        Route::post('/inventory/purchases/{purchase}/receive', [ProductPurchaseController::class, 'receive'])->name('admin.product-purchase.receive')->middleware('can:purchase.receive');
+        Route::post('/inventory/purchases/{purchase}/cancel', [ProductPurchaseController::class, 'cancel'])->name('admin.product-purchase.cancel')->middleware('can:purchase.cancel');
+    });
+
+    // Supplier / Vendor Management Routes
+    Route::middleware('can:supplier.view')->group(function () {
+        Route::resource('suppliers', SupplierController::class)->names('admin.suppliers');
+        Route::post('/supplier-payments', [SupplierPaymentController::class, 'store'])->name('admin.supplier-payments.store')->middleware('can:supplier.payments');
+        Route::post('/supplier-payments/{payment}/allocate', [SupplierPaymentController::class, 'allocate'])->name('admin.supplier-payments.allocate')->middleware('can:supplier.payments');
     });
 
     // Module 7 — Phase 7.2 Routes (Loan Applications & Approvals)
     Route::middleware('can:loan_application.view')->group(function () {
+        Route::get('/loan-application/ajax/brands-by-category', [LoanApplicationController::class, 'getBrandsByCategory'])->name('admin.loan-application.ajax.brands-by-category');
+        Route::get('/loan-application/ajax/search-products', [LoanApplicationController::class, 'searchProducts'])->name('admin.loan-application.ajax.search-products');
         Route::resource('loan-application', LoanApplicationController::class, ['as' => 'admin']);
         Route::post('/loan-application/{loanApplication}/submit', [LoanApplicationController::class, 'submitApplication'])->name('admin.loan-application.submit')->middleware('can:loan_application.submit');
         Route::post('/loan-application/{loanApplication}/start-review', [LoanApplicationController::class, 'startReview'])->name('admin.loan-application.start-review')->middleware('can:loan_application.review');
@@ -363,6 +376,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::resource('loan-account', LoanAccountController::class, ['as' => 'admin'])->only(['index', 'show']);
         Route::post('/loan-account/sanction', [LoanAccountController::class, 'sanction'])->name('admin.loan-account.sanction')->middleware('can:loan.sanction');
         Route::get('/loan-account/{loanAccount}/statement', [LoanAccountController::class, 'statement'])->name('admin.loan-account.statement');
+        Route::post('/loan-account/{loanAccount}/upfront-payment', [LoanAccountController::class, 'recordUpfrontPayment'])->name('admin.loan-account.record-upfront-payment')->middleware('can:loan.sanction');
         Route::post('/loan-account/{loanAccount}/down-payment', [LoanAccountController::class, 'recordDownPayment'])->name('admin.loan-account.record-down-payment')->middleware('can:loan.record_down_payment');
         Route::post('/loan-account/{loanAccount}/disburse-cash', [LoanAccountController::class, 'disburseCash'])->name('admin.loan-account.disburse-cash')->middleware('can:loan.disburse');
         Route::post('/loan-account/{loanAccount}/issue-product', [LoanAccountController::class, 'issueProduct'])->name('admin.loan-account.issue-product')->middleware('can:loan.issue_product');

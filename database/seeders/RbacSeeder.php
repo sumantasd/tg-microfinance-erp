@@ -56,8 +56,10 @@ class RbacSeeder extends Seeder
             'inventory.view', 'inventory.manage', 'inventory.adjust', 'inventory.restock',
             'inventory.transfer.view', 'inventory.transfer.create', 'inventory.transfer.approve', 'inventory.transfer.reject', 'inventory.transfer.dispatch', 'inventory.transfer.receive', 'inventory.transfer.cancel',
 
-            // 12. Product Purchase Procurement
+            // 12. Product Purchase & Supplier Procurement
             'purchase.view', 'purchase.create', 'purchase.edit', 'purchase.confirm', 'purchase.receive', 'purchase.cancel',
+            'supplier.view', 'supplier.create', 'supplier.edit', 'supplier.delete', 'supplier.payments', 'supplier.ledger', 'supplier.reports', 'supplier.export',
+            'suppliers.view', 'suppliers.create', 'suppliers.edit', 'suppliers.delete', 'suppliers.payments', 'suppliers.ledger', 'suppliers.reports', 'suppliers.export',
 
             // 13. General Ledger & Double-Entry Accounting
             'accounting.view', 'accounting.dashboard',

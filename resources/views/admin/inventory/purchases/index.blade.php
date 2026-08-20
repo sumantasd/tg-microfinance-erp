@@ -89,7 +89,7 @@
 </x-ui.card>
 
 <!-- Product Purchases Directory Table -->
-<x-ui.card class="shadow-sm border-0 p-0">
+<x-ui.card class="shadow-sm border-0 p-0 table-responsive-cards">
     <x-ui.data-table>
         <x-slot:headers>
             <th scope="col" class="py-3 px-3">Purchase # & Date</th>
@@ -103,21 +103,25 @@
 
         @forelse($purchases as $pur)
             <tr>
-                <td class="px-3 py-3">
+                <td class="px-3 py-3" data-label="Purchase Order">
                     <a href="{{ route('admin.product-purchase.show', $pur->id) }}" class="fw-bold font-monospace text-primary text-decoration-none hover-primary">{{ $pur->purchase_number }}</a>
                     <div class="small text-muted">{{ $pur->purchase_date ? $pur->purchase_date->format('d M Y') : 'N/A' }}</div>
                 </td>
-                <td class="px-3 py-3 small">
-                    <div class="fw-bold text-dark"><i class="bi bi-truck me-1 text-muted"></i>{{ $pur->supplier_name }}</div>
+                <td class="px-3 py-3 small" data-label="Supplier & Inv">
+                    @if($pur->supplier_id)
+                        <a href="{{ route('admin.suppliers.show', $pur->supplier_id) }}" class="fw-bold text-dark text-decoration-none hover-primary"><i class="bi bi-truck me-1 text-primary"></i>{{ $pur->supplier_name }}</a>
+                    @else
+                        <div class="fw-bold text-dark"><i class="bi bi-truck me-1 text-muted"></i>{{ $pur->supplier_name }}</div>
+                    @endif
                     <div class="text-muted font-monospace">Inv: {{ $pur->supplier_invoice_number ?? 'N/A' }}</div>
                 </td>
-                <td class="px-3 py-3 small fw-bold text-dark">
+                <td class="px-3 py-3 small fw-bold text-dark" data-label="Branch">
                     <i class="bi bi-geo-alt text-danger me-1"></i>{{ $pur->branch->name ?? 'N/A' }}
                 </td>
-                <td class="px-3 py-3 small font-monospace fw-bold text-dark">
+                <td class="px-3 py-3 small font-monospace fw-bold text-dark" data-label="Grand Total">
                     ₹{{ number_format($pur->grand_total, 2) }}
                 </td>
-                <td class="px-3 py-3 small font-monospace">
+                <td class="px-3 py-3 small font-monospace" data-label="Paid / Due">
                     <div class="text-success fw-bold">Paid: ₹{{ number_format($pur->paid_amount, 2) }}</div>
                     @if($pur->due_amount > 0)
                         <div class="text-danger fw-bold">Due: ₹{{ number_format($pur->due_amount, 2) }}</div>
@@ -125,7 +129,7 @@
                         <div class="text-muted">Cleared</div>
                     @endif
                 </td>
-                <td class="px-3 py-3">
+                <td class="px-3 py-3" data-label="Status">
                     @php
                         $badgeClass = match($pur->purchase_status) {
                             'draft' => 'bg-secondary-subtle text-secondary border-secondary-subtle',
@@ -139,9 +143,9 @@
                         {{ $pur->purchase_status }}
                     </span>
                 </td>
-                <td class="px-3 py-3 text-end">
-                    <a href="{{ route('admin.product-purchase.show', $pur->id) }}" class="btn btn-sm btn-outline-info" title="View Purchase Details">
-                        <i class="bi bi-eye"></i> Details
+                <td class="px-3 py-3 text-end" data-label="Actions">
+                    <a href="{{ route('admin.product-purchase.show', $pur->id) }}" class="btn btn-sm btn-outline-info w-100 w-md-auto fw-bold" title="View Purchase Details">
+                        <i class="bi bi-eye me-1"></i> Details
                     </a>
                 </td>
             </tr>

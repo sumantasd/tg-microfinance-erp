@@ -84,9 +84,12 @@ class LoanAccountRepository implements LoanAccountRepositoryInterface
             }
 
             if (!empty($installmentsData)) {
-                foreach ($installmentsData as $inst) {
-                    $inst['loan_account_id'] = $loanAccount->id;
-                    LoanInstallment::create($inst);
+                $existingInstallmentsCount = LoanInstallment::where('loan_account_id', $loanAccount->id)->count();
+                if ($existingInstallmentsCount === 0) {
+                    foreach ($installmentsData as $inst) {
+                        $inst['loan_account_id'] = $loanAccount->id;
+                        LoanInstallment::create($inst);
+                    }
                 }
             }
 

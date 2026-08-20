@@ -7,6 +7,18 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+## ⚠️ DATABASE SAFETY & TESTING ISOLATION WARNING
+
+> **IMPORTANT WARNING FOR ALL DEVELOPERS & CI/CD PIPELINES:**
+>
+> 1. **NEVER RUN** destructive database commands against the live/development database (`microfinance_erp`):
+>    - `php artisan migrate:fresh`
+>    - `php artisan db:wipe`
+>    - `php artisan migrate:refresh`
+> 2. Automated tests (`php artisan test` or `vendor/bin/phpunit`) MUST ONLY run against the dedicated test database:
+>    `microfinance_erp_test`
+> 3. Strict circuit breakers are enforced in `tests/TestCase.php` and `config/database.php` to immediately abort any test execution targeting `microfinance_erp`.
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:

@@ -1,0 +1,324 @@
+/* Grihalaxmi Finance ERP Pro — Native Mobile App Theme & Responsive System */
+
+/* ==========================================================================
+   1. GLOBAL MOBILE VIEWPORT & SAFE AREA FIXES
+   ========================================================================== */
+@media (max-width: 991.98px) {
+    html, body {
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
+    body.admin-body {
+        padding-bottom: calc(65px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    #admin-content-wrapper {
+        margin-left: 0 !important;
+        width: 100% !important;
+        max-width: 100vw !important;
+        overflow-x: hidden !important;
+    }
+
+    .admin-main-body {
+        padding: 0.75rem 0.75rem 2rem 0.75rem !important;
+    }
+
+    /* Mobile Breadcrumb / Page Title Header */
+    .admin-breadcrumbs-header {
+        padding: 0.75rem 1rem !important;
+    }
+
+    .admin-breadcrumbs-header h4 {
+        font-size: 1.15rem !important;
+    }
+}
+
+/* ==========================================================================
+   2. STICKY TOP MOBILE HEADER & BRAND BAR
+   ========================================================================== */
+@media (max-width: 991.98px) {
+    #admin-topbar {
+        position: sticky !important;
+        top: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1030 !important;
+        height: 58px !important;
+        padding: 0 0.75rem !important;
+        background-color: #ffffff !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
+    }
+}
+
+/* ==========================================================================
+   3. STICKY BOTTOM MOBILE APP NAVIGATION BAR
+   ========================================================================== */
+@media (max-width: 991.98px) {
+    body.admin-body {
+        padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+    }
+
+    .mobile-bottom-nav {
+        display: flex !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 1045 !important;
+        background-color: #ffffff !important;
+        border-top: 1px solid #e2e8f0 !important;
+        height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
+        padding-bottom: env(safe-area-inset-bottom, 0px) !important;
+        justify-content: space-around !important;
+        align-items: center !important;
+        box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
+    }
+
+    .mobile-nav-item {
+        display: flex !important;
+        flex-direction: column !important;
+        align-items: center !important;
+        justify-content: center !important;
+        color: #64748b !important;
+        text-decoration: none !important;
+        font-size: 0.6875rem !important;
+        font-weight: 600 !important;
+        min-width: 58px !important;
+        height: 52px !important;
+        padding: 2px 0 !important;
+        transition: color 0.15s ease, transform 0.15s ease !important;
+    }
+
+    .mobile-nav-item .nav-icon-wrapper {
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        padding: 2px 8px !important;
+        border-radius: 12px !important;
+        transition: background-color 0.15s ease !important;
+    }
+
+    .mobile-nav-item i {
+        font-size: 1.25rem !important;
+        line-height: 1 !important;
+    }
+
+    .mobile-nav-item.active {
+        color: #2563eb !important;
+        font-weight: 700 !important;
+    }
+
+    .mobile-nav-item.active .nav-icon-wrapper {
+        background-color: #eff6ff !important;
+        color: #2563eb !important;
+    }
+
+    .mobile-nav-item.active i {
+        color: #2563eb !important;
+    }
+}
+
+/* ==========================================================================
+   4. MOBILE DASHBOARD 2-COLUMN STAT CARDS GRID
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    .mobile-stat-grid {
+        display: grid !important;
+        grid-template-columns: repeat(2, 1fr) !important;
+        gap: 0.625rem !important;
+    }
+
+    .mobile-stat-card {
+        padding: 0.75rem !important;
+        border-radius: 0.75rem !important;
+        border: 1px solid #e2e8f0 !important;
+        background-color: #ffffff !important;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    .mobile-stat-card .stat-icon {
+        width: 32px !important;
+        height: 32px !important;
+        font-size: 1rem !important;
+    }
+
+    .mobile-stat-card .stat-title {
+        font-size: 0.7rem !important;
+        font-weight: 700 !important;
+        text-transform: uppercase !important;
+        color: #64748b !important;
+    }
+
+    .mobile-stat-card .stat-value {
+        font-size: 1.15rem !important;
+        font-weight: 800 !important;
+        margin-top: 0.25rem !important;
+    }
+}
+
+/* ==========================================================================
+   5. MOBILE CARD VIEW FOR DESKTOP TABLES (.table-responsive-cards)
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    .table-responsive-cards table.table {
+        border: 0 !important;
+    }
+
+    .table-responsive-cards table.table > thead {
+        display: none !important;
+    }
+
+    .table-responsive-cards table.table > tbody > tr {
+        display: block !important;
+        margin-bottom: 0.85rem !important;
+        background: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 0.875rem !important;
+        padding: 0.85rem 1rem !important;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.03) !important;
+    }
+
+    .table-responsive-cards table.table > tbody > tr > td {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding: 0.45rem 0 !important;
+        border-bottom: 1px dashed #f1f5f9 !important;
+        font-size: 0.875rem !important;
+        text-align: right !important;
+    }
+
+    .table-responsive-cards table.table > tbody > tr > td:last-child {
+        border-bottom: 0 !important;
+        padding-bottom: 0 !important;
+        margin-top: 0.5rem !important;
+        justify-content: flex-end !important;
+    }
+
+    .table-responsive-cards table.table > tbody > tr > td[data-label]::before {
+        content: attr(data-label) !important;
+        font-weight: 700 !important;
+        font-size: 0.725rem !important;
+        color: #64748b !important;
+        text-transform: uppercase !important;
+        letter-spacing: 0.5px !important;
+        margin-right: 0.75rem !important;
+        text-align: left !important;
+    }
+}
+
+/* ==========================================================================
+   6. MOBILE SINGLE-COLUMN FORM LAYOUTS & TOUCH CONTROLS
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    .form-control, .form-select {
+        height: 46px !important;
+        font-size: 16px !important; /* Prevents auto-zoom on iOS */
+        border-radius: 0.5rem !important;
+    }
+
+    textarea.form-control {
+        height: auto !important;
+    }
+
+    .form-label {
+        font-size: 0.825rem !important;
+        font-weight: 700 !important;
+        margin-bottom: 0.35rem !important;
+        color: #334155 !important;
+    }
+
+    .btn {
+        min-height: 44px !important;
+        display: inline-flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 0.9rem !important;
+        font-weight: 600 !important;
+        border-radius: 0.5rem !important;
+    }
+
+    .btn-mobile-full {
+        width: 100% !important;
+        display: flex !important;
+        margin-bottom: 0.5rem !important;
+    }
+
+    /* Force bootstrap grid cols to single column on mobile forms */
+    .mobile-form-single-col .row > [class*="col-"] {
+        flex: 0 0 100% !important;
+        max-width: 100% !important;
+    }
+}
+
+/* ==========================================================================
+   7. MOBILE HORIZONTALLY SCROLLABLE TABS (.nav-tabs-mobile)
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    .nav-tabs-mobile {
+        display: flex !important;
+        flex-wrap: nowrap !important;
+        overflow-x: auto !important;
+        -webkit-overflow-scrolling: touch !important;
+        scrollbar-width: none !important;
+        border-bottom: 1px solid #e2e8f0 !important;
+        margin-bottom: 1rem !important;
+        padding-bottom: 2px !important;
+    }
+
+    .nav-tabs-mobile::-webkit-scrollbar {
+        display: none !important;
+    }
+
+    .nav-tabs-mobile .nav-link {
+        flex: 0 0 auto !important;
+        white-space: nowrap !important;
+        padding: 0.55rem 0.95rem !important;
+        font-size: 0.85rem !important;
+        font-weight: 600 !important;
+        border-radius: 0.5rem 0.5rem 0 0 !important;
+    }
+}
+
+/* ==========================================================================
+   8. MOBILE LINE ITEM CARD (PURCHASES & PRODUCT LOANS)
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    .mobile-line-item-card {
+        background-color: #ffffff !important;
+        border: 1px solid #cbd5e1 !important;
+        border-radius: 0.875rem !important;
+        padding: 1rem !important;
+        margin-bottom: 1rem !important;
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+    }
+
+    .mobile-line-item-card .card-item-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        padding-bottom: 0.5rem !important;
+        margin-bottom: 0.75rem !important;
+        border-bottom: 1px solid #f1f5f9 !important;
+    }
+
+    .mobile-line-item-card .remove-item-btn {
+        width: 100% !important;
+        margin-top: 0.75rem !important;
+    }
+}
+
+/* ==========================================================================
+   9. MOBILE FILTER COLLAPSIBLE SHEET / MODAL
+   ========================================================================== */
+@media (max-width: 767.98px) {
+    .mobile-filter-container {
+        background-color: #ffffff !important;
+        border: 1px solid #e2e8f0 !important;
+        border-radius: 0.75rem !important;
+        padding: 0.85rem !important;
+        margin-bottom: 1rem !important;
+    }
+}

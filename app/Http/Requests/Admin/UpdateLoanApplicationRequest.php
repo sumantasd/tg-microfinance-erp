@@ -41,7 +41,8 @@ class UpdateLoanApplicationRequest extends FormRequest
 
             // Product Line Items
             'products' => 'nullable|array',
-            'products.*.category_id' => 'nullable|exists:product_categories,id',
+            'products.*.category_id' => 'required_with:products|nullable|exists:product_categories,id',
+            'products.*.brand_id' => 'required_with:products|nullable|exists:product_brands,id',
             'products.*.product_id' => 'required_with:products|exists:products,id',
             'products.*.quantity' => 'required_with:products|integer|min:1',
         ];

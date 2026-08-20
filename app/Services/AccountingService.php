@@ -1186,4 +1186,94 @@ class AccountingService
 
         return $this->createVoucher($voucherData, $entries, true);
     }
+
+    /**
+     * Post Automatic General Ledger Voucher for Loan Upfront Charge Payment.
+     * IDEMPOTENT: If a voucher already exists for this upfront payment, it is returned without duplicate posting.
+     */
+    public function postUpfrontChargePayment(\App\Models\LoanUpfrontPayment $payment, LoanAccount $account): ?Voucher
+    {
+        $existing = Voucher::where('reference_type', 'loan_upfront_payment')
+            ->where('reference_id', $payment->id)
+            ->first();
+
+        if ($existing) {
+            return $existing;
+        }
+
+        $totalAmount = round((float) $payment->amount, 2);
+        if ($totalAmount <= 0) {
+            return null;
+        }
+
+        $proFeePaid = round((float) $payment->processing_fee_paid, 2);
+        $insFeePaid = round((float) $payment->insurance_fee_paid, 2);
+
+        $companyId = $account->company_id;
+        $branchId = $account->branch_id;
+
+        $assetCoa = $this->resolvePaymentMethodAccount($companyId, $branchId, $payment->payment_method);
+
+        $proFeeCoa = ChartOfAccount::where('company_id', $companyId)->where('account_code', '4210')->first();
+        if (!$proFeeCoa) {
+            $this->seedDefaultChartOfAccounts($companyId);
+            $proFeeCoa = ChartOfAccount::where('company_id', $companyId)->where('account_code', '4210')->first();
+        }
+
+        $insFeeCoa = ChartOfAccount::where('company_id', $companyId)->where('account_code', '4220')->first();
+        if (!$insFeeCoa) {
+            $this->seedDefaultChartOfAccounts($companyId);
+            $insFeeCoa = ChartOfAccount::where('company_id', $companyId)->where('account_code', '4220')->first();
+        }
+
+        $entries = [
+            [
+                'account_id' => $assetCoa->id,
+                'debit' => $totalAmount,
+                'credit' => 0.00,
+                'description' => "Upfront charges collection for Loan #{$account->loan_number} via " . strtoupper($payment->payment_method),
+            ],
+        ];
+
+        if ($proFeePaid > 0 && $proFeeCoa) {
+            $entries[] = [
+                'account_id' => $proFeeCoa->id,
+                'debit' => 0.00,
+                'credit' => $proFeePaid,
+                'description' => "Processing Fee Income for Loan #{$account->loan_number}",
+            ];
+        }
+
+        if ($insFeePaid > 0 && $insFeeCoa) {
+            $entries[] = [
+                'account_id' => $insFeeCoa->id,
+                'debit' => 0.00,
+                'credit' => $insFeePaid,
+                'description' => "Insurance Fee Income for Loan #{$account->loan_number}",
+            ];
+        }
+
+        $currentCredit = array_reduce($entries, fn($sum, $e) => $sum + $e['credit'], 0.0);
+        $diff = round($totalAmount - $currentCredit, 2);
+        if ($diff > 0 && $proFeeCoa) {
+            $entries[] = [
+                'account_id' => $proFeeCoa->id,
+                'debit' => 0.00,
+                'credit' => $diff,
+                'description' => "Upfront Charges Income for Loan #{$account->loan_number}",
+            ];
+        }
+
+        $voucherData = [
+            'voucher_type' => 'receipt',
+            'company_id' => $companyId,
+            'branch_id' => $branchId,
+            'voucher_date' => $payment->payment_date ? $payment->payment_date->toDateString() : now()->toDateString(),
+            'narration' => "Upfront charges payment receipt #{$payment->receipt_number} for Loan Account #{$account->loan_number}",
+            'reference_type' => 'loan_upfront_payment',
+            'reference_id' => $payment->id,
+        ];
+
+        return $this->createVoucher($voucherData, $entries, true);
+    }
 }
