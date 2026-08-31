@@ -598,54 +598,67 @@ class LoanAccountService
         return DB::transaction(function () use ($loanAccount, $amount, $paymentMethod, $refNo, $adjustmentMode, $remarks, $paymentDate) {
             $pDate = $paymentDate ? Carbon::parse($paymentDate) : now();
 
-            // 1. Waterfall Allocation
+            // 1. Sequential Installment-by-Installment Waterfall Allocation (oldest unpaid first)
             $rem = $amount;
+            $penaltyPaid = 0.00;
+            $feePaid = 0.00;
+            $interestPaid = 0.00;
+            $principalPaid = 0.00;
 
-            // A. Penalty
-            $penaltyPaid = min($rem, (float) $loanAccount->penalty_outstanding);
-            $rem -= $penaltyPaid;
+            // A. Pay loan-level penalties or fees if specific outstanding balances exist
+            if ((float) $loanAccount->penalty_outstanding > 0 && $rem > 0) {
+                $loanPenAlloc = min($rem, (float) $loanAccount->penalty_outstanding);
+                $penaltyPaid += $loanPenAlloc;
+                $rem -= $loanPenAlloc;
+            }
 
-            // B. Fees
-            $feePaid = min($rem, (float) $loanAccount->fee_outstanding);
-            $rem -= $feePaid;
+            if ((float) $loanAccount->fee_outstanding > 0 && $rem > 0) {
+                $loanFeeAlloc = min($rem, (float) $loanAccount->fee_outstanding);
+                $feePaid += $loanFeeAlloc;
+                $rem -= $loanFeeAlloc;
+            }
 
-            // C. Interest
-            $interestPaid = min($rem, (float) $loanAccount->interest_outstanding);
-            $rem -= $interestPaid;
-
-            // D. Principal
-            $principalPaid = min($rem, (float) $loanAccount->principal_outstanding);
-            $rem -= $principalPaid;
-
-            // Allocate across installments
-            $allocPenalty = $penaltyPaid;
-            $allocFee = $feePaid;
-            $allocInterest = $interestPaid;
-            $allocPrincipal = $principalPaid;
-
+            // B. Allocate remaining payment across installments sequentially (penalty -> fee -> interest -> principal)
             $installments = $loanAccount->installments()->orderBy('installment_number', 'asc')->get();
             foreach ($installments as $inst) {
+                if ($rem <= 0) break;
                 if ($inst->status === 'paid') continue;
 
-                $instPenDue = max(0, $inst->penalty_amount - $inst->penalty_paid);
-                $pPenAlloc = min($allocPenalty, $instPenDue);
-                $inst->penalty_paid += $pPenAlloc;
-                $allocPenalty -= $pPenAlloc;
+                // 1. Penalty
+                $instPenDue = max(0, (float) $inst->penalty_amount - (float) $inst->penalty_paid);
+                $pPenAlloc = min($rem, $instPenDue);
+                if ($pPenAlloc > 0) {
+                    $inst->penalty_paid += $pPenAlloc;
+                    $rem -= $pPenAlloc;
+                    $penaltyPaid += $pPenAlloc;
+                }
 
-                $instFeeDue = max(0, $inst->fee_amount - $inst->fee_paid);
-                $pFeeAlloc = min($allocFee, $instFeeDue);
-                $inst->fee_paid += $pFeeAlloc;
-                $allocFee -= $pFeeAlloc;
+                // 2. Fee
+                $instFeeDue = max(0, (float) $inst->fee_amount - (float) $inst->fee_paid);
+                $pFeeAlloc = min($rem, $instFeeDue);
+                if ($pFeeAlloc > 0) {
+                    $inst->fee_paid += $pFeeAlloc;
+                    $rem -= $pFeeAlloc;
+                    $feePaid += $pFeeAlloc;
+                }
 
-                $instIntDue = max(0, $inst->interest_amount - $inst->interest_paid);
-                $pIntAlloc = min($allocInterest, $instIntDue);
-                $inst->interest_paid += $pIntAlloc;
-                $allocInterest -= $pIntAlloc;
+                // 3. Interest
+                $instIntDue = max(0, (float) $inst->interest_amount - (float) $inst->interest_paid);
+                $pIntAlloc = min($rem, $instIntDue);
+                if ($pIntAlloc > 0) {
+                    $inst->interest_paid += $pIntAlloc;
+                    $rem -= $pIntAlloc;
+                    $interestPaid += $pIntAlloc;
+                }
 
-                $instPrinDue = max(0, $inst->principal_amount - $inst->principal_paid);
-                $pPrinAlloc = min($allocPrincipal, $instPrinDue);
-                $inst->principal_paid += $pPrinAlloc;
-                $allocPrincipal -= $pPrinAlloc;
+                // 4. Principal
+                $instPrinDue = max(0, (float) $inst->principal_amount - (float) $inst->principal_paid);
+                $pPrinAlloc = min($rem, $instPrinDue);
+                if ($pPrinAlloc > 0) {
+                    $inst->principal_paid += $pPrinAlloc;
+                    $rem -= $pPrinAlloc;
+                    $principalPaid += $pPrinAlloc;
+                }
 
                 $inst->total_paid = round($inst->penalty_paid + $inst->fee_paid + $inst->interest_paid + $inst->principal_paid, 2);
 
@@ -657,6 +670,25 @@ class LoanAccountService
                 }
                 $inst->save();
             }
+
+            // C. Excess payment beyond scheduled installments
+            if ($rem > 0) {
+                if ((float) $loanAccount->interest_outstanding > $interestPaid && $rem > 0) {
+                    $extraInt = min($rem, (float) $loanAccount->interest_outstanding - $interestPaid);
+                    $interestPaid += $extraInt;
+                    $rem -= $extraInt;
+                }
+                if ($rem > 0) {
+                    $extraPrin = min($rem, (float) $loanAccount->principal_outstanding - $principalPaid);
+                    $principalPaid += $extraPrin;
+                    $rem -= $extraPrin;
+                }
+            }
+
+            $penaltyPaid = round($penaltyPaid, 2);
+            $feePaid = round($feePaid, 2);
+            $interestPaid = round($interestPaid, 2);
+            $principalPaid = round($principalPaid, 2);
 
             // Create immutable Repayment Receipt record
             $rcptNo = $this->accountRepository->generateReceiptNumber($loanAccount->branch_id);
@@ -700,8 +732,8 @@ class LoanAccountService
                 'status' => $newStatus,
             ]);
 
-            // Recalculate Future Schedule if extra principal was paid and loan is still active
-            if ($newStatus !== 'closed' && $principalPaid > 0) {
+            // Recalculate Future Schedule ONLY if explicitly requested prepayment mode and principal was paid and loan is still active
+            if ($newStatus !== 'closed' && $principalPaid > 0 && in_array($adjustmentMode, ['reduce_tenure', 'reduce_emi'])) {
                 $this->recalculateFutureSchedule($loanAccount->fresh(), $adjustmentMode);
             }
 

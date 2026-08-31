@@ -7,14 +7,14 @@ use App\Models\Company;
 use App\Models\User;
 use App\Models\WebsiteSetting;
 use Database\Seeders\RbacSeeder;
-use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\Artisan;
 use Spatie\Permission\Models\Role;
 use Tests\TestCase;
 
 class SystemHealthAndRouteSmokeTest extends TestCase
 {
-    use RefreshDatabase;
+    use DatabaseTransactions;
 
     protected User $superAdmin;
     protected User $staffUser;

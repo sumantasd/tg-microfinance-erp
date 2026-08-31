@@ -25,7 +25,7 @@ class RbacSeeder extends Seeder
             'branch.view', 'branch.create', 'branch.edit', 'branch.delete', 'branch.restore', 'branch.toggle_status',
 
             // 3. Customer & Member Management
-            'customer.view', 'customer.create', 'customer.edit', 'customer.delete', 'customer.restore', 'customer.change_status', 'customer.verify_kyc', 'customer.manage_guarantor', 'customer.manage_nominee',
+            'customer.view', 'customer.create', 'customer.edit', 'customer.delete', 'customer.restore', 'customer.change_status', 'customer.verify_kyc', 'customer.kyc_upload', 'customer.kyc_view', 'customer.manage_guarantor', 'customer.manage_nominee',
             'group.view', 'group.create', 'group.edit', 'group.delete', 'group.change_status', 'group.manage_members', 'group.assign_leader',
 
             // 4. Loan Schemes

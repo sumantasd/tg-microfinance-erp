@@ -118,6 +118,7 @@ class CollectionApiController extends Controller
             'payment_method' => 'nullable|in:cash,bank,online',
             'bank_account_id' => 'nullable|required_if:payment_method,bank|exists:bank_accounts,id',
             'offline_sync_id' => 'nullable|string|max:100',
+            'adjustment_mode' => 'nullable|in:none,reduce_tenure,reduce_emi',
             'latitude' => 'nullable|numeric|between:-90,90',
             'longitude' => 'nullable|numeric|between:-180,180',
             'accuracy' => 'nullable|numeric',
@@ -163,7 +164,7 @@ class CollectionApiController extends Controller
                 (float) $validated['amount'],
                 $validated['payment_method'] ?? 'cash',
                 $validated['offline_sync_id'] ?? null,
-                'reduce_tenure',
+                $validated['adjustment_mode'] ?? 'none',
                 $remarks,
                 now()->toDateString()
             );

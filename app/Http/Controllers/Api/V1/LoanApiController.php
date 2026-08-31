@@ -121,7 +121,7 @@ class LoanApiController extends Controller
         }
 
         $validated = $request->validate([
-            'payment_method' => 'required|in:cash,bank',
+            'payment_method' => 'nullable|required_if:loan_type,cash|in:cash,bank,product_fulfillment',
             'bank_account_id' => 'nullable|required_if:payment_method,bank|exists:bank_accounts,id',
             'disbursement_date' => 'nullable|date',
             'remarks' => 'nullable|string|max:255',

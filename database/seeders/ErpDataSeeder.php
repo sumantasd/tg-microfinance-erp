@@ -368,7 +368,10 @@ class ErpDataSeeder extends Seeder
             ]
         );
 
-        // 12. Loan Applications & Accounts
+        // 12. Loan Applications & Accounts via Domain Services
+        $accountService = app(\App\Services\LoanAccountService::class);
+
+        // A. Cash Loan Application & Account
         $app1 = LoanApplication::firstOrCreate(
             ['application_number' => 'APP-CASH-2026-00001'],
             [
@@ -394,36 +397,21 @@ class ErpDataSeeder extends Seeder
             ]
         );
 
-        LoanAccount::firstOrCreate(
-            ['loan_number' => 'LN-CASH-2026-00001'],
-            [
-                'company_id' => $company->id,
-                'branch_id' => $branch->id,
-                'customer_id' => $c1->id,
-                'loan_application_id' => $app1->id,
-                'loan_scheme_id' => $cashScheme->id,
-                'loan_type' => 'cash',
-                'borrower_type' => 'individual',
-                'sanctioned_amount' => 100000.00,
-                'principal_outstanding' => 100000.00,
-                'total_outstanding' => 112000.00,
-                'tenure_months' => 12,
-                'repayment_frequency' => 'monthly',
-                'interest_type' => 'flat',
-                'interest_rate_per_annum' => 12.00,
-                'processing_fee_percentage' => 1.00,
-                'processing_fee_amount' => 1000.00,
-                'insurance_fee_percentage' => 1.00,
-                'insurance_fee_amount' => 1000.00,
-                'upfront_charges_paid' => 2000.00,
-                'upfront_payment_status' => 'paid',
-                'status' => 'active',
-                'sanction_date' => date('Y-m-d', strtotime('-10 days')),
-                'disbursement_date' => date('Y-m-d', strtotime('-10 days')),
-                'created_by' => $admin->id,
-            ]
-        );
+        $loan1 = LoanAccount::where('loan_application_id', $app1->id)->first();
+        if (!$loan1) {
+            $loan1 = $accountService->sanctionLoanFromApplication($app1, 0.00, 0.00, date('Y-m-d', strtotime('-10 days')));
+            $loan1->update(['loan_number' => 'LN-CASH-2026-00001']);
+            if ($loan1->upfront_charges_due > 0) {
+                $accountService->recordUpfrontPayment($loan1, [
+                    'amount' => $loan1->upfront_charges_due,
+                    'payment_method' => 'cash',
+                    'remarks' => 'Seeded upfront charges payment',
+                ]);
+            }
+            $loan1 = $accountService->disburseCashLoan($loan1->fresh(), 'cash', 'DISB-CASH-001', 'Seeded cash loan disbursement');
+        }
 
+        // B. Product Loan Application & Account
         $app2 = LoanApplication::firstOrCreate(
             ['application_number' => 'APP-PROD-2026-00001'],
             [
@@ -449,39 +437,7 @@ class ErpDataSeeder extends Seeder
             ]
         );
 
-        LoanAccount::firstOrCreate(
-            ['loan_number' => 'LN-PROD-2026-00001'],
-            [
-                'company_id' => $company->id,
-                'branch_id' => $branch->id,
-                'customer_id' => $c2->id,
-                'loan_application_id' => $app2->id,
-                'loan_scheme_id' => $productScheme->id,
-                'loan_type' => 'product',
-                'borrower_type' => 'individual',
-                'product_price_amount' => 32000.00,
-                'down_payment_amount' => 3200.00,
-                'sanctioned_amount' => 28800.00,
-                'principal_outstanding' => 28800.00,
-                'total_outstanding' => 32832.00,
-                'tenure_months' => 12,
-                'repayment_frequency' => 'monthly',
-                'interest_type' => 'flat',
-                'interest_rate_per_annum' => 14.00,
-                'processing_fee_percentage' => 1.00,
-                'processing_fee_amount' => 320.00,
-                'insurance_fee_percentage' => 1.00,
-                'insurance_fee_amount' => 320.00,
-                'upfront_charges_paid' => 640.00,
-                'upfront_payment_status' => 'paid',
-                'status' => 'active',
-                'sanction_date' => date('Y-m-d', strtotime('-5 days')),
-                'disbursement_date' => date('Y-m-d', strtotime('-5 days')),
-                'created_by' => $admin->id,
-            ]
-        );
-
-        // Seed product line item for app2 (Tata Steel Almirah 2-Door Premium x 1 = ₹32,000)
+        // Seed product line item for app2 (Tata Steel Almirah 2-Door Premium x 1 = ₹32,000) BEFORE sanctioning!
         \App\Models\LoanApplicationProduct::firstOrCreate(
             ['loan_application_id' => $app2->id, 'product_id' => $p1->id],
             [
@@ -493,5 +449,20 @@ class ErpDataSeeder extends Seeder
                 'remarks' => 'Tata Steel Almirah 2-Door Premium',
             ]
         );
+
+        $loan2 = LoanAccount::where('loan_application_id', $app2->id)->first();
+        if (!$loan2) {
+            // Sanction Product Loan with down payment ₹3,200 (Financed principal = ₹28,800.00)
+            $loan2 = $accountService->sanctionLoanFromApplication($app2, 3200.00, 0.00, date('Y-m-d', strtotime('-5 days')));
+            $loan2->update(['loan_number' => 'LN-PROD-2026-00001']);
+            if ($loan2->upfront_charges_due > 0) {
+                $accountService->recordUpfrontPayment($loan2, [
+                    'amount' => $loan2->upfront_charges_due,
+                    'payment_method' => 'cash',
+                    'remarks' => 'Seeded upfront charges payment',
+                ]);
+            }
+            $loan2 = $accountService->issueProductLoan($loan2->fresh(), 'Seeded product loan issue & stock deduction');
+        }
     }
 }

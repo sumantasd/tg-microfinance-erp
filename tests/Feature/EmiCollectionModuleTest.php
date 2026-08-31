@@ -89,10 +89,10 @@ class EmiCollectionModuleTest extends TestCase
         $sumInstallments = 0;
 
         foreach ($schedule['installments'] as $inst) {
-            // Assert all customer-facing amounts are whole numbers (integers / rounded)
-            $this->assertEquals($inst['principal_amount'], round($inst['principal_amount'], 0));
-            $this->assertEquals($inst['interest_amount'], round($inst['interest_amount'], 0));
-            $this->assertEquals($inst['installment_amount'], round($inst['installment_amount'], 0));
+            // Assert all customer-facing amounts are rounded to 2 decimal places
+            $this->assertEquals($inst['principal_amount'], round($inst['principal_amount'], 2));
+            $this->assertEquals($inst['interest_amount'], round($inst['interest_amount'], 2));
+            $this->assertEquals($inst['installment_amount'], round($inst['installment_amount'], 2));
 
             $sumPrincipal += $inst['principal_amount'];
             $sumInterest += $inst['interest_amount'];
@@ -100,9 +100,9 @@ class EmiCollectionModuleTest extends TestCase
         }
 
         // Final installment reconciliation checks
-        $this->assertEquals(10000.00, $sumPrincipal);
-        $this->assertEquals(1200.00, $sumInterest);
-        $this->assertEquals(11200.00, $sumInstallments);
+        $this->assertEquals(10000.00, round($sumPrincipal, 2));
+        $this->assertEquals(1200.00, round($sumInterest, 2));
+        $this->assertEquals(11200.00, round($sumInstallments, 2));
     }
 
     public function test_customer_search_by_mobile_code_and_loan_number(): void

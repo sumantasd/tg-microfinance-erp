@@ -36,6 +36,7 @@ return new class extends Migration
         }
 
         Schema::create($tableNames['permissions'], function (Blueprint $table) {
+            $table->engine = 'InnoDB';
             $table->bigIncrements('id');
             $table->string('name');
             $table->string('guard_name');
@@ -45,6 +46,7 @@ return new class extends Migration
         });
 
         Schema::create($tableNames['roles'], function (Blueprint $table) {
+            $table->engine = 'InnoDB';
             $table->bigIncrements('id');
             $table->string('name');
             $table->string('guard_name');
@@ -55,6 +57,7 @@ return new class extends Migration
         });
 
         Schema::create($tableNames['model_has_permissions'], function (Blueprint $table) use ($tableNames, $columnNames, $pivotPermission) {
+            $table->engine = 'InnoDB';
             $table->unsignedBigInteger($pivotPermission);
             $table->string('model_type');
             $table->unsignedBigInteger($columnNames['model_morph_key']);
@@ -70,6 +73,7 @@ return new class extends Migration
         });
 
         Schema::create($tableNames['model_has_roles'], function (Blueprint $table) use ($tableNames, $columnNames, $pivotRole) {
+            $table->engine = 'InnoDB';
             $table->unsignedBigInteger($pivotRole);
             $table->string('model_type');
             $table->unsignedBigInteger($columnNames['model_morph_key']);
@@ -85,6 +89,7 @@ return new class extends Migration
         });
 
         Schema::create($tableNames['role_has_permissions'], function (Blueprint $table) use ($tableNames, $pivotRole, $pivotPermission) {
+            $table->engine = 'InnoDB';
             $table->unsignedBigInteger($pivotPermission);
             $table->unsignedBigInteger($pivotRole);
 
