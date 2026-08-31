@@ -57,16 +57,21 @@ class ErpDataSeeder extends Seeder
         );
 
         // 3. Super Admin User Context
-        $admin = User::where('email', 'admin@tgmicrofinance.test')->first() ?: User::first();
+        $admin = User::where('email', 'admin@grihalaxmifinance.com')->first() ?: User::where('email', 'admin@tgmicrofinance.test')->first() ?: User::first();
         if (!$admin) {
             $admin = User::create([
                 'name' => 'Super Admin',
-                'email' => 'admin@tgmicrofinance.test',
-                'password' => Hash::make('Grihalaxmi@2026'),
+                'email' => 'admin@grihalaxmifinance.com',
+                'password' => Hash::make('Admin@Grihalaxmi2026'),
                 'status' => 'active',
                 'email_verified_at' => now(),
             ]);
             $admin->syncRoles(['Super Admin']);
+        } else {
+            if ($admin->email !== 'admin@grihalaxmifinance.com') {
+                $admin->email = 'admin@grihalaxmifinance.com';
+                $admin->save();
+            }
         }
 
         $admin->update([
@@ -74,8 +79,8 @@ class ErpDataSeeder extends Seeder
             'branch_id' => $branch->id,
             'status' => 'active',
         ]);
-        if (!Hash::check('Grihalaxmi@2026', $admin->password)) {
-            $admin->password = Hash::make('Grihalaxmi@2026');
+        if (!Hash::check('Admin@Grihalaxmi2026', $admin->password)) {
+            $admin->password = Hash::make('Admin@Grihalaxmi2026');
             $admin->save();
         }
 

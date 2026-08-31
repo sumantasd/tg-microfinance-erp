@@ -102,7 +102,7 @@ class RbacAndSecurityEnforcementTest extends TestCase
             'is_active' => true,
         ]);
 
-        $this->superAdmin = User::where('email', 'admin@tgmicrofinance.test')->first();
+        $this->superAdmin = User::where('email', 'admin@grihalaxmifinance.com')->first() ?: User::first();
 
         $this->companyAdmin = User::factory()->create([
             'name' => 'Company Admin User',

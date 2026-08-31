@@ -30,10 +30,18 @@
             <span>Dashboard</span>
         </a>
 
-        <!-- 2. ORGANIZATION MANAGEMENT -->
-        @canany(['company.view', 'branch.view', 'customer.view', 'group.view'])
+        <!-- 2. CASH BOOK REGISTER -->
+        @can('cashbook.view')
+        <a class="sidebar-nav-link {{ request()->is('admin/cash-book*') ? 'active' : '' }}" href="{{ route('admin.cash-book.index') }}">
+            <i class="bi bi-journal-check text-success nav-icon"></i>
+            <span>Cash Book</span>
+        </a>
+        @endcan
+
+        <!-- 3. ORGANIZATION MANAGEMENT -->
+        @canany(['company.view', 'branch.view'])
         @php
-            $isOrgActive = request()->is('admin/company*') || request()->is('admin/branch*') || (request()->is('admin/customer*') && !request()->is('admin/customer-group*')) || request()->is('admin/customer-group*');
+            $isOrgActive = request()->is('admin/company*') || request()->is('admin/branch*');
         @endphp
         <a class="sidebar-nav-link {{ $isOrgActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarOrgCollapse" role="button" aria-expanded="{{ $isOrgActive ? 'true' : 'false' }}" aria-controls="sidebarOrgCollapse">
             <i class="bi bi-buildings nav-icon text-primary"></i>
@@ -54,22 +62,37 @@
                 <span>Branch Management</span>
             </a>
             @endcan
+        </div>
+        @endcanany
+
+        <!-- 4. CUSTOMERS & GROUPS -->
+        @canany(['customer.view', 'group.view'])
+        @php
+            $isCustomersGroupsActive = (request()->is('admin/customer*') && !request()->is('admin/customer-group*')) || request()->is('admin/customer-group*');
+        @endphp
+        <a class="sidebar-nav-link {{ $isCustomersGroupsActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarCustomersGroupsCollapse" role="button" aria-expanded="{{ $isCustomersGroupsActive ? 'true' : 'false' }}" aria-controls="sidebarCustomersGroupsCollapse">
+            <i class="bi bi-people-fill nav-icon text-success"></i>
+            <span>Customers & Groups</span>
+            <i class="bi bi-chevron-right accordion-arrow"></i>
+        </a>
+
+        <div class="collapse sidebar-submenu {{ $isCustomersGroupsActive ? 'show' : '' }}" id="sidebarCustomersGroupsCollapse">
             @can('customer.view')
             <a class="sidebar-nav-link {{ (request()->is('admin/customer') || request()->is('admin/customer/*')) && !request()->is('admin/customer-group*') ? 'active' : '' }}" href="{{ url('/admin/customer') }}">
                 <i class="bi bi-person-badge nav-icon text-success"></i>
-                <span>Member Management</span>
+                <span>Members / Customers</span>
             </a>
             @endcan
             @can('group.view')
             <a class="sidebar-nav-link {{ request()->is('admin/customer-group*') ? 'active' : '' }}" href="{{ route('admin.customer-group.index') }}">
                 <i class="bi bi-people nav-icon text-info"></i>
-                <span>Customer Groups</span>
+                <span>Groups</span>
             </a>
             @endcan
         </div>
         @endcanany
 
-        <!-- 3. LOAN MANAGEMENT -->
+        <!-- 4. LOAN MANAGEMENT -->
         @canany(['loan_scheme.view', 'loan_application.view', 'loan.view', 'collection.view', 'overdue.view', 'penalty.view', 'loan_closure.view'])
         @php
             $isLoanActive = request()->is('admin/loan-scheme*') || request()->is('admin/loan-application*') || request()->is('admin/loan-account*') || request()->is('admin/emi-collection*') || request()->is('admin/overdue*') || request()->is('admin/penalties*') || request()->is('admin/loan-settlement*');
@@ -126,10 +149,10 @@
         </div>
         @endcanany
 
-        <!-- 4. PRODUCTS & INVENTORY -->
-        @canany(['product.view', 'product_brand.view', 'product_category.view', 'inventory.view', 'inventory.transfer.view', 'purchase.view'])
+        <!-- 5. PRODUCTS & INVENTORY -->
+        @canany(['product.view', 'product_brand.view', 'product_category.view', 'inventory.view', 'inventory.transfer.view'])
         @php
-            $isProductActive = request()->is('admin/product*') || request()->is('admin/inventory*') || request()->is('admin/billing*');
+            $isProductActive = (request()->is('admin/product*') && !request()->is('admin/product-purchase*')) || (request()->is('admin/inventory*') && !request()->is('admin/inventory/purchases*')) || request()->is('admin/billing*');
         @endphp
         <a class="sidebar-nav-link {{ $isProductActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarProductsInventoryCollapse" role="button" aria-expanded="{{ $isProductActive ? 'true' : 'false' }}" aria-controls="sidebarProductsInventoryCollapse">
             <i class="bi bi-boxes nav-icon text-warning"></i>
@@ -168,6 +191,21 @@
                 <span>Stock Transfers</span>
             </a>
             @endcan
+        </div>
+        @endcanany
+
+        <!-- 6. PROCUREMENT -->
+        @canany(['purchase.view', 'supplier.view', 'suppliers.view'])
+        @php
+            $isProcurementActive = request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') || request()->is('admin/suppliers*');
+        @endphp
+        <a class="sidebar-nav-link {{ $isProcurementActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarProcurementCollapse" role="button" aria-expanded="{{ $isProcurementActive ? 'true' : 'false' }}" aria-controls="sidebarProcurementCollapse">
+            <i class="bi bi-cart3 nav-icon text-primary"></i>
+            <span>Procurement</span>
+            <i class="bi bi-chevron-right accordion-arrow"></i>
+        </a>
+
+        <div class="collapse sidebar-submenu {{ $isProcurementActive ? 'show' : '' }}" id="sidebarProcurementCollapse">
             @can('purchase.view')
             <a class="sidebar-nav-link {{ request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') ? 'active' : '' }}" href="{{ route('admin.product-purchase.index') }}">
                 <i class="bi bi-cart-check nav-icon text-primary"></i>

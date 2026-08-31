@@ -22,7 +22,7 @@
         <label class="form-label small fw-bold text-secondary">Staff Email Address</label>
         <div class="input-group">
             <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
-            <input type="email" name="email" value="{{ old('email') }}" class="form-control bg-light border-start-0" placeholder="admin@tgmicrofinance.test" required autofocus>
+            <input type="email" name="email" value="{{ old('email') }}" class="form-control bg-light border-start-0" placeholder="admin@grihalaxmifinance.com" required autofocus>
         </div>
     </div>
 

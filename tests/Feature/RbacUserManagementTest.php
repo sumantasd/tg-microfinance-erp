@@ -25,7 +25,7 @@ class RbacUserManagementTest extends TestCase
 
     public function test_seeded_super_admin_has_super_admin_role_assigned(): void
     {
-        $admin = User::where('email', 'admin@tgmicrofinance.test')->first();
+        $admin = User::where('email', 'admin@grihalaxmifinance.com')->first();
 
         $this->assertNotNull($admin);
         $this->assertTrue($admin->hasRole('Super Admin'));
@@ -33,7 +33,7 @@ class RbacUserManagementTest extends TestCase
 
     public function test_super_admin_has_unrestricted_access_to_roles_management(): void
     {
-        $superAdmin = User::where('email', 'admin@tgmicrofinance.test')->first();
+        $superAdmin = User::where('email', 'admin@grihalaxmifinance.com')->first();
 
         $response = $this->actingAs($superAdmin)->get('/admin/system/roles');
 
@@ -43,7 +43,7 @@ class RbacUserManagementTest extends TestCase
 
     public function test_super_admin_has_unrestricted_access_to_all_modules(): void
     {
-        $superAdmin = User::where('email', 'admin@tgmicrofinance.test')->first();
+        $superAdmin = User::where('email', 'admin@grihalaxmifinance.com')->first();
 
         $routes = [
             '/admin/system/users',
@@ -82,7 +82,7 @@ class RbacUserManagementTest extends TestCase
 
     public function test_super_admin_can_create_new_staff_user_with_role(): void
     {
-        $superAdmin = User::where('email', 'admin@tgmicrofinance.test')->first();
+        $superAdmin = User::where('email', 'admin@grihalaxmifinance.com')->first();
 
         $response = $this->actingAs($superAdmin)->post('/admin/system/users', [
             'name' => 'Loan Officer Test',
@@ -118,7 +118,7 @@ class RbacUserManagementTest extends TestCase
 
     public function test_super_admin_can_soft_delete_user(): void
     {
-        $superAdmin = User::where('email', 'admin@tgmicrofinance.test')->first();
+        $superAdmin = User::where('email', 'admin@grihalaxmifinance.com')->first();
         $targetUser = User::factory()->create(['status' => 'active']);
 
         $response = $this->actingAs($superAdmin)->delete('/admin/system/users/' . $targetUser->id);

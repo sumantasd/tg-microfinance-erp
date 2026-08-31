@@ -21,12 +21,12 @@ class AuthenticationTest extends TestCase
     public function test_user_cannot_authenticate_with_invalid_password(): void
     {
         $user = User::factory()->create([
-            'email' => 'admin@tgmicrofinance.test',
-            'password' => Hash::make('Admin@123'),
+            'email' => 'admin@grihalaxmifinance.com',
+            'password' => Hash::make('Admin@Grihalaxmi2026'),
         ]);
 
         $response = $this->post('/login', [
-            'email' => 'admin@tgmicrofinance.test',
+            'email' => 'admin@grihalaxmifinance.com',
             'password' => 'wrong-password',
         ]);
 
@@ -38,13 +38,13 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create([
             'name' => 'Super Admin',
-            'email' => 'admin@tgmicrofinance.test',
-            'password' => Hash::make('Admin@123'),
+            'email' => 'admin@grihalaxmifinance.com',
+            'password' => Hash::make('Admin@Grihalaxmi2026'),
         ]);
 
         $response = $this->post('/login', [
-            'email' => 'admin@tgmicrofinance.test',
-            'password' => 'Admin@123',
+            'email' => 'admin@grihalaxmifinance.com',
+            'password' => 'Admin@Grihalaxmi2026',
         ]);
 
         $this->assertAuthenticatedAs($user);
@@ -55,8 +55,8 @@ class AuthenticationTest extends TestCase
     {
         $user = User::factory()->create([
             'name' => 'Super Admin',
-            'email' => 'admin@tgmicrofinance.test',
-            'password' => Hash::make('Admin@123'),
+            'email' => 'admin@grihalaxmifinance.com',
+            'password' => Hash::make('Admin@Grihalaxmi2026'),
         ]);
 
         $response = $this->actingAs($user)->get('/admin');

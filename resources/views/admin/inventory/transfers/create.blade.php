@@ -43,32 +43,46 @@
                 @error('destination_branch_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
             </div>
 
-            <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">2. Product Line Items</h5>
+            <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3"><i class="bi bi-box-seam text-warning me-2"></i>2. Product Line Items</h5>
 
             <div class="col-12" id="transferItemsContainer">
-                <div class="row g-2 mb-2 transfer-item-row">
-                    <div class="col-md-6">
-                        <label class="form-label small fw-bold">Select Product Catalog Item <span class="text-danger">*</span></label>
-                        <select name="items[0][product_id]" class="form-select" required>
-                            <option value="">Choose Product</option>
-                            @foreach($products as $p)
-                                <option value="{{ $p->id }}">{{ $p->name }} (SKU: {{ $p->sku }}) - ₹{{ number_format($p->unit_price, 2) }}</option>
+                <div class="row g-2 mb-3 transfer-item-row border rounded p-3 bg-light-subtle align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted mb-1">Product Category <span class="text-danger">*</span></label>
+                        <select name="items[0][category_id]" class="form-select form-select-sm category-select" required>
+                            <option value="">Select Category</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                             @endforeach
                         </select>
                     </div>
-                    <div class="col-md-4">
-                        <label class="form-label small fw-bold">Quantity <span class="text-danger">*</span></label>
-                        <input type="number" name="items[0][quantity]" class="form-control" placeholder="e.g. 10" min="1" required>
+                    <div class="col-md-3">
+                        <label class="form-label small fw-bold text-muted mb-1">Product Brand <span class="text-danger">*</span></label>
+                        <select name="items[0][brand_id]" class="form-select form-select-sm brand-select" disabled required>
+                            <option value="">Select category first</option>
+                        </select>
                     </div>
-                    <div class="col-md-2 d-flex align-items-end">
-                        <button type="button" class="btn btn-outline-danger w-100 disabled"><i class="bi bi-trash"></i></button>
+                    <div class="col-md-4">
+                        <label class="form-label small fw-bold text-muted mb-1">Product <span class="text-danger">*</span></label>
+                        <select name="items[0][product_id]" class="form-select form-select-sm product-select" disabled required>
+                            <option value="">Select brand first</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small fw-bold text-muted mb-1">Quantity <span class="text-danger">*</span></label>
+                        <div class="input-group input-group-sm">
+                            <input type="number" name="items[0][quantity]" class="form-control form-control-sm qty-input" placeholder="Qty" min="1" value="1" required>
+                            <button type="button" class="btn btn-outline-danger btn-remove-row disabled" title="Remove row">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
 
             <div class="col-12 mt-2">
-                <button type="button" class="btn btn-sm btn-outline-primary fw-bold" id="btnAddRow">
-                    <i class="bi bi-plus-circle me-1"></i> Add Another Product Item
+                <button type="button" class="btn btn-sm btn-outline-primary fw-bold rounded-pill px-3" id="btnAddRow">
+                    <i class="bi bi-plus-circle me-1"></i> Add Another Product Line Item
                 </button>
             </div>
 
@@ -89,36 +103,145 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        let rowIdx = 1;
+        let rowIdx = 0;
         const container = document.getElementById('transferItemsContainer');
         const btnAdd = document.getElementById('btnAddRow');
 
-        const productOptions = `@foreach($products as $p)<option value="{{ $p->id }}">{{ addslashes($p->name) }} (SKU: {{ $p->sku }}) - ₹{{ number_format($p->unit_price, 2) }}</option>@endforeach`;
+        function setupTransferRow(row) {
+            const catSelect = row.querySelector('.category-select');
+            const brandSelect = row.querySelector('.brand-select');
+            const productSelect = row.querySelector('.product-select');
+            const removeBtn = row.querySelector('.btn-remove-row');
 
-        btnAdd.addEventListener('click', function () {
-            const rowDiv = document.createElement('div');
-            rowDiv.className = 'row g-2 mb-2 transfer-item-row';
-            rowDiv.innerHTML = `
-                <div class="col-md-6">
-                    <select name="items[\${rowIdx}][product_id]" class="form-select" required>
-                        <option value="">Choose Product</option>
-                        \${productOptions}
-                    </select>
-                </div>
-                <div class="col-md-4">
-                    <input type="number" name="items[\${rowIdx}][quantity]" class="form-control" placeholder="e.g. 10" min="1" required>
-                </div>
-                <div class="col-md-2">
-                    <button type="button" class="btn btn-outline-danger w-100 btn-remove-row"><i class="bi bi-trash"></i></button>
-                </div>
-            `;
-            container.appendChild(rowDiv);
-            rowIdx++;
+            if (catSelect) {
+                catSelect.addEventListener('change', function () {
+                    const catId = this.value;
 
-            rowDiv.querySelector('.btn-remove-row').addEventListener('click', function () {
-                rowDiv.remove();
+                    brandSelect.innerHTML = '<option value="">Select Brand</option>';
+                    brandSelect.disabled = true;
+
+                    productSelect.innerHTML = '<option value="">Select brand first</option>';
+                    productSelect.disabled = true;
+
+                    if (!catId) return;
+
+                    brandSelect.innerHTML = '<option value="">Loading brands...</option>';
+
+                    fetch(`{{ route('admin.inventory.ajax.brands-by-category') }}?category_id=${catId}`)
+                        .then(res => res.json())
+                        .then(brands => {
+                            brandSelect.innerHTML = '<option value="">Select Brand</option>';
+                            if (brands.length === 0) {
+                                brandSelect.innerHTML = '<option value="">No brands available</option>';
+                            } else {
+                                brands.forEach(b => {
+                                    const opt = document.createElement('option');
+                                    opt.value = b.id;
+                                    opt.textContent = b.name;
+                                    brandSelect.appendChild(opt);
+                                });
+                                brandSelect.disabled = false;
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error fetching brands:', err);
+                            brandSelect.innerHTML = '<option value="">Error loading brands</option>';
+                        });
+                });
+            }
+
+            if (brandSelect) {
+                brandSelect.addEventListener('change', function () {
+                    const catId = catSelect ? catSelect.value : '';
+                    const brandId = this.value;
+
+                    productSelect.innerHTML = '<option value="">Select Product</option>';
+                    productSelect.disabled = true;
+
+                    if (!catId || !brandId) return;
+
+                    productSelect.innerHTML = '<option value="">Loading products...</option>';
+
+                    fetch(`{{ route('admin.inventory.ajax.products-by-brand') }}?category_id=${catId}&brand_id=${brandId}`)
+                        .then(res => res.json())
+                        .then(products => {
+                            productSelect.innerHTML = '<option value="">Select Product</option>';
+                            if (products.length === 0) {
+                                productSelect.innerHTML = '<option value="">No products available</option>';
+                            } else {
+                                products.forEach(p => {
+                                    const opt = document.createElement('option');
+                                    opt.value = p.id;
+                                    opt.textContent = `${p.name} (SKU: ${p.sku}) - ₹${parseFloat(p.unit_price).toFixed(2)}`;
+                                    productSelect.appendChild(opt);
+                                });
+                                productSelect.disabled = false;
+                            }
+                        })
+                        .catch(err => {
+                            console.error('Error fetching products:', err);
+                            productSelect.innerHTML = '<option value="">Error loading products</option>';
+                        });
+                });
+            }
+
+            if (removeBtn) {
+                removeBtn.addEventListener('click', function () {
+                    const allRows = container.querySelectorAll('.transfer-item-row');
+                    if (allRows.length > 1) {
+                        row.remove();
+                        updateRemoveButtons();
+                    }
+                });
+            }
+        }
+
+        function updateRemoveButtons() {
+            const allRows = container.querySelectorAll('.transfer-item-row');
+            allRows.forEach(r => {
+                const btn = r.querySelector('.btn-remove-row');
+                if (btn) {
+                    if (allRows.length === 1) {
+                        btn.classList.add('disabled');
+                    } else {
+                        btn.classList.remove('disabled');
+                    }
+                }
             });
-        });
+        }
+
+        const initialRows = container.querySelectorAll('.transfer-item-row');
+        initialRows.forEach(row => setupTransferRow(row));
+
+        if (btnAdd) {
+            btnAdd.addEventListener('click', function () {
+                rowIdx++;
+                const firstRow = container.querySelector('.transfer-item-row');
+                const newRow = firstRow.cloneNode(true);
+
+                const catSelect = newRow.querySelector('.category-select');
+                catSelect.name = `items[${rowIdx}][category_id]`;
+                catSelect.selectedIndex = 0;
+
+                const brandSelect = newRow.querySelector('.brand-select');
+                brandSelect.name = `items[${rowIdx}][brand_id]`;
+                brandSelect.innerHTML = '<option value="">Select category first</option>';
+                brandSelect.disabled = true;
+
+                const productSelect = newRow.querySelector('.product-select');
+                productSelect.name = `items[${rowIdx}][product_id]`;
+                productSelect.innerHTML = '<option value="">Select brand first</option>';
+                productSelect.disabled = true;
+
+                const qtyInput = newRow.querySelector('.qty-input');
+                qtyInput.name = `items[${rowIdx}][quantity]`;
+                qtyInput.value = 1;
+
+                container.appendChild(newRow);
+                setupTransferRow(newRow);
+                updateRemoveButtons();
+            });
+        }
     });
 </script>
 @endpush

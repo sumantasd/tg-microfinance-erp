@@ -80,7 +80,10 @@ class RbacSeeder extends Seeder
             // 15. Reports & Analytics
             'reports.view', 'reports.export',
 
-            // 16. Website CMS & Savings
+            // 16. Daily Cash Book Register Module
+            'cashbook.view', 'cashbook.create', 'cashbook.edit', 'cashbook.delete', 'cashbook.approve', 'cashbook.close', 'cashbook.print', 'cashbook.export', 'cashbook.view_reports',
+
+            // 17. Website CMS & Savings
             'website.manage', 'savings.view',
         ];
 
@@ -146,6 +149,7 @@ class RbacSeeder extends Seeder
             'hr_letter.view', 'hr_letter.generate',
             'hr_reports.view',
             'reports.view', 'reports.export',
+            'cashbook.view', 'cashbook.create', 'cashbook.edit', 'cashbook.delete', 'cashbook.approve', 'cashbook.close', 'cashbook.print', 'cashbook.export', 'cashbook.view_reports',
             'settings.view', 'settings.manage', 'savings.view',
         ]);
 

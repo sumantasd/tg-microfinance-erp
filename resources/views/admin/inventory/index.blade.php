@@ -176,12 +176,26 @@
                     </div>
 
                     <div class="mb-3">
-                        <label class="form-label fw-bold small">Product Catalog Item <span class="text-danger">*</span></label>
-                        <select name="product_id" class="form-select" required>
-                            <option value="">Select Product</option>
-                            @foreach($products as $p)
-                                <option value="{{ $p->id }}">{{ $p->name }} (SKU: {{ $p->sku }}) - ₹{{ number_format($p->unit_price, 2) }}</option>
+                        <label class="form-label fw-bold small">Product Category <span class="text-danger">*</span></label>
+                        <select name="category_id" id="restock_category_id" class="form-select" required>
+                            <option value="">Select Category</option>
+                            @foreach($categories as $cat)
+                                <option value="{{ $cat->id }}">{{ $cat->name }}</option>
                             @endforeach
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Product Brand <span class="text-danger">*</span></label>
+                        <select name="brand_id" id="restock_brand_id" class="form-select" disabled required>
+                            <option value="">Select category first</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label fw-bold small">Product <span class="text-danger">*</span></label>
+                        <select name="product_id" id="restock_product_id" class="form-select" disabled required>
+                            <option value="">Select brand first</option>
                         </select>
                     </div>
 
@@ -260,6 +274,98 @@
                 document.getElementById('adjustCurrentStock').textContent = this.dataset.current + ' Units';
             });
         });
+
+        const restockCatSelect = document.getElementById('restock_category_id');
+        const restockBrandSelect = document.getElementById('restock_brand_id');
+        const restockProductSelect = document.getElementById('restock_product_id');
+        const restockUnitPriceInput = document.querySelector('#restockModal input[name="unit_price"]');
+
+        if (restockCatSelect) {
+            restockCatSelect.addEventListener('change', function () {
+                const catId = this.value;
+
+                // Reset Brand dropdown
+                restockBrandSelect.innerHTML = '<option value="">Select Brand</option>';
+                restockBrandSelect.disabled = true;
+
+                // Reset Product dropdown
+                restockProductSelect.innerHTML = '<option value="">Select brand first</option>';
+                restockProductSelect.disabled = true;
+
+                if (!catId) return;
+
+                restockBrandSelect.innerHTML = '<option value="">Loading brands...</option>';
+
+                fetch(`{{ route('admin.inventory.ajax.brands-by-category') }}?category_id=${catId}`)
+                    .then(res => res.json())
+                    .then(brands => {
+                        restockBrandSelect.innerHTML = '<option value="">Select Brand</option>';
+                        if (brands.length === 0) {
+                            restockBrandSelect.innerHTML = '<option value="">No brands available</option>';
+                        } else {
+                            brands.forEach(b => {
+                                const opt = document.createElement('option');
+                                opt.value = b.id;
+                                opt.textContent = b.name;
+                                restockBrandSelect.appendChild(opt);
+                            });
+                            restockBrandSelect.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error fetching brands:', err);
+                        restockBrandSelect.innerHTML = '<option value="">Error loading brands</option>';
+                    });
+            });
+        }
+
+        if (restockBrandSelect) {
+            restockBrandSelect.addEventListener('change', function () {
+                const catId = restockCatSelect ? restockCatSelect.value : '';
+                const brandId = this.value;
+
+                // Reset Product dropdown
+                restockProductSelect.innerHTML = '<option value="">Select Product</option>';
+                restockProductSelect.disabled = true;
+
+                if (!catId || !brandId) return;
+
+                restockProductSelect.innerHTML = '<option value="">Loading products...</option>';
+
+                fetch(`{{ route('admin.inventory.ajax.products-by-brand') }}?category_id=${catId}&brand_id=${brandId}`)
+                    .then(res => res.json())
+                    .then(products => {
+                        restockProductSelect.innerHTML = '<option value="">Select Product</option>';
+                        if (products.length === 0) {
+                            restockProductSelect.innerHTML = '<option value="">No products available</option>';
+                        } else {
+                            products.forEach(p => {
+                                const opt = document.createElement('option');
+                                opt.value = p.id;
+                                opt.dataset.price = p.unit_price || p.cost_price || 0;
+                                opt.textContent = `${p.name} (SKU: ${p.sku}) - ₹${parseFloat(p.unit_price).toFixed(2)}`;
+                                restockProductSelect.appendChild(opt);
+                            });
+                            restockProductSelect.disabled = false;
+                        }
+                    })
+                    .catch(err => {
+                        console.error('Error fetching products:', err);
+                        restockProductSelect.innerHTML = '<option value="">Error loading products</option>';
+                    });
+            });
+        }
+
+        if (restockProductSelect) {
+            restockProductSelect.addEventListener('change', function () {
+                const selectedOpt = this.options[this.selectedIndex];
+                if (selectedOpt && selectedOpt.dataset.price && restockUnitPriceInput) {
+                    if (!restockUnitPriceInput.value) {
+                        restockUnitPriceInput.value = parseFloat(selectedOpt.dataset.price).toFixed(2);
+                    }
+                }
+            });
+        }
     });
 </script>
 @endpush

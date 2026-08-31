@@ -141,6 +141,22 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('admin.profile.update');
     Route::put('/profile/password', [ProfileController::class, 'changePassword'])->name('admin.profile.password');
 
+    // Daily Cash Book Register Module Routes
+    Route::middleware('can:cashbook.view')->prefix('cash-book')->name('admin.cash-book.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\CashBookController::class, 'index'])->name('index');
+        Route::get('/{id}', [\App\Http\Controllers\Admin\CashBookController::class, 'show'])->name('show');
+        Route::post('/{id}/entry', [\App\Http\Controllers\Admin\CashBookController::class, 'storeEntry'])->name('store-entry')->middleware('can:cashbook.edit');
+        Route::delete('/{id}/entry/{entryId}', [\App\Http\Controllers\Admin\CashBookController::class, 'destroyEntry'])->name('destroy-entry')->middleware('can:cashbook.edit');
+        Route::post('/{id}/online-collection', [\App\Http\Controllers\Admin\CashBookController::class, 'storeOnlineCollection'])->name('store-online-collection')->middleware('can:cashbook.edit');
+        Route::delete('/{id}/online-collection/{collectionId}', [\App\Http\Controllers\Admin\CashBookController::class, 'destroyOnlineCollection'])->name('destroy-online-collection')->middleware('can:cashbook.edit');
+        Route::post('/{id}/denominations', [\App\Http\Controllers\Admin\CashBookController::class, 'saveDenominations'])->name('save-denominations')->middleware('can:cashbook.edit');
+        Route::post('/{id}/close', [\App\Http\Controllers\Admin\CashBookController::class, 'close'])->name('close')->middleware('can:cashbook.close');
+        Route::post('/{id}/reopen', [\App\Http\Controllers\Admin\CashBookController::class, 'reopen'])->name('reopen')->middleware('can:cashbook.close');
+        Route::post('/{id}/sync-erp', [\App\Http\Controllers\Admin\CashBookController::class, 'syncErp'])->name('sync-erp')->middleware('can:cashbook.edit');
+        Route::get('/{id}/print', [\App\Http\Controllers\Admin\CashBookController::class, 'print'])->name('print')->middleware('can:cashbook.print');
+        Route::get('/{id}/export', [\App\Http\Controllers\Admin\CashBookController::class, 'export'])->name('export')->middleware('can:cashbook.export');
+    });
+
     // System Modules - Real Functional RBAC Routes
     Route::prefix('system')->group(function () {
         // User Management CRUD
@@ -325,6 +341,8 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     
     Route::middleware('can:inventory.view')->group(function () {
         Route::get('/inventory', [InventoryController::class, 'index'])->name('admin.inventory.index');
+        Route::get('/inventory/ajax/brands-by-category', [InventoryController::class, 'getBrandsByCategory'])->name('admin.inventory.ajax.brands-by-category');
+        Route::get('/inventory/ajax/products-by-brand', [InventoryController::class, 'getProductsByBrand'])->name('admin.inventory.ajax.products-by-brand');
         Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('admin.inventory.movements');
         Route::post('/inventory/restock', [InventoryController::class, 'restock'])->name('admin.inventory.restock')->middleware('can:inventory.restock');
         Route::post('/inventory/adjust', [InventoryController::class, 'adjust'])->name('admin.inventory.adjust')->middleware('can:inventory.adjust');

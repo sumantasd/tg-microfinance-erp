@@ -167,6 +167,8 @@ class InventoryTransferService
             throw ValidationException::withMessages(['status' => 'Transfer must be approved before dispatching.']);
         }
 
+        $transfer->load('items');
+
         return DB::transaction(function () use ($transfer) {
             // Lock and deduct stock at Source Branch for each transfer item
             foreach ($transfer->items as $item) {
@@ -235,6 +237,8 @@ class InventoryTransferService
         if ($transfer->status !== 'in_transit') {
             throw ValidationException::withMessages(['status' => 'Transfer must be in transit before receiving.']);
         }
+
+        $transfer->load('items');
 
         return DB::transaction(function () use ($transfer) {
             foreach ($transfer->items as $item) {

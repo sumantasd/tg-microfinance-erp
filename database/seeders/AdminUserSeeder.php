@@ -14,14 +14,21 @@ class AdminUserSeeder extends Seeder
     public function run(): void
     {
         $admin = User::firstOrCreate(
-            ['email' => 'admin@tgmicrofinance.test'],
+            ['email' => 'admin@grihalaxmifinance.com'],
             [
                 'name' => 'Super Admin',
-                'password' => Hash::make('Admin@123'),
+                'password' => Hash::make('Admin@Grihalaxmi2026'),
                 'status' => 'active',
                 'email_verified_at' => now(),
             ]
         );
+
+        if ($admin->wasRecentlyCreated === false) {
+            $admin->update([
+                'password' => Hash::make('Admin@Grihalaxmi2026'),
+                'status' => 'active',
+            ]);
+        }
 
         $admin->syncRoles(['Super Admin']);
     }

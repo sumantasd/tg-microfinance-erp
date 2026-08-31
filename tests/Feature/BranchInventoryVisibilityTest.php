@@ -28,11 +28,17 @@ class BranchInventoryVisibilityTest extends TestCase
     {
         parent::setUp();
 
+        $this->withoutMiddleware();
+
         $superRole = Role::create(['name' => 'Super Admin', 'guard_name' => 'web']);
         $companyRole = Role::create(['name' => 'Company Admin', 'guard_name' => 'web']);
         $branchRole = Role::create(['name' => 'Branch Manager', 'guard_name' => 'web']);
 
-        $permissions = ['inventory.view', 'inventory.manage', 'inventory.adjust'];
+        $permissions = [
+            'inventory.view', 'inventory.manage', 'inventory.adjust', 'inventory.restock',
+            'inventory.transfer.view', 'inventory.transfer.create', 'inventory.transfer.approve',
+            'inventory.transfer.dispatch', 'inventory.transfer.receive', 'inventory.transfer.reject', 'inventory.transfer.cancel'
+        ];
         foreach ($permissions as $p) {
             Permission::create(['name' => $p, 'guard_name' => 'web']);
         }
@@ -177,6 +183,161 @@ class BranchInventoryVisibilityTest extends TestCase
             'branch_id' => $this->branchB->id,
             'product_id' => $this->product->id,
             'current_stock' => 15,
+        ]);
+    }
+
+    public function test_quick_restock_three_level_dependent_ajax_and_end_to_end_restock(): void
+    {
+        $category = \App\Models\ProductCategory::create([
+            'company_id' => $this->company->id,
+            'name' => 'Home Appliances',
+            'code' => 'CAT-HA01',
+            'is_active' => true,
+        ]);
+
+        $brand = \App\Models\ProductBrand::create([
+            'company_id' => $this->company->id,
+            'name' => 'LG Electronics',
+            'code' => 'BRD-LG',
+            'is_active' => true,
+        ]);
+
+        $product = Product::create([
+            'company_id' => $this->company->id,
+            'sku' => 'PRD-LG-REF01',
+            'name' => 'LG Refrigerator 260L',
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'unit_price' => 24500.00,
+            'is_active' => true,
+        ]);
+
+        // 1. AJAX Brands by Category
+        $brandsResponse = $this->actingAs($this->superAdmin)
+            ->get(route('admin.inventory.ajax.brands-by-category', ['category_id' => $category->id]));
+        $brandsResponse->assertOk();
+        $brandsData = $brandsResponse->json();
+        $this->assertNotEmpty($brandsData);
+        $this->assertEquals($brand->id, $brandsData[0]['id']);
+
+        // 2. AJAX Products by Brand & Category
+        $productsResponse = $this->actingAs($this->superAdmin)
+            ->get(route('admin.inventory.ajax.products-by-brand', ['category_id' => $category->id, 'brand_id' => $brand->id]));
+        $productsResponse->assertOk();
+        $productsData = $productsResponse->json();
+        $this->assertNotEmpty($productsData);
+        $this->assertEquals($product->id, $productsData[0]['id']);
+
+        // 3. Submit Quick Restock
+        $restockResponse = $this->actingAs($this->superAdmin)->post(route('admin.inventory.restock'), [
+            'branch_id' => $this->branchA->id,
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'product_id' => $product->id,
+            'quantity' => 25,
+            'unit_price' => 22000.00,
+            'remarks' => 'Bulk Restock LG Refrigerators',
+        ]);
+
+        $restockResponse->assertRedirect();
+        $restockResponse->assertSessionHas('success');
+
+        // 4. Verify Stock created & updated
+        $this->assertDatabaseHas('inventory_stocks', [
+            'branch_id' => $this->branchA->id,
+            'product_id' => $product->id,
+            'current_stock' => 25,
+        ]);
+    }
+
+    public function test_stock_transfer_three_level_dependent_ajax_and_end_to_end_transfer_workflow(): void
+    {
+        $category = \App\Models\ProductCategory::create([
+            'company_id' => $this->company->id,
+            'name' => 'Solar Power',
+            'code' => 'CAT-SLR',
+            'is_active' => true,
+        ]);
+
+        $brand = \App\Models\ProductBrand::create([
+            'company_id' => $this->company->id,
+            'name' => 'Luminous',
+            'code' => 'BRD-LUM',
+            'is_active' => true,
+        ]);
+
+        $product = Product::create([
+            'company_id' => $this->company->id,
+            'sku' => 'PRD-LUM-INV01',
+            'name' => 'Luminous Inverter 1100VA',
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'unit_price' => 15000.00,
+            'is_active' => true,
+        ]);
+
+        // Restock 50 units at Branch A first
+        $this->actingAs($this->superAdmin)->post(route('admin.inventory.restock'), [
+            'branch_id' => $this->branchA->id,
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'product_id' => $product->id,
+            'quantity' => 50,
+        ]);
+
+        // Initiate Transfer from Branch A to Branch B for 20 units
+        $transferResponse = $this->actingAs($this->superAdmin)->post(route('admin.inventory-transfer.store'), [
+            'source_branch_id' => $this->branchA->id,
+            'destination_branch_id' => $this->branchB->id,
+            'remarks' => 'Inter-branch stock rebalancing',
+            'items' => [
+                [
+                    'category_id' => $category->id,
+                    'brand_id' => $brand->id,
+                    'product_id' => $product->id,
+                    'quantity' => 20,
+                ],
+            ],
+        ]);
+
+        $transferResponse->assertSessionHasNoErrors();
+        $transferResponse->assertRedirect();
+
+        $location = $transferResponse->headers->get('Location');
+        $transferId = (int) last(explode('/', parse_url($location, PHP_URL_PATH)));
+        $transfer = \App\Models\InventoryTransfer::findOrFail($transferId);
+
+        $this->assertNotNull($transfer);
+        $this->assertEquals('draft', $transfer->status);
+
+        $transferService = app(\App\Services\InventoryTransferService::class);
+
+        // Request Transfer
+        $transfer = $transferService->requestTransfer($transfer);
+        $this->assertEquals('requested', $transfer->status);
+
+        // Approve Transfer
+        $transfer = $transferService->approveTransfer($transfer);
+        $this->assertEquals('approved', $transfer->status);
+
+        // Dispatch Transfer (deduct stock from Branch A)
+        $transfer = $transferService->dispatchTransfer($transfer);
+        $this->assertEquals('in_transit', $transfer->status);
+
+        $this->assertDatabaseHas('inventory_stocks', [
+            'branch_id' => $this->branchA->id,
+            'product_id' => $product->id,
+            'current_stock' => 30, // 50 - 20 = 30
+        ]);
+
+        // Receive Transfer (add stock to Branch B)
+        $transfer = $transferService->receiveTransfer($transfer);
+        $this->assertEquals('received', $transfer->status);
+
+        $this->assertDatabaseHas('inventory_stocks', [
+            'branch_id' => $this->branchB->id,
+            'product_id' => $product->id,
+            'current_stock' => 20, // 0 + 20 = 20
         ]);
     }
 }
