@@ -32,13 +32,15 @@ class InventoryTransferController extends Controller
 
     public function create(): View
     {
+        $user = auth()->user();
         $companies = Company::where('is_active', true)->get();
         $branches = Branch::where('is_active', true)->get();
+        $centralWarehouse = Branch::getCentralWarehouse($user->company_id ?? 1);
         $products = Product::where('is_active', true)->get();
         $categories = ProductCategory::where('is_active', true)->orderBy('name')->get();
         $brands = ProductBrand::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.inventory.transfers.create', compact('companies', 'branches', 'products', 'categories', 'brands'));
+        return view('admin.inventory.transfers.create', compact('companies', 'branches', 'centralWarehouse', 'products', 'categories', 'brands'));
     }
 
     public function store(StoreInventoryTransferRequest $request): RedirectResponse

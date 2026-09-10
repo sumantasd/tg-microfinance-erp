@@ -140,11 +140,11 @@ class BranchInventoryVisibilityTest extends TestCase
             'reorder_level' => 2,
         ]);
 
-        // 1. Company Admin sees BOTH branches (10 units & 5 units)
+        // 1. Company Admin initially sees Branch List with BOTH accessible branches
         $response = $this->actingAs($this->companyAdmin)->get(route('admin.inventory.index'));
         $response->assertOk();
-        $stocks = $response->viewData('stocks');
-        $this->assertEquals(2, $stocks->count());
+        $this->assertNull($response->viewData('selectedBranch'));
+        $this->assertEquals(2, $response->viewData('branches')->count());
 
         // 2. Branch A Filter by Company Admin
         $responseBranchA = $this->actingAs($this->companyAdmin)->get(route('admin.inventory.index', ['branch_id' => $this->branchA->id]));
@@ -160,8 +160,13 @@ class BranchInventoryVisibilityTest extends TestCase
         $this->assertEquals(1, $stocksB->count());
         $this->assertEquals($this->branchB->id, $stocksB->first()->branch_id);
 
-        // 4. Branch Manager A is locked to Branch A
-        $responseBM = $this->actingAs($this->branchManagerA)->get(route('admin.inventory.index'));
+        // 4. Branch Manager A is locked to Branch A (Branch List contains only Branch A)
+        $responseBMList = $this->actingAs($this->branchManagerA)->get(route('admin.inventory.index'));
+        $responseBMList->assertOk();
+        $this->assertEquals(1, $responseBMList->viewData('branches')->count());
+        $this->assertEquals($this->branchA->id, $responseBMList->viewData('branches')->first()->id);
+
+        $responseBM = $this->actingAs($this->branchManagerA)->get(route('admin.inventory.index', ['branch_id' => $this->branchA->id]));
         $responseBM->assertOk();
         $stocksBM = $responseBM->viewData('stocks');
         $this->assertEquals(1, $stocksBM->count());

@@ -17,6 +17,9 @@ use App\Http\Controllers\Admin\Cms\PageController;
 use App\Http\Controllers\Admin\Cms\SeoSettingController;
 use App\Http\Controllers\Admin\Cms\TeamMemberController;
 use App\Http\Controllers\Admin\Cms\WebsiteSettingController;
+use App\Http\Controllers\Admin\ExpenseController;
+use App\Http\Controllers\Admin\ExpenseCategoryController;
+use App\Http\Controllers\Admin\ExpenseReportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\GlobalSearchController;
 use App\Http\Controllers\Admin\AccountingDashboardController;
@@ -36,6 +39,7 @@ use App\Http\Controllers\Admin\DesignationController;
 use App\Http\Controllers\Admin\EmployeeController;
 use App\Http\Controllers\Admin\InventoryController;
 use App\Http\Controllers\Admin\InventoryTransferController;
+use App\Http\Controllers\Admin\WarehouseController;
 use App\Http\Controllers\Admin\EmiCollectionController;
 use App\Http\Controllers\Admin\OverdueController;
 use App\Http\Controllers\Admin\LoanPenaltyController;
@@ -346,6 +350,10 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::get('/inventory/movements', [InventoryController::class, 'movements'])->name('admin.inventory.movements');
         Route::post('/inventory/restock', [InventoryController::class, 'restock'])->name('admin.inventory.restock')->middleware('can:inventory.restock');
         Route::post('/inventory/adjust', [InventoryController::class, 'adjust'])->name('admin.inventory.adjust')->middleware('can:inventory.adjust');
+        
+        // Central Warehouse Routes
+        Route::get('/warehouse', [WarehouseController::class, 'index'])->name('admin.warehouse.index');
+        Route::post('/warehouse/adjust', [WarehouseController::class, 'adjust'])->name('admin.warehouse.adjust')->middleware('can:inventory.adjust');
     });
 
     // Branch-to-Branch Inventory Transfer Routes
@@ -449,6 +457,42 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::resource('bank-accounts', BankAccountController::class);
         Route::resource('vouchers', VoucherController::class)->except(['edit', 'update', 'destroy']);
         Route::post('vouchers/{voucher}/reverse', [VoucherController::class, 'reverse'])->name('vouchers.reverse');
+    });
+
+    // Enterprise Expense Management Module Routes
+    Route::middleware('can:expense.view')->prefix('expenses')->name('admin.expenses.')->group(function () {
+        Route::get('/dashboard', [ExpenseController::class, 'dashboard'])->name('dashboard');
+        
+        // Category Management
+        Route::middleware('can:expense.category.manage')->prefix('categories')->name('categories.')->group(function () {
+            Route::get('/', [ExpenseCategoryController::class, 'index'])->name('index');
+            Route::post('/', [ExpenseCategoryController::class, 'store'])->name('store');
+            Route::put('/{category}', [ExpenseCategoryController::class, 'update'])->name('update');
+            Route::delete('/{category}', [ExpenseCategoryController::class, 'destroy'])->name('destroy');
+        });
+
+        // Expense Reports
+        Route::middleware('can:expense.report.view')->prefix('reports')->name('reports.')->group(function () {
+            Route::get('/', [ExpenseReportController::class, 'index'])->name('index');
+            Route::get('/export', [ExpenseReportController::class, 'export'])->name('export')->middleware('can:expense.report.export');
+        });
+
+        // Expense CRUD & Workflow
+        Route::get('/', [ExpenseController::class, 'index'])->name('index');
+        Route::get('/create', [ExpenseController::class, 'create'])->name('create')->middleware('can:expense.create');
+        Route::post('/', [ExpenseController::class, 'store'])->name('store')->middleware('can:expense.create');
+        Route::get('/{expense}', [ExpenseController::class, 'show'])->name('show');
+        Route::get('/{expense}/edit', [ExpenseController::class, 'edit'])->name('edit')->middleware('can:expense.edit');
+        Route::put('/{expense}', [ExpenseController::class, 'update'])->name('update')->middleware('can:expense.edit');
+        Route::delete('/{expense}', [ExpenseController::class, 'destroy'])->name('destroy')->middleware('can:expense.delete');
+
+        // Expense Actions
+        Route::post('/{expense}/submit', [ExpenseController::class, 'submit'])->name('submit')->middleware('can:expense.submit');
+        Route::post('/{expense}/approve', [ExpenseController::class, 'approve'])->name('approve')->middleware('can:expense.approve');
+        Route::post('/{expense}/reject', [ExpenseController::class, 'reject'])->name('reject')->middleware('can:expense.reject');
+        Route::post('/{expense}/pay', [ExpenseController::class, 'pay'])->name('pay')->middleware('can:expense.pay');
+        Route::post('/{expense}/cancel', [ExpenseController::class, 'cancel'])->name('cancel')->middleware('can:expense.cancel');
+        Route::get('/attachments/{attachment}/download', [ExpenseController::class, 'downloadAttachment'])->name('attachments.download');
     });
 
     // Central Reports Center Routes

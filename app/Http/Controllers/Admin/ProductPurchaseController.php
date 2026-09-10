@@ -50,11 +50,12 @@ class ProductPurchaseController extends Controller
         $brands = ProductBrand::where('is_active', true)->orderBy('name')->get();
         $products = Product::where('is_active', true)->get();
         $user = Auth::user();
+        $centralWarehouse = Branch::getCentralWarehouse($user->company_id ?? 1);
         $suppliers = Supplier::where('status', 'active')
             ->when($user && !$user->isSuperAdmin(), fn($q) => $q->where('company_id', $user->company_id))
             ->get();
 
-        return view('admin.inventory.purchases.create', compact('companies', 'branches', 'categories', 'brands', 'products', 'suppliers'));
+        return view('admin.inventory.purchases.create', compact('companies', 'branches', 'categories', 'brands', 'products', 'suppliers', 'centralWarehouse'));
     }
 
     public function store(StoreProductPurchaseRequest $request): RedirectResponse
@@ -87,6 +88,7 @@ class ProductPurchaseController extends Controller
         $brands = ProductBrand::where('is_active', true)->orderBy('name')->get();
         $products = Product::where('is_active', true)->get();
         $user = Auth::user();
+        $centralWarehouse = Branch::getCentralWarehouse($user->company_id ?? 1);
         $suppliers = Supplier::where('status', 'active')
             ->when($user && !$user->isSuperAdmin(), fn($q) => $q->where('company_id', $user->company_id))
             ->get();
@@ -99,6 +101,7 @@ class ProductPurchaseController extends Controller
             'brands' => $brands,
             'products' => $products,
             'suppliers' => $suppliers,
+            'centralWarehouse' => $centralWarehouse,
         ]);
     }
 

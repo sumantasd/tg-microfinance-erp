@@ -195,9 +195,9 @@
         @endcanany
 
         <!-- 6. PROCUREMENT -->
-        @canany(['purchase.view', 'supplier.view', 'suppliers.view'])
+        @canany(['purchase.view', 'supplier.view', 'suppliers.view', 'inventory.view'])
         @php
-            $isProcurementActive = request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') || request()->is('admin/suppliers*');
+            $isProcurementActive = request()->is('admin/warehouse*') || request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') || request()->is('admin/suppliers*');
         @endphp
         <a class="sidebar-nav-link {{ $isProcurementActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarProcurementCollapse" role="button" aria-expanded="{{ $isProcurementActive ? 'true' : 'false' }}" aria-controls="sidebarProcurementCollapse">
             <i class="bi bi-cart3 nav-icon text-primary"></i>
@@ -206,6 +206,12 @@
         </a>
 
         <div class="collapse sidebar-submenu {{ $isProcurementActive ? 'show' : '' }}" id="sidebarProcurementCollapse">
+            @can('inventory.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/warehouse*') ? 'active' : '' }}" href="{{ route('admin.warehouse.index') }}">
+                <i class="bi bi-building nav-icon text-primary"></i>
+                <span>Warehouse</span>
+            </a>
+            @endcan
             @can('purchase.view')
             <a class="sidebar-nav-link {{ request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') ? 'active' : '' }}" href="{{ route('admin.product-purchase.index') }}">
                 <i class="bi bi-cart-check nav-icon text-primary"></i>
@@ -222,9 +228,9 @@
         @endcanany
 
         <!-- 5. ACCOUNTING & FINANCE -->
-        @canany(['accounting.view', 'reports.view'])
+        @canany(['accounting.view', 'expense.view', 'reports.view'])
         @php
-            $isAccountingActive = request()->is('admin/accounting*') || request()->is('admin/reports*');
+            $isAccountingActive = request()->is('admin/accounting*') || request()->is('admin/expenses*') || request()->is('admin/reports*');
         @endphp
         <a class="sidebar-nav-link {{ $isAccountingActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="#sidebarAccountingFinanceCollapse" role="button" aria-expanded="{{ $isAccountingActive ? 'true' : 'false' }}" aria-controls="sidebarAccountingFinanceCollapse">
             <i class="bi bi-calculator nav-icon text-primary"></i>
@@ -233,6 +239,12 @@
         </a>
 
         <div class="collapse sidebar-submenu {{ $isAccountingActive ? 'show' : '' }}" id="sidebarAccountingFinanceCollapse">
+            @can('expense.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/expenses*') ? 'active' : '' }}" href="{{ route('admin.expenses.index') }}">
+                <i class="bi bi-receipt nav-icon text-danger"></i>
+                <span>Expense Management</span>
+            </a>
+            @endcan
             @can('accounting.view')
             <a class="sidebar-nav-link {{ request()->is('admin/accounting*') ? 'active' : '' }}" href="{{ route('admin.accounting.dashboard') }}">
                 <i class="bi bi-journal-text nav-icon text-primary"></i>

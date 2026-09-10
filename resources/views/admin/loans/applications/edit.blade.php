@@ -126,22 +126,29 @@
                 </div>
             @endif
 
-            <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">2. Requested Amount & Terms</h5>
-
-            <div class="col-md-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mt-4 mb-3">2. Requested Amount & Terms</h            <div class="col-md-4">
                 <label class="form-label fw-bold small">Total Requested Amount (₹) <span class="text-danger">*</span></label>
-                <input type="number" step="0.01" name="requested_amount" id="totalRequestedAmount" class="form-control @error('requested_amount') is-invalid @enderror" value="{{ old('requested_amount', $loanApplication->requested_amount) }}" required>
-                @error('requested_amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <div class="input-group">
+                    <input type="number" step="0.01" name="requested_amount" id="totalRequestedAmount" class="form-control @if($loanApplication->loan_type === 'product') bg-light @endif @error('requested_amount') is-invalid @enderror" value="{{ old('requested_amount', $loanApplication->requested_amount) }}" @if($loanApplication->loan_type === 'product') readonly @endif required>
+                    @if($loanApplication->loan_type === 'product')
+                        <span class="input-group-text bg-light" id="requestedAmountLockIcon" title="Auto from Product Price"><i class="bi bi-lock-fill text-muted"></i></span>
+                    @endif
+                </div>
+                @if($loanApplication->loan_type === 'product')
+                    <small class="text-muted" id="requestedAmountHelperText"><i class="bi bi-shield-lock me-1"></i>Auto from Product Price</small>
+                @endif
+                @error('requested_amount') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
-                <label class="form-label fw-bold small">Payment Frequency <span class="text-danger">*</span></label>
-                <select name="repayment_frequency" id="repaymentFrequencySelect" class="form-select @error('repayment_frequency') is-invalid @enderror">
-                    <option value="weekly" {{ old('repayment_frequency', $loanApplication->repayment_frequency) === 'weekly' ? 'selected' : '' }}>Weekly</option>
-                    <option value="bi_weekly" {{ old('repayment_frequency', $loanApplication->repayment_frequency) === 'bi_weekly' ? 'selected' : '' }}>15 Days</option>
-                    <option value="monthly" {{ old('repayment_frequency', $loanApplication->repayment_frequency) === 'monthly' ? 'selected' : '' }}>Monthly</option>
-                </select>
-                @error('repayment_frequency') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <label class="form-label fw-bold small">Payment Frequency <span class="text-muted small">(from Scheme)</span></label>
+                <div class="input-group">
+                    <input type="text" id="repaymentFrequencyDisplay" class="form-control bg-light font-monospace fw-bold text-dark @error('repayment_frequency') is-invalid @enderror" readonly value="Select Loan Scheme">
+                    <span class="input-group-text bg-light"><i class="bi bi-lock-fill text-muted"></i></span>
+                </div>
+                <input type="hidden" name="repayment_frequency" id="repaymentFrequencyInput" value="{{ old('repayment_frequency', $loanApplication->repayment_frequency) }}">
+                <small class="text-muted"><i class="bi bi-shield-lock me-1"></i>From Loan Scheme</small>
+                @error('repayment_frequency') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-4">
@@ -178,11 +185,13 @@
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const loanSchemeSelect = document.getElementById('loanSchemeSelect');
-        const repaymentFrequencySelect = document.getElementById('repaymentFrequencySelect');
+        const repaymentFrequencyDisplay = document.getElementById('repaymentFrequencyDisplay');
+        const repaymentFrequencyInput = document.getElementById('repaymentFrequencyInput');
         const tenureMonthsDisplay = document.getElementById('tenureMonthsDisplay');
         const tenureMonthsInput = document.getElementById('tenureMonthsInput');
         const productRowsContainer = document.getElementById('productRowsContainer');
         const btnAddProductRow = document.getElementById('btnAddProductRow');
+        const isProductLoan = @json($loanApplication->loan_type === 'product');
 
         let productRowIndex = {{ $loanApplication->products ? count($loanApplication->products) : 0 }};
 
@@ -191,17 +200,50 @@
             if (selectedOpt && selectedOpt.value) {
                 const tenure = selectedOpt.dataset.tenure || '12';
                 const freq = selectedOpt.dataset.frequency || 'monthly';
+                const freqLabel = selectedOpt.dataset.frequencyLabel || 'Monthly';
                 
                 tenureMonthsDisplay.value = tenure + ' Months';
                 tenureMonthsInput.value = tenure;
                 
-                if (freq) {
-                    repaymentFrequencySelect.value = freq;
+                if (repaymentFrequencyDisplay && repaymentFrequencyInput) {
+                    repaymentFrequencyDisplay.value = freqLabel + ' 🔒';
+                    repaymentFrequencyInput.value = freq;
+                }
+            } else {
+                if (repaymentFrequencyDisplay && repaymentFrequencyInput) {
+                    repaymentFrequencyDisplay.value = 'Select Loan Scheme';
+                    repaymentFrequencyInput.value = '';
                 }
             }
         }
 
         loanSchemeSelect.addEventListener('change', handleSchemeChange);
+        if (loanSchemeSelect.selectedIndex >= 0) {
+            handleSchemeChange();
+        }
+
+        function calculateProductSummary() {
+            if (!isProductLoan || !productRowsContainer) return;
+            const totalRequestedAmount = document.getElementById('totalRequestedAmount');
+            if (!totalRequestedAmount) return;
+
+            let grossPrice = 0.00;
+            const rows = productRowsContainer.querySelectorAll('.product-item-row');
+            rows.forEach(row => {
+                const prodIdInput = row.querySelector('.product-id-input');
+                const priceInput = row.querySelector('.product-unit-price-input');
+                const qtyInput = row.querySelector('.product-qty');
+                if (prodIdInput && prodIdInput.value) {
+                    const price = parseFloat(priceInput ? priceInput.value || 0 : 0);
+                    const qty = parseFloat(qtyInput ? qtyInput.value || 0 : 0);
+                    grossPrice += (price * qty);
+                }
+            });
+
+            if (grossPrice > 0) {
+                totalRequestedAmount.value = grossPrice.toFixed(2);
+            }
+        }
 
         if (productRowsContainer) {
             function setupProductRow(row) {
@@ -213,6 +255,7 @@
                 const clearBtn = row.querySelector('.btn-clear-product');
                 const resultsContainer = row.querySelector('.product-search-results');
                 const removeBtn = row.querySelector('.btn-remove-product');
+                const qtyInput = row.querySelector('.product-qty');
 
                 let searchDebounce = null;
 
@@ -227,6 +270,7 @@
                         resultsContainer.innerHTML = '';
                         resultsContainer.classList.remove('show');
                     }
+                    calculateProductSummary();
                 }
 
                 if (catSelect) {
@@ -311,6 +355,7 @@
                                             searchInput.value = `${p.name} (SKU: ${p.sku}) - ₹${parseFloat(p.unit_price).toFixed(2)}`;
                                             if (clearBtn) clearBtn.classList.remove('d-none');
                                             resultsContainer.classList.remove('show');
+                                            calculateProductSummary();
                                         });
                                         resultsContainer.appendChild(item);
                                     });
@@ -347,12 +392,17 @@
                     }
                 });
 
+                if (qtyInput) {
+                    qtyInput.addEventListener('input', calculateProductSummary);
+                }
+
                 if (removeBtn) {
                     removeBtn.addEventListener('click', function () {
                         const allRows = productRowsContainer.querySelectorAll('.product-item-row');
                         if (allRows.length > 1) {
                             row.remove();
                             updateRemoveButtons();
+                            calculateProductSummary();
                         }
                     });
                 }
@@ -416,6 +466,7 @@
                     productRowsContainer.appendChild(newRow);
                     setupProductRow(newRow);
                     updateRemoveButtons();
+                    calculateProductSummary();
                 });
             }
         }

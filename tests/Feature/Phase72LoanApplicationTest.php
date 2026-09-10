@@ -12,6 +12,8 @@ use App\Models\LoanApplication;
 use App\Models\LoanScheme;
 use App\Models\Product;
 use App\Models\User;
+use App\Models\ProductBrand;
+use App\Models\ProductCategory;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Spatie\Permission\Models\Permission;
 use Spatie\Permission\Models\Role;
@@ -31,6 +33,8 @@ class Phase72LoanApplicationTest extends TestCase
     protected LoanScheme $cashScheme;
     protected LoanScheme $productScheme;
     protected Product $product;
+    protected ProductCategory $category;
+    protected ProductBrand $brand;
 
     protected function setUp(): void
     {
@@ -162,8 +166,24 @@ class Phase72LoanApplicationTest extends TestCase
             'is_active' => true,
         ]);
 
+        $this->category = ProductCategory::create([
+            'company_id' => $this->company->id,
+            'name' => 'Machinery',
+            'code' => 'CAT-MACH',
+            'is_active' => true,
+        ]);
+
+        $this->brand = ProductBrand::create([
+            'company_id' => $this->company->id,
+            'name' => 'Singer',
+            'code' => 'BRD-SNG',
+            'is_active' => true,
+        ]);
+
         $this->product = Product::create([
             'company_id' => $this->company->id,
+            'category_id' => $this->category->id,
+            'brand_id' => $this->brand->id,
             'sku' => 'PRD-SEW01',
             'name' => 'Singer Heavy Duty Sewing Machine',
             'unit_price' => 15000.00,
@@ -378,6 +398,8 @@ class Phase72LoanApplicationTest extends TestCase
             'tenure_months' => 12,
             'products' => [
                 [
+                    'category_id' => $this->category->id,
+                    'brand_id' => $this->brand->id,
                     'product_id' => $this->product->id,
                     'quantity' => 2,
                     'unit_price' => 15000.00,
@@ -416,6 +438,8 @@ class Phase72LoanApplicationTest extends TestCase
             'tenure_months' => 12,
             'products' => [
                 [
+                    'category_id' => $this->category->id,
+                    'brand_id' => $this->brand->id,
                     'product_id' => $this->product->id,
                     'quantity' => 3,
                     'unit_price' => 15000.00,
@@ -463,6 +487,8 @@ class Phase72LoanApplicationTest extends TestCase
             ],
             'products' => [
                 [
+                    'category_id' => $this->category->id,
+                    'brand_id' => $this->brand->id,
                     'product_id' => $this->product->id,
                     'quantity' => 2,
                     'unit_price' => 15000.00,

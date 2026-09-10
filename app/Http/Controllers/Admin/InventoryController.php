@@ -14,24 +14,82 @@ use App\Services\InventoryService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\View\View;
 
 class InventoryController extends Controller
 {
     public function __construct(protected InventoryService $inventoryService) {}
 
-    public function index(Request $request): View
+    public function index(Request $request): View|RedirectResponse
     {
-        $filters = $request->only(['search', 'company_id', 'branch_id', 'product_id']);
-        $stocks = $this->inventoryService->getPaginatedStock($filters);
+        $user = auth()->user();
+
+        // 1. Retrieve accessible retail branches for the logged-in user according to RBAC
+        $branchQuery = Branch::where('is_active', true)->where('is_warehouse', false);
+        if ($user && !$user->isSuperAdmin()) {
+            $branchQuery->where('company_id', $user->company_id);
+            if (!$user->isCompanyAdmin() && $user->branch_id) {
+                $branchQuery->where('id', $user->branch_id);
+            }
+        }
+        $branches = $branchQuery->orderBy('name')->get();
+
+        $selectedBranch = null;
+        $stocks = null;
+        $filters = $request->only(['search', 'company_id', 'branch_id', 'product_id', 'stock_status']);
+
+        // 2. Check if a specific branch is selected
+        if ($request->filled('branch_id')) {
+            $requestedBranchId = (int) $request->get('branch_id');
+
+            // Server-side authorization check: user must have access to the requested branch
+            if (!$user || !$user->canAccessBranch($requestedBranchId) || !$branches->contains('id', $requestedBranchId)) {
+                return redirect()->route('admin.inventory.index')
+                    ->with('error', 'You are not authorized to view inventory for the requested branch.');
+            }
+
+            $selectedBranch = $branches->firstWhere('id', $requestedBranchId) ?? Branch::find($requestedBranchId);
+            $filters['branch_id'] = $selectedBranch->id;
+
+            // Fetch inventory stock scoped exclusively to the selected branch
+            $stocks = $this->inventoryService->getPaginatedStock($filters);
+        }
+
+        // 3. For Step 1 (Branch List View), calculate summary stats for accessible branches
+        $branchStats = collect();
+        if (!$selectedBranch && $branches->isNotEmpty()) {
+            $statsData = DB::table('inventory_stocks')
+                ->select(
+                    'branch_id',
+                    DB::raw('COUNT(DISTINCT product_id) as products_count'),
+                    DB::raw('SUM(CASE WHEN current_stock > reserved_stock THEN (current_stock - reserved_stock) ELSE 0 END) as total_available_units'),
+                    DB::raw('SUM(CASE WHEN current_stock <= 0 THEN 1 ELSE 0 END) as out_of_stock_count'),
+                    DB::raw('SUM(CASE WHEN current_stock > 0 AND current_stock <= reorder_level THEN 1 ELSE 0 END) as low_stock_count')
+                )
+                ->whereIn('branch_id', $branches->pluck('id'))
+                ->groupBy('branch_id')
+                ->get();
+
+            $branchStats = $statsData->keyBy('branch_id');
+        }
 
         $companies = Company::where('is_active', true)->get();
-        $branches = Branch::where('is_active', true)->get();
-        $products = Product::where('is_active', true)->get();
+        $products = Product::where('is_active', true)->orderBy('name')->get();
         $categories = ProductCategory::where('is_active', true)->orderBy('name')->get();
         $brands = ProductBrand::where('is_active', true)->orderBy('name')->get();
 
-        return view('admin.inventory.index', compact('stocks', 'filters', 'companies', 'branches', 'products', 'categories', 'brands'));
+        return view('admin.inventory.index', compact(
+            'branches',
+            'selectedBranch',
+            'stocks',
+            'branchStats',
+            'filters',
+            'companies',
+            'products',
+            'categories',
+            'brands'
+        ));
     }
 
     public function getBrandsByCategory(Request $request): JsonResponse

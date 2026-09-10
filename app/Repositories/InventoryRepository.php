@@ -35,6 +35,18 @@ class InventoryRepository implements InventoryRepositoryInterface
             });
         }
 
+        if (!empty($filters['stock_status'])) {
+            $status = $filters['stock_status'];
+            if ($status === 'out_of_stock') {
+                $query->where('current_stock', '<=', 0);
+            } elseif ($status === 'low_stock') {
+                $query->where('current_stock', '>', 0)
+                      ->whereRaw('current_stock <= reorder_level');
+            } elseif ($status === 'in_stock') {
+                $query->whereRaw('current_stock > reorder_level');
+            }
+        }
+
         return $query->orderBy('id', 'desc')->paginate($perPage);
     }
 

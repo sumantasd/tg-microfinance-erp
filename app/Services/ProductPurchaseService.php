@@ -177,6 +177,10 @@ class ProductPurchaseService
                 $locked = $purchase;
             }
 
+            if ($locked->purchase_status === 'received') {
+                throw ValidationException::withMessages(['purchase_status' => 'Purchase has already been received.']);
+            }
+
             if ($locked->purchase_status === 'cancelled') {
                 throw ValidationException::withMessages(['purchase_status' => 'Cannot receive a cancelled purchase.']);
             }
@@ -280,27 +284,19 @@ class ProductPurchaseService
         $processedItems = [];
 
         foreach ($items as $idx => $rawItem) {
-            $itemNum = $idx + 1;
-            if (empty($rawItem['category_id'])) {
-                throw ValidationException::withMessages(['items' => "Product Category is required for item #{$itemNum}."]);
-            }
-            if (empty($rawItem['brand_id'])) {
-                throw ValidationException::withMessages(['items' => "Product Brand is required for item #{$itemNum}."]);
-            }
-            if (empty($rawItem['product_id'])) {
-                throw ValidationException::withMessages(['items' => "Product selection is required for item #{$itemNum}."]);
-            }
-
             $product = Product::findOrFail($rawItem['product_id']);
             if (!$product->is_active) {
                 throw ValidationException::withMessages(['items' => "Product '{$product->name}' is inactive."]);
             }
 
-            if ($product->category_id && (int) $product->category_id !== (int) $rawItem['category_id']) {
+            $categoryId = !empty($rawItem['category_id']) ? $rawItem['category_id'] : $product->category_id;
+            $brandId = !empty($rawItem['brand_id']) ? $rawItem['brand_id'] : $product->brand_id;
+
+            if ($product->category_id && $categoryId && (int) $product->category_id !== (int) $categoryId) {
                 throw ValidationException::withMessages(['items' => "Product '{$product->name}' does not belong to the selected category."]);
             }
 
-            if ($product->brand_id && (int) $product->brand_id !== (int) $rawItem['brand_id']) {
+            if ($product->brand_id && $brandId && (int) $product->brand_id !== (int) $brandId) {
                 throw ValidationException::withMessages(['items' => "Product '{$product->name}' does not belong to the selected brand."]);
             }
 

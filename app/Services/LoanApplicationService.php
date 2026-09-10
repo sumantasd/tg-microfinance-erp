@@ -61,8 +61,97 @@ class LoanApplicationService
 
             $this->validateSchemeCompatibility($scheme, $data['loan_type'], $data['borrower_type']);
 
-            $requestedAmount = (float) $data['requested_amount'];
             $tenureMonths = (int) ($data['tenure_months'] ?? $scheme->min_tenure_months);
+
+            // Product Loan Items Validation & Deduplication
+            $productsData = [];
+            $requestedAmount = 0.00;
+
+            if ($data['loan_type'] === 'product') {
+                if (empty($products)) {
+                    throw ValidationException::withMessages(['products' => 'At least one product line item is required for product loans.']);
+                }
+
+                $aggregatedProducts = [];
+                foreach ($products as $idx => $p) {
+                    $itemNum = $idx + 1;
+                    if (empty($p['category_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product Category is required for line item #{$itemNum}."]);
+                    }
+                    if (empty($p['brand_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product Brand is required for line item #{$itemNum}."]);
+                    }
+                    if (empty($p['product_id'])) {
+                        throw ValidationException::withMessages(['products' => "Product selection is required for line item #{$itemNum}."]);
+                    }
+
+                    $pId = (int) $p['product_id'];
+                    $qty = (int) ($p['quantity'] ?? 0);
+                    if ($qty <= 0) {
+                        throw ValidationException::withMessages(['products' => "Quantity for line item #{$itemNum} must be greater than zero."]);
+                    }
+
+                    if (!isset($aggregatedProducts[$pId])) {
+                        $aggregatedProducts[$pId] = [
+                            'category_id' => (int) $p['category_id'],
+                            'brand_id' => (int) $p['brand_id'],
+                            'product_id' => $pId,
+                            'quantity' => 0,
+                            'remarks' => $p['remarks'] ?? null,
+                        ];
+                    }
+                    $aggregatedProducts[$pId]['quantity'] += $qty;
+                }
+
+                $productTotal = 0;
+                foreach ($aggregatedProducts as $p) {
+                    $product = Product::findOrFail($p['product_id']);
+                    if (!$product->is_active) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' is inactive."]);
+                    }
+
+                    if ($branch->company_id && $product->company_id && (int) $product->company_id !== (int) $branch->company_id) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected company."]);
+                    }
+
+                    if ($product->category_id && (int) $product->category_id !== (int) $p['category_id']) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected category."]);
+                    }
+
+                    if ($product->brand_id && (int) $product->brand_id !== (int) $p['brand_id']) {
+                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected brand."]);
+                    }
+
+                    $qty = $p['quantity'];
+                    $unitPrice = (float) $product->unit_price; // Product Master Selling Price (Source of Truth)
+                    $lineTotal = round($qty * $unitPrice, 2);
+                    $productTotal += $lineTotal;
+
+                    // Check stock availability in Branch Inventory (Without deducting stock!)
+                    $stock = $this->inventoryRepository->getStock($branch->id, $product->id);
+                    $availableStock = $stock ? $stock->available_stock : 0;
+
+                    if ($availableStock < $qty) {
+                        throw ValidationException::withMessages([
+                            'products' => "Insufficient branch inventory for product '{$product->name}'. Available in stock: {$availableStock}, Requested: {$qty}.",
+                        ]);
+                    }
+
+                    $productsData[] = [
+                        'product_id' => $product->id,
+                        'product_sku_snapshot' => $product->sku,
+                        'product_name_snapshot' => $product->name,
+                        'quantity' => $qty,
+                        'unit_price_snapshot' => $unitPrice,
+                        'total_value' => $lineTotal,
+                        'remarks' => $p['remarks'] ?? null,
+                    ];
+                }
+
+                $requestedAmount = round($productTotal, 2);
+            } else {
+                $requestedAmount = (float) $data['requested_amount'];
+            }
 
             if ($requestedAmount < $scheme->min_amount || $requestedAmount > $scheme->max_amount) {
                 throw ValidationException::withMessages([
@@ -133,91 +222,6 @@ class LoanApplicationService
                 }
             }
 
-            // Product Loan Items Validation & Deduplication
-            $productsData = [];
-            if ($data['loan_type'] === 'product') {
-                if (empty($products)) {
-                    throw ValidationException::withMessages(['products' => 'At least one product line item is required for product loans.']);
-                }
-
-                $aggregatedProducts = [];
-                foreach ($products as $idx => $p) {
-                    $itemNum = $idx + 1;
-                    if (empty($p['category_id'])) {
-                        throw ValidationException::withMessages(['products' => "Product Category is required for line item #{$itemNum}."]);
-                    }
-                    if (empty($p['brand_id'])) {
-                        throw ValidationException::withMessages(['products' => "Product Brand is required for line item #{$itemNum}."]);
-                    }
-                    if (empty($p['product_id'])) {
-                        throw ValidationException::withMessages(['products' => "Product selection is required for line item #{$itemNum}."]);
-                    }
-
-                    $pId = (int) $p['product_id'];
-                    $qty = (int) ($p['quantity'] ?? 0);
-                    if ($qty <= 0) {
-                        throw ValidationException::withMessages(['products' => "Quantity for line item #{$itemNum} must be greater than zero."]);
-                    }
-
-                    if (!isset($aggregatedProducts[$pId])) {
-                        $aggregatedProducts[$pId] = [
-                            'category_id' => (int) $p['category_id'],
-                            'brand_id' => (int) $p['brand_id'],
-                            'product_id' => $pId,
-                            'quantity' => 0,
-                            'unit_price' => isset($p['unit_price']) ? (float) $p['unit_price'] : null,
-                            'remarks' => $p['remarks'] ?? null,
-                        ];
-                    }
-                    $aggregatedProducts[$pId]['quantity'] += $qty;
-                }
-
-                $productTotal = 0;
-                foreach ($aggregatedProducts as $p) {
-                    $product = Product::findOrFail($p['product_id']);
-                    if (!$product->is_active) {
-                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' is inactive."]);
-                    }
-
-                    if ($branch->company_id && $product->company_id && (int) $product->company_id !== (int) $branch->company_id) {
-                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected company."]);
-                    }
-
-                    if ($product->category_id && (int) $product->category_id !== (int) $p['category_id']) {
-                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected category."]);
-                    }
-
-                    if ($product->brand_id && (int) $product->brand_id !== (int) $p['brand_id']) {
-                        throw ValidationException::withMessages(['products' => "Product '{$product->name}' does not belong to the selected brand."]);
-                    }
-
-                    $qty = $p['quantity'];
-                    $unitPrice = $p['unit_price'] !== null ? $p['unit_price'] : (float) $product->unit_price;
-                    $lineTotal = round($qty * $unitPrice, 2);
-                    $productTotal += $lineTotal;
-
-                    // Check stock availability in Branch Inventory (Without deducting stock!)
-                    $stock = $this->inventoryRepository->getStock($branch->id, $product->id);
-                    $availableStock = $stock ? $stock->available_stock : 0;
-
-                    if ($availableStock < $qty) {
-                        throw ValidationException::withMessages([
-                            'products' => "Insufficient branch inventory for product '{$product->name}'. Available in stock: {$availableStock}, Requested: {$qty}.",
-                        ]);
-                    }
-
-                    $productsData[] = [
-                        'product_id' => $product->id,
-                        'product_sku_snapshot' => $product->sku,
-                        'product_name_snapshot' => $product->name,
-                        'quantity' => $qty,
-                        'unit_price_snapshot' => $unitPrice,
-                        'total_value' => $lineTotal,
-                        'remarks' => $p['remarks'] ?? null,
-                    ];
-                }
-            }
-
             // Calculate fees from Admin System Settings
             $settings = \App\Models\WebsiteSetting::first();
             $proFeeEnabled = $settings ? (bool) $settings->loan_processing_fee_enabled : true;
@@ -243,7 +247,7 @@ class LoanApplicationService
                 'requested_amount' => $requestedAmount,
                 'approved_amount' => null,
                 'tenure_months' => $tenureMonths,
-                'repayment_frequency' => $data['repayment_frequency'] ?? $scheme->repayment_frequency,
+                'repayment_frequency' => $scheme->repayment_frequency,
                 'interest_type' => $scheme->interest_type,
                 'interest_rate_per_annum' => $scheme->interest_rate_per_annum,
                 'processing_fee_percentage' => $proFeeRate,
@@ -274,55 +278,14 @@ class LoanApplicationService
 
         return DB::transaction(function () use ($application, $data, $members, $products) {
             $scheme = LoanScheme::findOrFail($data['loan_scheme_id'] ?? $application->loan_scheme_id);
-            $requestedAmount = (float) ($data['requested_amount'] ?? $application->requested_amount);
             $tenureMonths = (int) ($data['tenure_months'] ?? $application->tenure_months);
-
-            if ($requestedAmount < $scheme->min_amount || $requestedAmount > $scheme->max_amount) {
-                throw ValidationException::withMessages([
-                    'requested_amount' => "Requested amount ₹" . number_format($requestedAmount, 2) . " must be between ₹" . number_format($scheme->min_amount, 2) . " and ₹" . number_format($scheme->max_amount, 2) . ".",
-                ]);
-            }
-
-            $settings = \App\Models\WebsiteSetting::first();
-            $proFeeEnabled = $settings ? (bool) $settings->loan_processing_fee_enabled : true;
-            $proFeeRate = $proFeeEnabled ? (float) ($settings ? $settings->loan_processing_fee_percentage : $scheme->processing_fee_percentage) : 0.00;
-            $proFeeAmount = round($requestedAmount * ($proFeeRate / 100), 2);
-
-            $insFeeEnabled = $settings ? (bool) $settings->loan_insurance_enabled : true;
-            $insFeeRate = $insFeeEnabled ? (float) ($settings ? $settings->loan_insurance_percentage : $scheme->insurance_fee_percentage) : 0.00;
-            $insFeeAmount = round($requestedAmount * ($insFeeRate / 100), 2);
-
-            $masterData = [
-                'loan_scheme_id' => $scheme->id,
-                'requested_amount' => $requestedAmount,
-                'tenure_months' => $tenureMonths,
-                'repayment_frequency' => $data['repayment_frequency'] ?? $application->repayment_frequency,
-                'interest_type' => $scheme->interest_type,
-                'interest_rate_per_annum' => $scheme->interest_rate_per_annum,
-                'processing_fee_percentage' => $proFeeRate,
-                'processing_fee_amount' => $proFeeAmount,
-                'insurance_fee_percentage' => $insFeeRate,
-                'insurance_fee_amount' => $insFeeAmount,
-                'purpose' => $data['purpose'] ?? $application->purpose,
-                'remarks' => $data['remarks'] ?? $application->remarks,
-                'updated_by' => Auth::id(),
-            ];
-
-            // Re-process members if group
-            $membersData = [];
-            if ($application->borrower_type === 'group' && !empty($members)) {
-                foreach ($members as $m) {
-                    $membersData[] = [
-                        'customer_id' => $m['customer_id'],
-                        'requested_amount' => (float) $m['requested_amount'],
-                        'remarks' => $m['remarks'] ?? null,
-                    ];
-                }
-            }
 
             // Re-process products if product loan
             $productsData = [];
+            $requestedAmount = 0.00;
+
             if ($application->loan_type === 'product' && !empty($products)) {
+                $productTotal = 0;
                 foreach ($products as $idx => $p) {
                     $itemNum = $idx + 1;
                     if (empty($p['category_id'])) {
@@ -353,8 +316,9 @@ class LoanApplicationService
                     }
 
                     $qty = (int) $p['quantity'];
-                    $unitPrice = isset($p['unit_price']) ? (float) $p['unit_price'] : (float) $product->unit_price;
+                    $unitPrice = (float) $product->unit_price; // Product Master Selling Price (Source of Truth)
                     $lineTotal = round($qty * $unitPrice, 2);
+                    $productTotal += $lineTotal;
 
                     $productsData[] = [
                         'product_id' => $product->id,
@@ -363,6 +327,52 @@ class LoanApplicationService
                         'quantity' => $qty,
                         'unit_price_snapshot' => $unitPrice,
                         'total_value' => $lineTotal,
+                    ];
+                }
+                $requestedAmount = round($productTotal, 2);
+            } else {
+                $requestedAmount = (float) ($data['requested_amount'] ?? $application->requested_amount);
+            }
+
+            if ($requestedAmount < $scheme->min_amount || $requestedAmount > $scheme->max_amount) {
+                throw ValidationException::withMessages([
+                    'requested_amount' => "Requested amount ₹" . number_format($requestedAmount, 2) . " must be between ₹" . number_format($scheme->min_amount, 2) . " and ₹" . number_format($scheme->max_amount, 2) . ".",
+                ]);
+            }
+
+            $settings = \App\Models\WebsiteSetting::first();
+            $proFeeEnabled = $settings ? (bool) $settings->loan_processing_fee_enabled : true;
+            $proFeeRate = $proFeeEnabled ? (float) ($settings ? $settings->loan_processing_fee_percentage : $scheme->processing_fee_percentage) : 0.00;
+            $proFeeAmount = round($requestedAmount * ($proFeeRate / 100), 2);
+
+            $insFeeEnabled = $settings ? (bool) $settings->loan_insurance_enabled : true;
+            $insFeeRate = $insFeeEnabled ? (float) ($settings ? $settings->loan_insurance_percentage : $scheme->insurance_fee_percentage) : 0.00;
+            $insFeeAmount = round($requestedAmount * ($insFeeRate / 100), 2);
+
+            $masterData = [
+                'loan_scheme_id' => $scheme->id,
+                'requested_amount' => $requestedAmount,
+                'tenure_months' => $tenureMonths,
+                'repayment_frequency' => $scheme->repayment_frequency,
+                'interest_type' => $scheme->interest_type,
+                'interest_rate_per_annum' => $scheme->interest_rate_per_annum,
+                'processing_fee_percentage' => $proFeeRate,
+                'processing_fee_amount' => $proFeeAmount,
+                'insurance_fee_percentage' => $insFeeRate,
+                'insurance_fee_amount' => $insFeeAmount,
+                'purpose' => $data['purpose'] ?? $application->purpose,
+                'remarks' => $data['remarks'] ?? $application->remarks,
+                'updated_by' => Auth::id(),
+            ];
+
+            // Re-process members if group
+            $membersData = [];
+            if ($application->borrower_type === 'group' && !empty($members)) {
+                foreach ($members as $m) {
+                    $membersData[] = [
+                        'customer_id' => $m['customer_id'],
+                        'requested_amount' => (float) $m['requested_amount'],
+                        'remarks' => $m['remarks'] ?? null,
                     ];
                 }
             }

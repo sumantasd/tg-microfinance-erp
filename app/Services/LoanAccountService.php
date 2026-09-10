@@ -67,6 +67,88 @@ class LoanAccountService
         }
 
         return DB::transaction(function () use ($app, $downPaymentAmount, $otherChargesAmount, $sanctionDate) {
+            $sDate = $sanctionDate ? Carbon::parse($sanctionDate) : now();
+
+            // GROUP LOAN: Create an independent LoanAccount & EMI schedule for EVERY group member!
+            if ($app->borrower_type === 'group' && $app->members->count() > 0) {
+                $totalAppRequested = (float) $app->requested_amount;
+                $totalAppApproved = (float) ($app->approved_amount ?? $totalAppRequested);
+                $ratio = ($totalAppRequested > 0) ? ($totalAppApproved / $totalAppRequested) : 1.0;
+
+                $createdAccounts = collect();
+
+                foreach ($app->members as $m) {
+                    $mRequested = (float) ($m->approved_amount ?? $m->requested_amount);
+                    $mSanctioned = round($mRequested * $ratio, 2);
+
+                    if ($mSanctioned <= 0) {
+                        continue;
+                    }
+
+                    $mProFee = round($mSanctioned * (($app->processing_fee_percentage ?? 0) / 100), 2);
+                    $mInsFee = round($mSanctioned * (($app->insurance_fee_percentage ?? 0) / 100), 2);
+
+                    $scheduleData = $this->calculateRepaymentSchedule(
+                        $mSanctioned,
+                        $app->tenure_months,
+                        $app->repayment_frequency,
+                        $app->interest_type,
+                        $app->interest_rate_per_annum,
+                        $sDate
+                    );
+
+                    $loanNumber = $this->accountRepository->generateLoanNumber($app->branch_id);
+
+                    $masterData = [
+                        'loan_number' => $loanNumber,
+                        'company_id' => $app->company_id,
+                        'branch_id' => $app->branch_id,
+                        'loan_application_id' => $app->id,
+                        'customer_id' => $m->customer_id, // Member's OWN customer ID
+                        'customer_group_id' => $app->customer_group_id, // Group reference
+                        'loan_scheme_id' => $app->loan_scheme_id,
+                        'loan_type' => $app->loan_type,
+                        'borrower_type' => 'group',
+                        'product_price_amount' => 0.00,
+                        'down_payment_amount' => 0.00,
+                        'sanctioned_amount' => $mSanctioned,
+                        'disbursed_amount' => 0.00,
+                        'tenure_months' => $app->tenure_months,
+                        'repayment_frequency' => $app->repayment_frequency,
+                        'interest_type' => $app->interest_type,
+                        'interest_rate_per_annum' => $app->interest_rate_per_annum,
+                        'processing_fee_percentage' => $app->processing_fee_percentage ?? 0.00,
+                        'processing_fee_amount' => $mProFee,
+                        'insurance_fee_percentage' => $app->insurance_fee_percentage ?? 0.00,
+                        'insurance_fee_amount' => $mInsFee,
+                        'other_charges_amount' => 0.00,
+                        'upfront_charges_paid' => 0.00,
+                        'upfront_payment_status' => (round($mProFee + $mInsFee, 2) <= 0) ? 'paid' : 'pending',
+                        'total_interest_amount' => $scheduleData['total_interest'],
+                        'total_repayment_amount' => $scheduleData['total_repayment'],
+                        'principal_outstanding' => $mSanctioned,
+                        'interest_outstanding' => $scheduleData['total_interest'],
+                        'fee_outstanding' => round($mProFee + $mInsFee, 2),
+                        'penalty_outstanding' => 0.00,
+                        'total_outstanding' => round($mSanctioned + $scheduleData['total_interest'] + $mProFee + $mInsFee, 2),
+                        'status' => (round($mProFee + $mInsFee, 2) <= 0) ? 'ready_for_disbursement' : 'sanctioned',
+                        'sanction_date' => $sDate->toDateString(),
+                        'maturity_date' => $scheduleData['maturity_date'],
+                        'created_by' => Auth::id(),
+                        'updated_by' => Auth::id(),
+                    ];
+
+                    $memberAccount = $this->accountRepository->createLoanAccount($masterData, [], $scheduleData['installments']);
+                    $this->activityLogService->log('loan_sanctioned', $memberAccount);
+                    $this->activityLogService->log('emi_schedule_generated', $memberAccount);
+
+                    $createdAccounts->push($memberAccount);
+                }
+
+                return $createdAccounts->first();
+            }
+
+            // INDIVIDUAL LOAN: Create single LoanAccount for individual borrower
             $productPrice = 0.00;
             $sanctionedPrincipal = (float) ($app->approved_amount ?? $app->requested_amount);
 
@@ -75,7 +157,6 @@ class LoanAccountService
                 if ($productPrice <= 0) {
                     $productPrice = $sanctionedPrincipal;
                 }
-                // Sanctioned Principal = Product Price - Down Payment
                 $sanctionedPrincipal = round(max(0, $productPrice - $downPaymentAmount), 2);
             }
 
@@ -83,8 +164,6 @@ class LoanAccountService
                 throw ValidationException::withMessages(['down_payment_amount' => 'Down payment cannot equal or exceed the total product price / loan value.']);
             }
 
-            // Generate EMI Schedule based ONLY on sanctionedPrincipal!
-            $sDate = $sanctionDate ? Carbon::parse($sanctionDate) : now();
             $scheduleData = $this->calculateRepaymentSchedule(
                 $sanctionedPrincipal,
                 $app->tenure_months,
@@ -135,23 +214,7 @@ class LoanAccountService
                 'updated_by' => Auth::id(),
             ];
 
-            $membersData = [];
-            if ($app->borrower_type === 'group' && $app->members->count() > 0) {
-                $ratio = $sanctionedPrincipal / max(1, $app->requested_amount);
-                foreach ($app->members as $m) {
-                    $mSanctioned = round(($m->approved_amount ?? $m->requested_amount) * $ratio, 2);
-                    $membersData[] = [
-                        'customer_id' => $m->customer_id,
-                        'sanctioned_amount' => $mSanctioned,
-                        'down_payment_amount' => 0.00,
-                        'principal_outstanding' => $mSanctioned,
-                        'interest_outstanding' => 0.00,
-                        'total_outstanding' => $mSanctioned,
-                    ];
-                }
-            }
-
-            $loanAccount = $this->accountRepository->createLoanAccount($masterData, $membersData, $scheduleData['installments']);
+            $loanAccount = $this->accountRepository->createLoanAccount($masterData, [], $scheduleData['installments']);
 
             if ($downPaymentAmount > 0) {
                 $this->accountRepository->recordDownPayment($loanAccount, [
@@ -456,28 +519,40 @@ class LoanAccountService
         if ($interestType === 'flat') {
             // Total Interest calculation (2-decimal precision)
             $totalInterest = round($principal * ($annualInterestRate / 100) * ($tenureMonths / 12), 2);
-            $baseInterest = round($totalInterest / $numPeriods, 2);
-            $basePrincipal = round($principal / $numPeriods, 2);
+            $totalRepayment = round($principal + $totalInterest, 2);
+            $targetTotalRepayment = (float) round($totalRepayment);
 
+            // Raw EMI calculation
+            $rawEmi = $numPeriods > 0 ? ($totalRepayment / $numPeriods) : 0.00;
+
+            // CEILING Whole-Rupee Regular EMI Rule:
+            // Any decimal/paisa amount rounds UP to next whole rupee (ceil).
+            $regularEmi = (float) ceil(round($rawEmi, 4));
+
+            $baseInterest = round($totalInterest / $numPeriods, 2);
             $accumulatedPrincipal = 0.00;
             $accumulatedInterest = 0.00;
+            $accumulatedInstallmentAmount = 0.00;
 
             for ($i = 1; $i <= $numPeriods; $i++) {
                 $currentDate = $this->getNextDueDate($currentDate, $frequency);
 
                 if ($i === $numPeriods) {
+                    // Final EMI absorbs accumulated rounding difference to reconcile with target total repayment
+                    $instAmount = (float) max(0, round($targetTotalRepayment - $accumulatedInstallmentAmount));
                     $instPrincipal = round(max(0, $principal - $accumulatedPrincipal), 2);
-                    $instInterest = round(max(0, $totalInterest - $accumulatedInterest), 2);
+                    $instInterest = round(max(0, $instAmount - $instPrincipal), 2);
                 } else {
-                    $instPrincipal = min($openingPrincipal, $basePrincipal);
+                    $instAmount = $regularEmi;
                     $instInterest = $baseInterest;
+                    $instPrincipal = round(min($openingPrincipal, max(0, $instAmount - $instInterest)), 2);
                 }
 
                 $accumulatedPrincipal += $instPrincipal;
                 $accumulatedInterest += $instInterest;
+                $accumulatedInstallmentAmount += $instAmount;
 
                 $closingPrincipal = max(0, round($openingPrincipal - $instPrincipal, 2));
-                $instAmount = round($instPrincipal + $instInterest, 2);
 
                 $installments[] = [
                     'installment_number' => $i,
@@ -495,34 +570,56 @@ class LoanAccountService
                 $openingPrincipal = $closingPrincipal;
             }
         } else {
-            // Reducing Balance EMI Formula (2-decimal precision)
+            // Reducing Balance EMI Formula
             $periodRate = ($annualInterestRate / 100) / $periodsPerYear;
             if ($periodRate > 0) {
-                $emi = round(($principal * $periodRate * pow(1 + $periodRate, $numPeriods)) / (pow(1 + $periodRate, $numPeriods) - 1), 2);
+                $rawEmi = ($principal * $periodRate * pow(1 + $periodRate, $numPeriods)) / (pow(1 + $periodRate, $numPeriods) - 1);
             } else {
-                $emi = round($principal / $numPeriods, 2);
+                $rawEmi = $principal / $numPeriods;
             }
+
+            // CEILING Whole-Rupee Regular EMI Rule:
+            $regularEmi = (float) ceil(round($rawEmi, 4));
+
+            // Compute total interest from standard reducing schedule to derive total repayment
+            $tempOpening = $openingPrincipal;
+            $accumulatedInterestTemp = 0.00;
+            for ($i = 1; $i <= $numPeriods; $i++) {
+                $rawInterest = round($tempOpening * $periodRate, 2);
+                $accumulatedInterestTemp += $rawInterest;
+                if ($i < $numPeriods) {
+                    $pComp = round(min($tempOpening, max(0, round($rawEmi, 2) - $rawInterest)), 2);
+                    $tempOpening = max(0, round($tempOpening - $pComp, 2));
+                }
+            }
+            $totalInterest = round($accumulatedInterestTemp, 2);
+            $totalRepayment = round($principal + $totalInterest, 2);
+            $targetTotalRepayment = (float) round($totalRepayment);
 
             $accumulatedPrincipal = 0.00;
             $accumulatedInterest = 0.00;
+            $accumulatedInstallmentAmount = 0.00;
 
             for ($i = 1; $i <= $numPeriods; $i++) {
                 $currentDate = $this->getNextDueDate($currentDate, $frequency);
                 $rawInterest = round($openingPrincipal * $periodRate, 2);
 
                 if ($i === $numPeriods) {
+                    // Final EMI absorbs accumulated rounding difference to reconcile with target total repayment
+                    $instAmount = (float) max(0, round($targetTotalRepayment - $accumulatedInstallmentAmount));
                     $instPrincipal = round($openingPrincipal, 2);
-                    $instInterest = $rawInterest;
+                    $instInterest = round(max(0, $instAmount - $instPrincipal), 2);
                 } else {
+                    $instAmount = $regularEmi;
                     $instInterest = $rawInterest;
-                    $instPrincipal = round(min($openingPrincipal, max(0, $emi - $instInterest)), 2);
+                    $instPrincipal = round(min($openingPrincipal, max(0, $instAmount - $instInterest)), 2);
                 }
 
                 $accumulatedPrincipal += $instPrincipal;
                 $accumulatedInterest += $instInterest;
+                $accumulatedInstallmentAmount += $instAmount;
 
                 $closingPrincipal = max(0, round($openingPrincipal - $instPrincipal, 2));
-                $instAmount = round($instPrincipal + $instInterest, 2);
 
                 $installments[] = [
                     'installment_number' => $i,
@@ -544,7 +641,7 @@ class LoanAccountService
         }
 
         $totalInterest = round($totalInterest, 2);
-        $totalRepayment = round($principal + $totalInterest, 2);
+        $totalRepayment = (float) array_sum(array_column($installments, 'installment_amount'));
         $maturityDate = $currentDate->toDateString();
 
         return [
@@ -605,59 +702,63 @@ class LoanAccountService
             $interestPaid = 0.00;
             $principalPaid = 0.00;
 
-            // A. Pay loan-level penalties or fees if specific outstanding balances exist
+            // A. Global Waterfall Allocation: 1. Penalty -> 2. Fee -> 3. Interest -> 4. Principal
             if ((float) $loanAccount->penalty_outstanding > 0 && $rem > 0) {
-                $loanPenAlloc = min($rem, (float) $loanAccount->penalty_outstanding);
-                $penaltyPaid += $loanPenAlloc;
-                $rem -= $loanPenAlloc;
+                $penaltyPaid = min($rem, (float) $loanAccount->penalty_outstanding);
+                $rem -= $penaltyPaid;
             }
 
             if ((float) $loanAccount->fee_outstanding > 0 && $rem > 0) {
-                $loanFeeAlloc = min($rem, (float) $loanAccount->fee_outstanding);
-                $feePaid += $loanFeeAlloc;
-                $rem -= $loanFeeAlloc;
+                $feePaid = min($rem, (float) $loanAccount->fee_outstanding);
+                $rem -= $feePaid;
             }
 
-            // B. Allocate remaining payment across installments sequentially (penalty -> fee -> interest -> principal)
+            if ((float) $loanAccount->interest_outstanding > 0 && $rem > 0) {
+                $interestPaid = min($rem, (float) $loanAccount->interest_outstanding);
+                $rem -= $interestPaid;
+            }
+
+            if ((float) $loanAccount->principal_outstanding > 0 && $rem > 0) {
+                $principalPaid = min($rem, (float) $loanAccount->principal_outstanding);
+                $rem -= $principalPaid;
+            }
+
+            // B. Distribute allocated amounts across installments (oldest unpaid first)
             $installments = $loanAccount->installments()->orderBy('installment_number', 'asc')->get();
+            $remPen = $penaltyPaid;
+            $remFee = $feePaid;
+            $remInt = $interestPaid;
+            $remPrin = $principalPaid;
+
             foreach ($installments as $inst) {
-                if ($rem <= 0) break;
                 if ($inst->status === 'paid') continue;
 
-                // 1. Penalty
-                $instPenDue = max(0, (float) $inst->penalty_amount - (float) $inst->penalty_paid);
-                $pPenAlloc = min($rem, $instPenDue);
-                if ($pPenAlloc > 0) {
-                    $inst->penalty_paid += $pPenAlloc;
-                    $rem -= $pPenAlloc;
-                    $penaltyPaid += $pPenAlloc;
+                if ($remPen > 0) {
+                    $penDue = max(0, (float) $inst->penalty_amount - (float) $inst->penalty_paid);
+                    $alloc = min($remPen, $penDue);
+                    $inst->penalty_paid += $alloc;
+                    $remPen -= $alloc;
                 }
 
-                // 2. Fee
-                $instFeeDue = max(0, (float) $inst->fee_amount - (float) $inst->fee_paid);
-                $pFeeAlloc = min($rem, $instFeeDue);
-                if ($pFeeAlloc > 0) {
-                    $inst->fee_paid += $pFeeAlloc;
-                    $rem -= $pFeeAlloc;
-                    $feePaid += $pFeeAlloc;
+                if ($remFee > 0) {
+                    $feeDue = max(0, (float) $inst->fee_amount - (float) $inst->fee_paid);
+                    $alloc = min($remFee, $feeDue);
+                    $inst->fee_paid += $alloc;
+                    $remFee -= $alloc;
                 }
 
-                // 3. Interest
-                $instIntDue = max(0, (float) $inst->interest_amount - (float) $inst->interest_paid);
-                $pIntAlloc = min($rem, $instIntDue);
-                if ($pIntAlloc > 0) {
-                    $inst->interest_paid += $pIntAlloc;
-                    $rem -= $pIntAlloc;
-                    $interestPaid += $pIntAlloc;
+                if ($remInt > 0) {
+                    $intDue = max(0, (float) $inst->interest_amount - (float) $inst->interest_paid);
+                    $alloc = min($remInt, $intDue);
+                    $inst->interest_paid += $alloc;
+                    $remInt -= $alloc;
                 }
 
-                // 4. Principal
-                $instPrinDue = max(0, (float) $inst->principal_amount - (float) $inst->principal_paid);
-                $pPrinAlloc = min($rem, $instPrinDue);
-                if ($pPrinAlloc > 0) {
-                    $inst->principal_paid += $pPrinAlloc;
-                    $rem -= $pPrinAlloc;
-                    $principalPaid += $pPrinAlloc;
+                if ($remPrin > 0) {
+                    $prinDue = max(0, (float) $inst->principal_amount - (float) $inst->principal_paid);
+                    $alloc = min($remPrin, $prinDue);
+                    $inst->principal_paid += $alloc;
+                    $remPrin -= $alloc;
                 }
 
                 $inst->total_paid = round($inst->penalty_paid + $inst->fee_paid + $inst->interest_paid + $inst->principal_paid, 2);
@@ -669,20 +770,6 @@ class LoanAccountService
                     $inst->status = 'partial';
                 }
                 $inst->save();
-            }
-
-            // C. Excess payment beyond scheduled installments
-            if ($rem > 0) {
-                if ((float) $loanAccount->interest_outstanding > $interestPaid && $rem > 0) {
-                    $extraInt = min($rem, (float) $loanAccount->interest_outstanding - $interestPaid);
-                    $interestPaid += $extraInt;
-                    $rem -= $extraInt;
-                }
-                if ($rem > 0) {
-                    $extraPrin = min($rem, (float) $loanAccount->principal_outstanding - $principalPaid);
-                    $principalPaid += $extraPrin;
-                    $rem -= $extraPrin;
-                }
             }
 
             $penaltyPaid = round($penaltyPaid, 2);

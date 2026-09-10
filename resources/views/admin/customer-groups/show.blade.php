@@ -52,35 +52,25 @@
 
     <div class="col-md-3">
         <x-ui.card class="p-3 shadow-sm border-0 bg-warning-subtle">
-            <div class="small text-muted fw-bold uppercase">Group Leader</div>
-            <div class="fw-bold text-dark fs-6 mt-1 text-truncate">
-                @if($group->leader)
-                    <i class="bi bi-award text-warning me-1"></i>{{ $group->leader->full_name }}
-                @else
-                    <span class="text-muted italic">Not Assigned</span>
-                @endif
-            </div>
-            <div class="small text-muted font-monospace">{{ $group->leader->customer_code ?? 'None' }}</div>
+            <div class="small text-muted fw-bold uppercase">Group Exposure (Sanctioned)</div>
+            <div class="fs-4 fw-bold text-dark mt-1">₹{{ number_format($group->total_disbursed, 2) }}</div>
+            <div class="small text-muted">Aggregated Disbursed Loans</div>
         </x-ui.card>
     </div>
 
     <div class="col-md-3">
-        <x-ui.card class="p-3 shadow-sm border-0 bg-light">
-            <div class="small text-muted fw-bold uppercase">Meeting Schedule</div>
-            <div class="fw-bold text-dark fs-6 mt-1">
-                <i class="bi bi-calendar-event text-info me-1"></i>{{ $group->meeting_day ?? 'N/A' }} {{ $group->meeting_time ? 'at ' . $group->meeting_time : '' }}
-            </div>
-            <div class="small text-muted">Center Meeting Time</div>
+        <x-ui.card class="p-3 shadow-sm border-0 bg-danger-subtle">
+            <div class="small text-muted fw-bold uppercase">Group Outstanding</div>
+            <div class="fs-4 fw-bold text-danger mt-1">₹{{ number_format($group->total_outstanding, 2) }}</div>
+            <div class="small text-muted">SUM(Member Loan Outstanding)</div>
         </x-ui.card>
     </div>
 
     <div class="col-md-3">
-        <x-ui.card class="p-3 shadow-sm border-0 bg-light">
-            <div class="small text-muted fw-bold uppercase">Formation Date</div>
-            <div class="fw-bold text-dark fs-6 mt-1">
-                <i class="bi bi-clock-history me-1"></i>{{ $group->formation_date ? $group->formation_date->format('d M Y') : 'N/A' }}
-            </div>
-            <div class="small text-muted">Group Registration</div>
+        <x-ui.card class="p-3 shadow-sm border-0 bg-success-subtle">
+            <div class="small text-muted fw-bold uppercase">Group Repaid</div>
+            <div class="fs-4 fw-bold text-success mt-1">₹{{ number_format($group->total_repaid, 2) }}</div>
+            <div class="small text-muted">SUM(Member Loan Repayments)</div>
         </x-ui.card>
     </div>
 </div>

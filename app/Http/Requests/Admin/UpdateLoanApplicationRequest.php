@@ -18,7 +18,28 @@ class UpdateLoanApplicationRequest extends FormRequest
             if ($scheme) {
                 $this->merge([
                     'tenure_months' => $scheme->min_tenure_months,
-                    'repayment_frequency' => $this->repayment_frequency ?: $scheme->repayment_frequency,
+                    'repayment_frequency' => $scheme->repayment_frequency,
+                ]);
+            }
+        }
+
+        $application = $this->route('loanApplication');
+        $loanType = $application ? $application->loan_type : $this->loan_type;
+
+        if ($loanType === 'product' && is_array($this->products)) {
+            $totalProductPrice = 0;
+            foreach ($this->products as $p) {
+                if (!empty($p['product_id'])) {
+                    $prod = \App\Models\Product::find($p['product_id']);
+                    if ($prod) {
+                        $qty = max(1, (int) ($p['quantity'] ?? 1));
+                        $totalProductPrice += ((float) $prod->unit_price * $qty);
+                    }
+                }
+            }
+            if ($totalProductPrice > 0) {
+                $this->merge([
+                    'requested_amount' => round($totalProductPrice, 2),
                 ]);
             }
         }

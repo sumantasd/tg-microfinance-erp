@@ -11,6 +11,15 @@ class AdjustStockRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        if (!$this->has('branch_id')) {
+            $companyId = auth()->user()?->company_id ?? 1;
+            $centralWarehouse = \App\Models\Branch::getCentralWarehouse($companyId);
+            $this->merge(['branch_id' => $centralWarehouse->id]);
+        }
+    }
+
     public function rules(): array
     {
         return [

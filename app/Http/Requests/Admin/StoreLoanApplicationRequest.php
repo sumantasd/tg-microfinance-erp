@@ -18,7 +18,7 @@ class StoreLoanApplicationRequest extends FormRequest
             if ($scheme) {
                 $this->merge([
                     'tenure_months' => $scheme->min_tenure_months,
-                    'repayment_frequency' => $this->repayment_frequency ?: $scheme->repayment_frequency,
+                    'repayment_frequency' => $scheme->repayment_frequency,
                 ]);
             }
         }
@@ -32,6 +32,22 @@ class StoreLoanApplicationRequest extends FormRequest
 
         if ($this->loan_type === 'cash') {
             $this->request->remove('products');
+        } elseif ($this->loan_type === 'product' && is_array($this->products)) {
+            $totalProductPrice = 0;
+            foreach ($this->products as $p) {
+                if (!empty($p['product_id'])) {
+                    $prod = \App\Models\Product::find($p['product_id']);
+                    if ($prod) {
+                        $qty = max(1, (int) ($p['quantity'] ?? 1));
+                        $totalProductPrice += ((float) $prod->unit_price * $qty);
+                    }
+                }
+            }
+            if ($totalProductPrice > 0) {
+                $this->merge([
+                    'requested_amount' => round($totalProductPrice, 2),
+                ]);
+            }
         }
     }
 
@@ -59,10 +75,10 @@ class StoreLoanApplicationRequest extends FormRequest
 
             // Product Line Items
             'products' => 'required_if:loan_type,product|nullable|array',
-            'products.*.category_id' => 'required_if:loan_type,product|nullable|exists:product_categories,id',
-            'products.*.brand_id' => 'required_if:loan_type,product|nullable|exists:product_brands,id',
-            'products.*.product_id' => 'required_if:loan_type,product|nullable|exists:products,id',
-            'products.*.quantity' => 'required_if:loan_type,product|nullable|integer|min:1',
+            'products.*.category_id' => 'nullable|exists:product_categories,id',
+            'products.*.brand_id' => 'nullable|exists:product_brands,id',
+            'products.*.product_id' => 'required_if:loan_type,product|exists:products,id',
+            'products.*.quantity' => 'required_if:loan_type,product|integer|min:1',
             'products.*.unit_price' => 'nullable|numeric|min:0',
             'products.*.remarks' => 'nullable|string|max:255',
         ];

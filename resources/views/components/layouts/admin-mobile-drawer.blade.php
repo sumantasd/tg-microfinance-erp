@@ -126,9 +126,9 @@
             @endcanany
 
             <!-- 4. PRODUCTS & INVENTORY -->
-            @canany(['product.view', 'product_brand.view', 'product_category.view', 'inventory.view', 'inventory.transfer.view', 'purchase.view', 'supplier.view'])
+            @canany(['product.view', 'product_brand.view', 'product_category.view', 'inventory.view', 'inventory.transfer.view'])
             @php
-                $isProductActive = request()->is('admin/product*') || request()->is('admin/inventory*') || request()->is('admin/suppliers*');
+                $isProductActive = (request()->is('admin/product*') && !request()->is('admin/product-purchase*')) || (request()->is('admin/inventory*') && !request()->is('admin/inventory/purchases*')) || request()->is('admin/billing*');
             @endphp
             <div class="accordion-item border-0 border-bottom bg-white">
                 <h2 class="accordion-header" id="mobileHeadingProducts">
@@ -163,6 +163,29 @@
                             <i class="bi bi-arrow-left-right text-danger me-1"></i> Stock Transfers
                         </a>
                         @endcan
+                    </div>
+                </div>
+            </div>
+            @endcanany
+
+            <!-- 5. PROCUREMENT -->
+            @canany(['purchase.view', 'supplier.view', 'suppliers.view', 'inventory.view'])
+            @php
+                $isProcurementActive = request()->is('admin/warehouse*') || request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') || request()->is('admin/suppliers*');
+            @endphp
+            <div class="accordion-item border-0 border-bottom bg-white">
+                <h2 class="accordion-header" id="mobileHeadingProcurement">
+                    <button class="accordion-button py-3 px-3 fw-bold text-dark {{ $isProcurementActive ? '' : 'collapsed' }}" type="button" data-bs-toggle="collapse" data-bs-target="#mobileCollapseProcurement" aria-expanded="{{ $isProcurementActive ? 'true' : 'false' }}" aria-controls="mobileCollapseProcurement">
+                        <i class="bi bi-cart3 text-primary me-2.5 fs-5"></i> Procurement
+                    </button>
+                </h2>
+                <div id="mobileCollapseProcurement" class="accordion-collapse collapse {{ $isProcurementActive ? 'show' : '' }}" aria-labelledby="mobileHeadingProcurement" data-bs-parent="#mobileDrawerAccordion">
+                    <div class="accordion-body p-2 bg-light">
+                        @can('inventory.view')
+                        <a href="{{ route('admin.warehouse.index') }}" class="d-flex align-items-center gap-2 p-2 rounded-2 text-decoration-none text-dark small fw-semibold {{ request()->is('admin/warehouse*') ? 'bg-white text-primary fw-bold shadow-sm' : '' }}">
+                            <i class="bi bi-building text-primary me-1"></i> Warehouse
+                        </a>
+                        @endcan
                         @can('purchase.view')
                         <a href="{{ route('admin.product-purchase.index') }}" class="d-flex align-items-center gap-2 p-2 rounded-2 text-decoration-none text-dark small fw-semibold {{ request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') ? 'bg-white text-primary fw-bold shadow-sm' : '' }}">
                             <i class="bi bi-cart-check text-primary me-1"></i> Product Purchases
@@ -179,9 +202,9 @@
             @endcanany
 
             <!-- 5. ACCOUNTING & FINANCE -->
-            @canany(['accounting.view', 'reports.view'])
+            @canany(['accounting.view', 'expense.view', 'reports.view'])
             @php
-                $isAccountingActive = request()->is('admin/accounting*') || request()->is('admin/reports*');
+                $isAccountingActive = request()->is('admin/accounting*') || request()->is('admin/expenses*') || request()->is('admin/reports*');
             @endphp
             <div class="accordion-item border-0 border-bottom bg-white">
                 <h2 class="accordion-header" id="mobileHeadingAccounting">
@@ -191,6 +214,11 @@
                 </h2>
                 <div id="mobileCollapseAccounting" class="accordion-collapse collapse {{ $isAccountingActive ? 'show' : '' }}" aria-labelledby="mobileHeadingAccounting" data-bs-parent="#mobileDrawerAccordion">
                     <div class="accordion-body p-2 bg-light">
+                        @can('expense.view')
+                        <a href="{{ route('admin.expenses.index') }}" class="d-flex align-items-center gap-2 p-2 rounded-2 text-decoration-none text-dark small fw-semibold {{ request()->is('admin/expenses*') ? 'bg-white text-primary fw-bold shadow-sm' : '' }}">
+                            <i class="bi bi-receipt text-danger me-1"></i> Expense Management
+                        </a>
+                        @endcan
                         @can('accounting.view')
                         <a href="{{ route('admin.accounting.dashboard') }}" class="d-flex align-items-center gap-2 p-2 rounded-2 text-decoration-none text-dark small fw-semibold {{ request()->is('admin/accounting*') ? 'bg-white text-primary fw-bold shadow-sm' : '' }}">
                             <i class="bi bi-journal-text text-primary me-1"></i> Accounting

@@ -23,8 +23,14 @@
             <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">1. Supplier & Purchase Header</h5>
 
             <div class="col-md-4">
-                <label class="form-label fw-bold small">Branch</label>
-                <input type="text" class="form-control" value="{{ $productPurchase->branch->name }} ({{ $productPurchase->branch->code }})" disabled>
+                <label class="form-label fw-bold small">Receiving Location</label>
+                <input type="hidden" name="branch_id" value="{{ $centralWarehouse->id }}">
+                <div class="input-group">
+                    <input type="text" class="form-control bg-light fw-bold text-dark border-primary-subtle" value="{{ $centralWarehouse->name }} ({{ $centralWarehouse->code }})" readonly>
+                    <span class="input-group-text bg-primary-subtle text-primary border-primary-subtle fw-bold" title="Locked to Central Warehouse">
+                        <i class="bi bi-shield-lock me-1"></i>Warehouse 🔒
+                    </span>
+                </div>
             </div>
 
             <div class="col-md-4">

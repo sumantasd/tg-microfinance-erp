@@ -198,18 +198,23 @@
 
             <div class="col-md-3">
                 <label class="form-label fw-bold small">Requested Amount (₹) <span class="text-danger">*</span></label>
-                <input type="number" step="0.01" name="requested_amount" id="totalRequestedAmount" class="form-control @error('requested_amount') is-invalid @enderror" value="{{ old('requested_amount') }}" placeholder="e.g. 50000.00" required>
-                @error('requested_amount') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <div class="input-group">
+                    <input type="number" step="0.01" name="requested_amount" id="totalRequestedAmount" class="form-control @error('requested_amount') is-invalid @enderror" value="{{ old('requested_amount') }}" placeholder="e.g. 50000.00" required>
+                    <span class="input-group-text bg-light d-none" id="requestedAmountLockIcon" title="Auto from Product Price"><i class="bi bi-lock-fill text-muted"></i></span>
+                </div>
+                <small class="text-muted d-none" id="requestedAmountHelperText"><i class="bi bi-shield-lock me-1"></i>Auto from Product Price</small>
+                @error('requested_amount') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-3">
-                <label class="form-label fw-bold small">Payment Frequency <span class="text-danger">*</span></label>
-                <select name="repayment_frequency" id="repaymentFrequencySelect" class="form-select @error('repayment_frequency') is-invalid @enderror">
-                    <option value="weekly" {{ old('repayment_frequency') === 'weekly' ? 'selected' : '' }}>Weekly</option>
-                    <option value="bi_weekly" {{ old('repayment_frequency', 'bi_weekly') === 'bi_weekly' ? 'selected' : '' }}>15 Days</option>
-                    <option value="monthly" {{ old('repayment_frequency') === 'monthly' ? 'selected' : '' }}>Monthly</option>
-                </select>
-                @error('repayment_frequency') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                <label class="form-label fw-bold small">Payment Frequency <span class="text-muted small">(from Scheme)</span></label>
+                <div class="input-group">
+                    <input type="text" id="repaymentFrequencyDisplay" class="form-control bg-light font-monospace fw-bold text-dark @error('repayment_frequency') is-invalid @enderror" readonly value="Select Loan Scheme">
+                    <span class="input-group-text bg-light"><i class="bi bi-lock-fill text-muted"></i></span>
+                </div>
+                <input type="hidden" name="repayment_frequency" id="repaymentFrequencyInput" value="{{ old('repayment_frequency') }}">
+                <small class="text-muted"><i class="bi bi-shield-lock me-1"></i>From Loan Scheme</small>
+                @error('repayment_frequency') <div class="invalid-feedback d-block">{{ $message }}</div> @enderror
             </div>
 
             <div class="col-md-3">
@@ -261,7 +266,8 @@
         const loanTypeSelect = document.getElementById('loanTypeSelect');
         const borrowerTypeSelect = document.getElementById('borrowerTypeSelect');
         const loanSchemeSelect = document.getElementById('loanSchemeSelect');
-        const repaymentFrequencySelect = document.getElementById('repaymentFrequencySelect');
+        const repaymentFrequencyDisplay = document.getElementById('repaymentFrequencyDisplay');
+        const repaymentFrequencyInput = document.getElementById('repaymentFrequencyInput');
         const tenureMonthsDisplay = document.getElementById('tenureMonthsDisplay');
         const tenureMonthsInput = document.getElementById('tenureMonthsInput');
         const indContainer = document.getElementById('individualBorrowerContainer');
@@ -274,11 +280,14 @@
         const productRowsContainer = document.getElementById('productRowsContainer');
         const btnAddProductRow = document.getElementById('btnAddProductRow');
         const totalRequestedAmount = document.getElementById('totalRequestedAmount');
+        const requestedAmountLockIcon = document.getElementById('requestedAmountLockIcon');
+        const requestedAmountHelperText = document.getElementById('requestedAmountHelperText');
 
         // Full Product Catalog JSON for category-first cascading dropdowns
         const productsCatalog = @json($products);
 
         let productRowIndex = 0;
+        let lastLoanType = loanTypeSelect.value;
 
         // Auto-populate Tenure and Repayment Frequency from Scheme
         function handleSchemeChange() {
@@ -286,18 +295,25 @@
             if (selectedOpt && selectedOpt.value) {
                 const tenure = selectedOpt.dataset.tenure || '12';
                 const freq = selectedOpt.dataset.frequency || 'monthly';
+                const freqLabel = selectedOpt.dataset.frequencyLabel || 'Monthly';
                 
                 tenureMonthsDisplay.value = tenure + ' Months';
                 tenureMonthsInput.value = tenure;
                 
-                if (freq) {
-                    repaymentFrequencySelect.value = freq;
+                if (repaymentFrequencyDisplay && repaymentFrequencyInput) {
+                    repaymentFrequencyDisplay.value = freqLabel + ' 🔒';
+                    repaymentFrequencyInput.value = freq;
+                }
+            } else {
+                if (repaymentFrequencyDisplay && repaymentFrequencyInput) {
+                    repaymentFrequencyDisplay.value = 'Select Loan Scheme';
+                    repaymentFrequencyInput.value = '';
                 }
             }
         }
 
         loanSchemeSelect.addEventListener('change', handleSchemeChange);
-        if (loanSchemeSelect.selectedIndex > 0) {
+        if (loanSchemeSelect.selectedIndex >= 0) {
             handleSchemeChange();
         }
 
@@ -327,12 +343,32 @@
             if (loanType === 'product') {
                 productContainer.classList.remove('d-none');
                 toggleInputsInside(productContainer, false);
+                
+                // Lock Requested Amount field
+                totalRequestedAmount.readOnly = true;
+                totalRequestedAmount.classList.add('bg-light');
+                if (requestedAmountLockIcon) requestedAmountLockIcon.classList.remove('d-none');
+                if (requestedAmountHelperText) requestedAmountHelperText.classList.remove('d-none');
+
                 calculateProductSummary();
             } else {
                 productContainer.classList.add('d-none');
                 toggleInputsInside(productContainer, true);
                 document.getElementById('productFinancialSummaryBox').classList.add('d-none');
+
+                // Unlock Requested Amount field for Cash Loan
+                totalRequestedAmount.readOnly = false;
+                totalRequestedAmount.classList.remove('bg-light');
+                if (requestedAmountLockIcon) requestedAmountLockIcon.classList.add('d-none');
+                if (requestedAmountHelperText) requestedAmountHelperText.classList.add('d-none');
+
+                // If switched from product to cash, clear product price
+                if (lastLoanType === 'product' && loanType === 'cash') {
+                    totalRequestedAmount.value = '';
+                }
             }
+
+            lastLoanType = loanType;
         }
 
         // Setup Category -> Brand -> Search Product Selector on a given row
@@ -586,14 +622,14 @@
                 }
             });
 
-            let financed = parseFloat(totalRequestedAmount ? totalRequestedAmount.value || 0 : 0);
-            if (financed <= 0 || financed > grossPrice) {
-                financed = grossPrice;
-                if (totalRequestedAmount && grossPrice > 0) {
-                    totalRequestedAmount.value = grossPrice.toFixed(2);
-                }
+            if (grossPrice > 0) {
+                totalRequestedAmount.value = grossPrice.toFixed(2);
+            } else {
+                totalRequestedAmount.value = '';
             }
-            const downPayment = Math.max(0, grossPrice - financed);
+
+            const financed = grossPrice;
+            const downPayment = 0.00;
 
             document.getElementById('summaryGrossPrice').textContent = '₹' + grossPrice.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
             document.getElementById('summaryFinancedAmount').textContent = '₹' + financed.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
@@ -637,7 +673,6 @@
         borrowerTypeSelect.addEventListener('change', toggleVisibility);
         loanTypeSelect.addEventListener('change', toggleVisibility);
         groupSelect.addEventListener('change', renderGroupMembers);
-        totalRequestedAmount.addEventListener('input', calculateProductSummary);
 
         toggleVisibility();
     });

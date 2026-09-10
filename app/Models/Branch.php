@@ -26,6 +26,7 @@ class Branch extends Model
         'vault_cash_limit',
         'current_vault_balance',
         'is_active',
+        'is_warehouse',
         'created_by',
         'updated_by',
         'deleted_by',
@@ -35,9 +36,37 @@ class Branch extends Model
     {
         return [
             'is_active' => 'boolean',
+            'is_warehouse' => 'boolean',
             'vault_cash_limit' => 'decimal:4',
             'current_vault_balance' => 'decimal:4',
         ];
+    }
+
+    /**
+     * Retrieve or auto-create the company's Central Warehouse location.
+     */
+    public static function getCentralWarehouse(?int $companyId = null): Branch
+    {
+        $companyId = $companyId ?? (auth()->user()?->company_id ?? 1);
+
+        return self::firstOrCreate(
+            ['company_id' => $companyId, 'is_warehouse' => true],
+            [
+                'name' => 'Central Warehouse',
+                'code' => 'CWH-001',
+                'phone' => '9999999999',
+                'address' => 'Central Warehouse Depot',
+                'city' => 'Central Depot',
+                'state' => 'Main State',
+                'pincode' => '700001',
+                'is_active' => true,
+            ]
+        );
+    }
+
+    public function inventoryStocks(): HasMany
+    {
+        return $this->hasMany(InventoryStock::class);
     }
 
     public function company(): BelongsTo

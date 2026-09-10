@@ -125,12 +125,12 @@ class ProductPurchaseManagementTest extends TestCase
 
         $purchase = ProductPurchase::where('supplier_name', 'Usha International')->first();
         $this->assertNotNull($purchase);
-        $this->assertStringContainsString('PUR-BR001-', $purchase->purchase_number);
+        $this->assertStringContainsString('PUR-CWH-001-', $purchase->purchase_number);
         $this->assertCount(2, $purchase->items);
 
         // Physical inventory stock MUST NOT change during draft purchase creation!
         $this->assertDatabaseMissing('inventory_stocks', [
-            'branch_id' => $this->branch->id,
+            'branch_id' => $purchase->branch_id,
             'product_id' => $this->productA->id,
         ]);
     }
@@ -161,16 +161,16 @@ class ProductPurchaseManagementTest extends TestCase
 
         $this->assertEquals('received', $purchase->fresh()->purchase_status);
 
-        // Verify inventory stock increased to 20 units
+        // Verify inventory stock increased to 20 units in Central Warehouse
         $this->assertDatabaseHas('inventory_stocks', [
-            'branch_id' => $this->branch->id,
+            'branch_id' => $purchase->branch_id,
             'product_id' => $this->productB->id,
             'current_stock' => 20,
         ]);
 
-        // Verify purchase_in movement logged with purchase reference
+        // Verify purchase_in movement logged with purchase reference in Central Warehouse
         $this->assertDatabaseHas('inventory_stock_movements', [
-            'branch_id' => $this->branch->id,
+            'branch_id' => $purchase->branch_id,
             'product_id' => $this->productB->id,
             'movement_type' => 'purchase_in',
             'quantity' => 20,

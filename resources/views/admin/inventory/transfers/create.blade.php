@@ -22,11 +22,13 @@
             <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">1. Branch Locations</h5>
 
             <div class="col-md-6">
-                <label class="form-label fw-bold small">Source Branch (Sending) <span class="text-danger">*</span></label>
+                <label class="form-label fw-bold small">Source Location (Sending) <span class="text-danger">*</span></label>
                 <select name="source_branch_id" class="form-select @error('source_branch_id') is-invalid @enderror" required>
-                    <option value="">Select Source Branch</option>
+                    <option value="">Select Source Location</option>
                     @foreach($branches as $b)
-                        <option value="{{ $b->id }}" {{ old('source_branch_id', auth()->user()->branch_id) == $b->id ? 'selected' : '' }}>{{ $b->name }} ({{ $b->code }})</option>
+                        <option value="{{ $b->id }}" {{ old('source_branch_id', request('source_branch_id', $centralWarehouse->id)) == $b->id ? 'selected' : '' }}>
+                            {{ $b->name }} ({{ $b->code }}) {{ $b->is_warehouse ? '🔒 [Central Warehouse]' : '' }}
+                        </option>
                     @endforeach
                 </select>
                 @error('source_branch_id') <div class="invalid-feedback">{{ $message }}</div> @enderror

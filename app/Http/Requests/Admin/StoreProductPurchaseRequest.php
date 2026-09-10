@@ -11,6 +11,15 @@ class StoreProductPurchaseRequest extends FormRequest
         return true;
     }
 
+    protected function prepareForValidation(): void
+    {
+        $companyId = auth()->user()?->company_id ?? 1;
+        $centralWarehouse = \App\Models\Branch::getCentralWarehouse($companyId);
+        $this->merge([
+            'branch_id' => $centralWarehouse->id,
+        ]);
+    }
+
     public function rules(): array
     {
         return [
@@ -26,8 +35,8 @@ class StoreProductPurchaseRequest extends FormRequest
             'paid_amount' => 'nullable|numeric|min:0',
             'remarks' => 'nullable|string|max:255',
             'items' => 'required|array|min:1',
-            'items.*.category_id' => 'required|exists:product_categories,id',
-            'items.*.brand_id' => 'required|exists:product_brands,id',
+            'items.*.category_id' => 'nullable|exists:product_categories,id',
+            'items.*.brand_id' => 'nullable|exists:product_brands,id',
             'items.*.product_id' => 'required|exists:products,id',
             'items.*.quantity' => 'required|integer|min:1',
             'items.*.unit_purchase_cost' => 'nullable|numeric|min:0',

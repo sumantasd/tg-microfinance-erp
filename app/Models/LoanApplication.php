@@ -105,6 +105,16 @@ class LoanApplication extends Model
         return $this->hasMany(LoanApplicationProduct::class, 'loan_application_id');
     }
 
+    public function loanAccounts(): HasMany
+    {
+        return $this->hasMany(LoanAccount::class, 'loan_application_id');
+    }
+
+    public function loanAccount(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(LoanAccount::class, 'loan_application_id');
+    }
+
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
