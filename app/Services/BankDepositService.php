@@ -11,10 +11,12 @@ use Illuminate\Support\Facades\Log;
 class BankDepositService
 {
     protected CashBookService $cashBookService;
+    protected ActivityLogService $activityLogService;
 
-    public function __construct(CashBookService $cashBookService)
+    public function __construct(CashBookService $cashBookService, ActivityLogService $activityLogService)
     {
         $this->cashBookService = $cashBookService;
+        $this->activityLogService = $activityLogService;
     }
 
     /**
@@ -46,6 +48,8 @@ class BankDepositService
                 'submitted_at' => now(),
             ]);
 
+            $this->activityLogService->log('bank_deposit_submitted', $deposit, null, $deposit->toArray());
+
             Log::info("Bank deposit submitted: ID {$deposit->id}, Amount ₹{$deposit->amount}, Branch {$branchId}, Date {$depositDate}");
 
             return $deposit;
@@ -62,17 +66,21 @@ class BankDepositService
         }
 
         // Branch Managers cannot approve their own deposits
-        if ($approver->id === $deposit->submitted_by) {
+        if ((int)$approver->id === (int)$deposit->submitted_by) {
             throw new \Exception('You cannot approve your own submitted bank deposit.');
         }
 
         return DB::transaction(function () use ($deposit, $approver, $remarks) {
+            $oldValues = $deposit->toArray();
+
             $deposit->update([
                 'status' => 'approved',
                 'approved_by' => $approver->id,
                 'approved_at' => now(),
                 'description' => $remarks ? trim(($deposit->description ?? '') . ' | Approval note: ' . $remarks) : $deposit->description,
             ]);
+
+            $this->activityLogService->log('bank_deposit_approved', $deposit, $oldValues, $deposit->fresh()->toArray());
 
             Log::info("Bank deposit approved: ID {$deposit->id}, Approved By User {$approver->id}");
 
@@ -92,11 +100,22 @@ class BankDepositService
             throw new \Exception('Cannot reject an already approved bank deposit.');
         }
 
+        // Branch Managers cannot reject their own deposits
+        if ((int)$rejector->id === (int)$deposit->submitted_by) {
+            throw new \Exception('You cannot reject your own submitted bank deposit.');
+        }
+
         return DB::transaction(function () use ($deposit, $rejector, $reason) {
+            $oldValues = $deposit->toArray();
+
             $deposit->update([
                 'status' => 'rejected',
+                'approved_by' => $rejector->id,
+                'approved_at' => now(),
                 'rejection_reason' => $reason,
             ]);
+
+            $this->activityLogService->log('bank_deposit_rejected', $deposit, $oldValues, $deposit->fresh()->toArray());
 
             Log::info("Bank deposit rejected: ID {$deposit->id}, Rejected By User {$rejector->id}, Reason: {$reason}");
 

@@ -98,7 +98,9 @@
                             <td class="text-end fw-bold text-success fs-6">₹{{ number_format($deposit->amount, 2) }}</td>
                             <td>
                                 <div><strong>{{ $deposit->bank_name }}</strong></div>
-                                @if($deposit->account_number)<small class="text-muted">A/C: {{ $deposit->account_number }}</small>@endif
+                                @if($deposit->account_number)
+                                    <small class="text-muted">A/C: {{ strlen($deposit->account_number) > 4 ? '****' . substr($deposit->account_number, -4) : $deposit->account_number }}</small>
+                                @endif
                             </td>
                             <td><span class="badge bg-secondary-subtle text-secondary font-monospace">{{ $deposit->reference_number }}</span></td>
                             <td>

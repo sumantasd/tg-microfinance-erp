@@ -155,6 +155,7 @@ class RbacSeeder extends Seeder
             'hr_reports.view',
             'reports.view', 'reports.export',
             'cashbook.view', 'cashbook.create', 'cashbook.edit', 'cashbook.delete', 'cashbook.approve', 'cashbook.close', 'cashbook.print', 'cashbook.export', 'cashbook.view_reports',
+            'bank_deposit.view', 'bank_deposit.create', 'bank_deposit.approve', 'bank_deposit.delete',
             'settings.view', 'settings.manage', 'savings.view',
             'backup.view', 'backup.create', 'backup.download', 'backup.delete',
         ]);

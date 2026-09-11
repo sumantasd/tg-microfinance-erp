@@ -82,7 +82,7 @@
             <div class="card border-0 shadow-sm rounded-3 bg-primary text-white h-100">
                 <div class="card-body p-3">
                     <small class="text-white-50 font-monospace text-uppercase d-block mb-1">Opening Cash Balance</small>
-                    <h3 class="fw-bold font-monospace mb-0">₹{{ number_format($cashBook->opening_balance, 2) }}</h3>
+                    <h3 class="fw-bold font-monospace mb-0 text-white">₹{{ number_format($cashBook->opening_balance, 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -90,7 +90,7 @@
             <div class="card border-0 shadow-sm rounded-3 bg-success text-white h-100">
                 <div class="card-body p-3">
                     <small class="text-white-50 font-monospace text-uppercase d-block mb-1">Total Cash Received</small>
-                    <h3 class="fw-bold font-monospace mb-0">₹{{ number_format($cashBook->total_cash_received, 2) }}</h3>
+                    <h3 class="fw-bold font-monospace mb-0 text-white">₹{{ number_format($cashBook->total_cash_received, 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -98,7 +98,7 @@
             <div class="card border-0 shadow-sm rounded-3 bg-danger text-white h-100">
                 <div class="card-body p-3">
                     <small class="text-white-50 font-monospace text-uppercase d-block mb-1">Total Cash Payment</small>
-                    <h3 class="fw-bold font-monospace mb-0">₹{{ number_format($cashBook->total_cash_payment, 2) }}</h3>
+                    <h3 class="fw-bold font-monospace mb-0 text-white">₹{{ number_format($cashBook->total_cash_payment, 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -111,7 +111,7 @@
                             {{ strtoupper(str_replace('_', ' ', $cashBook->reconciled_status)) }}
                         </span>
                     </div>
-                    <h3 class="fw-bold font-monospace mb-0">₹{{ number_format($cashBook->closing_cash, 2) }}</h3>
+                    <h3 class="fw-bold font-monospace mb-0 text-white">₹{{ number_format($cashBook->closing_cash, 2) }}</h3>
                 </div>
             </div>
         </div>
@@ -134,11 +134,7 @@
                     <h6 class="fw-bold text-success font-monospace mb-0 tracking-wider text-uppercase">
                         <i class="bi bi-arrow-down-left-circle-fill me-2"></i>RECEIVED (RECEIPTS)
                     </h6>
-                    @if($cashBook->isOpen())
-                        <button type="button" class="btn btn-xs btn-success rounded-pill px-2.5 font-monospace fw-bold" onclick="openEntryModal('received')">
-                            + Add Receipt
-                        </button>
-                    @endif
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 font-monospace">AUTOMATIC ERP</span>
                 </div>
 
                 <div class="table-responsive">
@@ -147,10 +143,9 @@
                             <tr>
                                 <th style="width: 15%;">DATE</th>
                                 <th>PARTICULARS</th>
-                                <th style="width: 20%;">AMOUNT RS</th>
-                                <th style="width: 18%;">PRODUCT AMT</th>
-                                <th style="width: 18%;">BANK AMT</th>
-                                @if($cashBook->isOpen()) <th style="width: 5%;"></th> @endif
+                                <th style="width: 22%;">AMOUNT RS</th>
+                                <th style="width: 20%;">PRODUCT AMT</th>
+                                <th style="width: 20%;">BANK AMT</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -167,20 +162,9 @@
                                     <td class="text-end text-primary">
                                         {{ $entry->bank_amount > 0 ? number_format($entry->bank_amount, 2) : '' }}
                                     </td>
-                                    @if($cashBook->isOpen())
-                                        <td class="text-center p-0">
-                                            @if(!$entry->category_code || !in_array($entry->category_code, ['cash_opening_balance', 'weekly_collection', 'processing_fee', 'insurance_fee', 'card_fee', 'new_loan_advance', 'pre_payment', 'principal_payment', 'cash_selling', 'od_collection']))
-                                                <form action="{{ route('admin.cash-book.destroy-entry', [$cashBook->id, $entry->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this particular item?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-link text-danger p-0 m-0"><i class="bi bi-x-lg"></i></button>
-                                                </form>
-                                            @endif
-                                        </td>
-                                    @endif
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="text-center py-3 text-muted">No receipts recorded</td></tr>
+                                <tr><td colspan="5" class="text-center py-3 text-muted">No receipts recorded</td></tr>
                             @endforelse
 
                             <!-- TOTAL RECEIVED ROW -->
@@ -189,15 +173,6 @@
                                 <td class="text-end text-success fs-6">₹{{ number_format($cashBook->total_cash_received, 2) }}</td>
                                 <td class="text-end">₹{{ number_format($cashBook->total_product_received, 2) }}</td>
                                 <td class="text-end text-primary">₹{{ number_format($cashBook->total_bank_received, 2) }}</td>
-                                @if($cashBook->isOpen()) <td></td> @endif
-                            </tr>
-
-                            <!-- CASH IN HAND SUMMARY ROW -->
-                            <tr class="table-dark text-white fw-bold">
-                                <td colspan="2" class="text-uppercase text-end">CASH IN HAND (RECEIVED - PAYMENT)</td>
-                                <td class="text-end text-warning fs-6">₹{{ number_format($cashBook->closing_cash, 2) }}</td>
-                                <td colspan="2" class="text-center text-white-50 font-monospace small">Formula: Opening + Rec. - Pay</td>
-                                @if($cashBook->isOpen()) <td></td> @endif
                             </tr>
                         </tbody>
                     </table>
@@ -210,11 +185,7 @@
                     <h6 class="fw-bold text-danger font-monospace mb-0 tracking-wider text-uppercase">
                         <i class="bi bi-arrow-up-right-circle-fill me-2"></i>PAYMENT (EXPENSES & DISBURSEMENTS)
                     </h6>
-                    @if($cashBook->isOpen())
-                        <button type="button" class="btn btn-xs btn-danger rounded-pill px-2.5 font-monospace fw-bold" onclick="openEntryModal('payment')">
-                            + Add Payment
-                        </button>
-                    @endif
+                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5 font-monospace">AUTOMATIC ERP</span>
                 </div>
 
                 <div class="table-responsive">
@@ -223,10 +194,9 @@
                             <tr>
                                 <th style="width: 15%;">DATE</th>
                                 <th>PARTICULARS</th>
-                                <th style="width: 20%;">AMOUNT RS</th>
-                                <th style="width: 18%;">PRODUCT AMT</th>
-                                <th style="width: 18%;">BANK AMT</th>
-                                @if($cashBook->isOpen()) <th style="width: 5%;"></th> @endif
+                                <th style="width: 22%;">AMOUNT RS</th>
+                                <th style="width: 20%;">PRODUCT AMT</th>
+                                <th style="width: 20%;">BANK AMT</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -235,7 +205,7 @@
                                     <td class="text-center">{{ $entry->entry_date->format('d/m') }}</td>
                                     <td class="fw-semibold text-uppercase text-dark">{{ $entry->particulars }}</td>
                                     <td class="text-end fw-bold text-danger">
-                                        {{ $entry->cash_amount > 0 ? number_format($entry->cash_amount, 2) : '' }}
+                                        {{ $entry->cash_amount > 0 ? ($entry->category_code === 'member_no' ? number_format($entry->cash_amount, 0) : number_format($entry->cash_amount, 2)) : '' }}
                                     </td>
                                     <td class="text-end text-muted">
                                         {{ $entry->product_amount > 0 ? number_format($entry->product_amount, 2) : '' }}
@@ -243,20 +213,9 @@
                                     <td class="text-end text-primary">
                                         {{ $entry->bank_amount > 0 ? number_format($entry->bank_amount, 2) : '' }}
                                     </td>
-                                    @if($cashBook->isOpen())
-                                        <td class="text-center p-0">
-                                            @if(!$entry->category_code || !in_array($entry->category_code, ['loan_disbursed', 'deposit_to_bank', 'management_expense']))
-                                                <form action="{{ route('admin.cash-book.destroy-entry', [$cashBook->id, $entry->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this payment item?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-link text-danger p-0 m-0"><i class="bi bi-x-lg"></i></button>
-                                                </form>
-                                            @endif
-                                        </td>
-                                    @endif
                                 </tr>
                             @empty
-                                <tr><td colspan="6" class="text-center py-3 text-muted">No payments recorded</td></tr>
+                                <tr><td colspan="5" class="text-center py-3 text-muted">No payments recorded</td></tr>
                             @endforelse
 
                             <!-- TOTAL PAYMENT ROW -->
@@ -265,7 +224,6 @@
                                 <td class="text-end text-danger fs-6">₹{{ number_format($cashBook->total_cash_payment, 2) }}</td>
                                 <td class="text-end">₹{{ number_format($cashBook->total_product_payment, 2) }}</td>
                                 <td class="text-end text-primary">₹{{ number_format($cashBook->total_bank_payment, 2) }}</td>
-                                @if($cashBook->isOpen()) <td></td> @endif
                             </tr>
                         </tbody>
                     </table>
@@ -274,92 +232,15 @@
         </div>
     </div>
 
-    <!-- LOWER SECTION: CASH DENOMINATION (LEFT) & ONLINE COLLECTION DETAILS (RIGHT) -->
+    <!-- LOWER SECTION: ONLINE COLLECTION DETAILS (FULL WIDTH) -->
     <div class="row g-4 mb-4">
-        <!-- LOWER LEFT: CASH DENOMINATION DETAILS -->
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
-                <div class="card-header bg-dark text-white py-2 px-3 d-flex justify-content-between align-items-center">
-                    <h6 class="fw-bold font-monospace mb-0 small text-uppercase">
-                        <i class="bi bi-calculator me-1"></i>CASH DENOMINATION DETAILS (PHYSICAL COUNT)
-                    </h6>
-                    <span class="badge bg-light text-dark font-monospace">Physical Reconciliation</span>
-                </div>
-                <div class="card-body p-3">
-                    <form action="{{ route('admin.cash-book.save-denominations', $cashBook->id) }}" method="POST">
-                        @csrf
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered align-middle font-monospace mb-3" style="font-size: 0.85rem;">
-                                <thead class="bg-light text-center">
-                                    <tr>
-                                        <th style="width: 30%;">DENOMINATION</th>
-                                        <th style="width: 35%;">QUANTITY (COUNT)</th>
-                                        <th style="width: 35%;">AMOUNT (RS)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @php $denomMap = $cashBook->denominations->keyBy('denomination'); @endphp
-                                    @foreach([500, 200, 100, 50, 20, 10, 5, 2, 1] as $denom)
-                                        @php $count = $denomMap[$denom]->count ?? 0; @endphp
-                                        <tr>
-                                            <td class="fw-bold text-center">₹{{ $denom }} X</td>
-                                            <td>
-                                                <input type="number" min="0" name="denominations[{{ $denom }}]" value="{{ $count }}" 
-                                                    class="form-control form-control-sm text-center font-monospace denom-input {{ !$cashBook->isOpen() ? 'bg-light' : '' }}" 
-                                                    data-denom="{{ $denom }}" oninput="calculateDenominations()" {{ !$cashBook->isOpen() ? 'readonly' : '' }}>
-                                            </td>
-                                            <td class="text-end fw-bold text-dark denom-total" id="denom-total-{{ $denom }}">
-                                                ₹{{ number_format($denom * $count, 2) }}
-                                            </td>
-                                        </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <!-- Denomination Summary Box -->
-                        <div class="p-3 bg-light rounded-3 border">
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-semibold small text-secondary">Physical Cash Total:</span>
-                                <span class="fw-bold font-monospace fs-6" id="physical-cash-total">₹{{ number_format($cashBook->physical_cash, 2) }}</span>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center mb-1">
-                                <span class="fw-semibold small text-secondary">System Closing Cash:</span>
-                                <span class="fw-bold font-monospace text-dark">₹{{ number_format($cashBook->closing_cash, 2) }}</span>
-                            </div>
-                            <hr class="my-2">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span class="fw-bold text-dark">Cash Difference:</span>
-                                <span class="fw-bold font-monospace fs-5 {{ $cashBook->cash_difference < 0 ? 'text-danger' : ($cashBook->cash_difference > 0 ? 'text-warning' : 'text-success') }}">
-                                    ₹{{ number_format($cashBook->cash_difference, 2) }}
-                                </span>
-                            </div>
-                        </div>
-
-                        @if($cashBook->isOpen())
-                            <div class="mt-3">
-                                <button type="submit" class="btn btn-dark w-100 rounded-pill font-monospace fw-bold">
-                                    <i class="bi bi-check2-circle me-1"></i> Update Denominations & Reconcile
-                                </button>
-                            </div>
-                        @endif
-                    </form>
-                </div>
-            </div>
-        </div>
-
-        <!-- LOWER RIGHT: ONLINE COLLECTION DETAILS -->
-        <div class="col-lg-6">
-            <div class="card border-0 shadow-sm rounded-3 h-100">
+        <div class="col-12">
+            <div class="card border-0 shadow-sm rounded-3">
                 <div class="card-header bg-primary text-white py-2 px-3 d-flex justify-content-between align-items-center">
                     <h6 class="fw-bold font-monospace mb-0 small text-uppercase">
                         <i class="bi bi-phone me-1"></i>ONLINE COLLECTION DETAILS
                     </h6>
-                    @if($cashBook->isOpen())
-                        <button type="button" class="btn btn-xs btn-light text-primary rounded-pill px-2.5 font-monospace fw-bold" data-bs-toggle="modal" data-bs-target="#onlineCollectionModal">
-                            + Add Entry
-                        </button>
-                    @endif
+                    <span class="badge bg-light text-primary font-monospace">AUTOMATIC ERP TRANSACTIONS</span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
@@ -371,30 +252,28 @@
                                     <th class="text-end">AMOUNT</th>
                                     <th>GROUP NAME</th>
                                     <th>MOBILE NO</th>
-                                    @if($cashBook->isOpen()) <th></th> @endif
+                                    <th>PAYMENT METHOD</th>
+                                    <th>REFERENCE NO</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @forelse($cashBook->onlineCollections as $oc)
                                     <tr>
-                                        <td class="ps-3">{{ $oc->collection_date->format('d/m') }}</td>
+                                        <td class="ps-3">{{ $oc->collection_date->format('d/m/Y') }}</td>
                                         <td class="fw-bold text-dark">{{ $oc->customer_name }}</td>
                                         <td class="text-end fw-bold text-primary">₹{{ number_format($oc->amount, 2) }}</td>
                                         <td class="text-muted">{{ $oc->group_name ?? '-' }}</td>
                                         <td class="text-muted">{{ $oc->mobile_no ?? '-' }}</td>
-                                        @if($cashBook->isOpen())
-                                            <td class="text-end pe-2">
-                                                <form action="{{ route('admin.cash-book.destroy-online-collection', [$cashBook->id, $oc->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Remove online collection record?')">
-                                                    @csrf
-                                                    @method('DELETE')
-                                                    <button type="submit" class="btn btn-link text-danger p-0 m-0"><i class="bi bi-x-lg"></i></button>
-                                                </form>
-                                            </td>
-                                        @endif
+                                        <td>
+                                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle rounded-pill text-uppercase">
+                                                {{ str_replace('_', ' ', $oc->payment_method ?? 'online') }}
+                                            </span>
+                                        </td>
+                                        <td class="text-muted font-monospace">{{ $oc->transaction_reference ?? '-' }}</td>
                                     </tr>
                                 @empty
                                     <tr>
-                                        <td colspan="6" class="text-center py-4 text-muted">
+                                        <td colspan="7" class="text-center py-4 text-muted">
                                             No online collection details recorded for this date.
                                         </td>
                                     </tr>
@@ -457,104 +336,6 @@
     @endif
 </div>
 
-<!-- MODAL: ADD PARTICULAR ENTRY ITEM -->
-<div class="modal fade" id="entryModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="modal-header-title fw-bold font-heading text-dark mb-0">Add Register Particular</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('admin.cash-book.store-entry', $cashBook->id) }}" method="POST">
-                @csrf
-                <input type="hidden" name="entry_type" id="modal_entry_type" value="received">
-                <div class="modal-body pt-3">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Particulars Title / Category</label>
-                        <input type="text" name="particulars" class="form-control bg-light border-0" placeholder="e.g. MISCELLANEOUS EXPENSE, OTHER RECEIPTS" required>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">Cash Amount (Rs)</label>
-                            <input type="number" step="0.01" min="0" name="cash_amount" class="form-control bg-light border-0" value="0.00" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">Bank Amount (Rs)</label>
-                            <input type="number" step="0.01" min="0" name="bank_amount" class="form-control bg-light border-0" value="0.00">
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Product Amount (Rs)</label>
-                        <input type="number" step="0.01" min="0" name="product_amount" class="form-control bg-light border-0" value="0.00">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Remarks / Notes</label>
-                        <textarea name="remarks" class="form-control bg-light border-0" rows="2" placeholder="Optional notes"></textarea>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Save Particular</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
-<!-- MODAL: ADD ONLINE COLLECTION -->
-<div class="modal fade" id="onlineCollectionModal" tabindex="-1">
-    <div class="modal-dialog">
-        <div class="modal-content rounded-4 border-0 shadow">
-            <div class="modal-header border-0 pb-0">
-                <h5 class="fw-bold font-heading text-dark mb-0">Add Online Collection Detail</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-            </div>
-            <form action="{{ route('admin.cash-book.store-online-collection', $cashBook->id) }}" method="POST">
-                @csrf
-                <div class="modal-body pt-3">
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Collection Date</label>
-                        <input type="date" name="collection_date" value="{{ $cashBook->date->format('Y-m-d') }}" class="form-control bg-light border-0" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label small fw-bold text-secondary">Customer Name</label>
-                        <input type="text" name="customer_name" class="form-control bg-light border-0" placeholder="e.g. Sabitri Giri" required>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">Amount (Rs)</label>
-                            <input type="number" step="0.01" min="0.01" name="amount" class="form-control bg-light border-0" placeholder="1390.00" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">Group Name</label>
-                            <input type="text" name="group_name" class="form-control bg-light border-0" placeholder="e.g. Sabitri Group">
-                        </div>
-                    </div>
-                    <div class="row g-3 mb-3">
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">Mobile No</label>
-                            <input type="text" name="mobile_no" class="form-control bg-light border-0" placeholder="9876543210">
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label small fw-bold text-secondary">Payment Method</label>
-                            <select name="payment_method" class="form-select bg-light border-0">
-                                <option value="upi">UPI / GPay / PhonePe</option>
-                                <option value="bank_transfer">Bank Transfer / NEFT</option>
-                                <option value="qr">QR Code</option>
-                                <option value="card">Debit/Credit Card</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-                <div class="modal-footer border-0 pt-0">
-                    <button type="button" class="btn btn-light rounded-pill px-4" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary rounded-pill px-4 fw-bold">Add Detail</button>
-                </div>
-            </form>
-        </div>
-    </div>
-</div>
-
 <!-- MODAL: CLOSE REGISTER -->
 <div class="modal fade" id="closeRegisterModal" tabindex="-1">
     <div class="modal-dialog">
@@ -580,11 +361,8 @@
                             <span>Total Payment:</span> <strong class="text-danger">₹{{ number_format($cashBook->total_cash_payment, 2) }}</strong>
                         </div>
                         <hr class="my-1">
-                        <div class="d-flex justify-content-between mb-1">
-                            <span>System Closing Cash:</span> <strong>₹{{ number_format($cashBook->closing_cash, 2) }}</strong>
-                        </div>
                         <div class="d-flex justify-content-between">
-                            <span>Physical Cash Total:</span> <strong>₹{{ number_format($cashBook->physical_cash, 2) }}</strong>
+                            <span>System Closing Cash:</span> <strong class="text-primary fs-6">₹{{ number_format($cashBook->closing_cash, 2) }}</strong>
                         </div>
                     </div>
                     <div class="mb-3">
@@ -625,34 +403,4 @@
         </div>
     </div>
 </div>
-
-<script>
-function openEntryModal(type) {
-    document.getElementById('modal_entry_type').value = type;
-    const title = type === 'received' ? 'Add Received Particular' : 'Add Payment Particular';
-    document.querySelector('#entryModal .modal-header-title').innerText = title;
-    var modal = new bootstrap.Modal(document.getElementById('entryModal'));
-    modal.show();
-}
-
-function calculateDenominations() {
-    let physicalTotal = 0;
-    document.querySelectorAll('.denom-input').forEach(input => {
-        const denom = parseInt(input.dataset.denom);
-        const count = parseInt(input.value) || 0;
-        const total = denom * count;
-        physicalTotal += total;
-        
-        const totalEl = document.getElementById('denom-total-' + denom);
-        if (totalEl) {
-            totalEl.innerText = '₹' + total.toFixed(2);
-        }
-    });
-
-    const physicalCashEl = document.getElementById('physical-cash-total');
-    if (physicalCashEl) {
-        physicalCashEl.innerText = '₹' + physicalTotal.toFixed(2);
-    }
-}
-</script>
 @endsection

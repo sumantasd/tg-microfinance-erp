@@ -32,7 +32,7 @@ class CashBookController extends Controller
         // Branch isolation: Branch Managers are restricted to their assigned branch
         $userBranchId = $user->branch_id;
         $selectedBranchId = $userBranchId ?? $request->input('branch_id', Branch::first()?->id);
-        $selectedDate = $request->input('date', today()->format('Y-m-d'));
+        $selectedDate = $request->input('date', Carbon::now('Asia/Kolkata')->format('Y-m-d'));
 
         $branches = $userBranchId 
             ? Branch::where('id', $userBranchId)->where('is_active', true)->get()
@@ -68,7 +68,7 @@ class CashBookController extends Controller
     public function show(Request $request, $id)
     {
         $user = auth()->user();
-        $cashBook = CashBook::with(['branch', 'responsibleStaff', 'closedBy', 'approvedBy', 'entries', 'onlineCollections', 'denominations', 'audits.user'])
+        $cashBook = CashBook::with(['branch', 'responsibleStaff', 'closedBy', 'approvedBy', 'entries', 'onlineCollections', 'audits.user'])
             ->findOrFail($id);
 
         // Branch isolation check
@@ -98,26 +98,7 @@ class CashBookController extends Controller
      */
     public function storeEntry(Request $request, $id)
     {
-        $cashBook = CashBook::findOrFail($id);
-
-        $validated = $request->validate([
-            'id' => 'nullable|exists:cash_book_entries,id',
-            'entry_type' => 'required|in:received,payment',
-            'category_code' => 'nullable|string|max:50',
-            'particulars' => 'required|string|max:255',
-            'cash_amount' => 'required|numeric|min:0',
-            'product_amount' => 'nullable|numeric|min:0',
-            'bank_amount' => 'nullable|numeric|min:0',
-            'remarks' => 'nullable|string|max:500',
-        ]);
-
-        try {
-            $this->cashBookService->addOrUpdateEntry($cashBook, $validated, auth()->id());
-            return redirect()->route('admin.cash-book.show', $cashBook->id)
-                ->with('success', 'Particular item saved successfully.');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
-        }
+        return redirect()->back()->with('error', 'Manual entry creation is disabled. Cash Book entries are populated automatically from ERP transactions.');
     }
 
     /**
@@ -125,19 +106,7 @@ class CashBookController extends Controller
      */
     public function destroyEntry($id, $entryId)
     {
-        $cashBook = CashBook::findOrFail($id);
-
-        if ($cashBook->isClosed()) {
-            return redirect()->back()->with('error', 'Cannot modify a closed Cash Book register.');
-        }
-
-        $entry = CashBookEntry::where('cash_book_id', $cashBook->id)->where('id', $entryId)->firstOrFail();
-        $entry->delete();
-
-        $this->cashBookService->recalculateTotals($cashBook);
-
-        return redirect()->route('admin.cash-book.show', $cashBook->id)
-            ->with('success', 'Particular item deleted successfully.');
+        return redirect()->back()->with('error', 'Manual entry deletion is disabled. Cash Book entries are managed automatically.');
     }
 
     /**
@@ -145,27 +114,7 @@ class CashBookController extends Controller
      */
     public function storeOnlineCollection(Request $request, $id)
     {
-        $cashBook = CashBook::findOrFail($id);
-
-        $validated = $request->validate([
-            'collection_date' => 'required|date',
-            'customer_id' => 'nullable|exists:customers,id',
-            'customer_name' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0.01',
-            'group_id' => 'nullable|exists:customer_groups,id',
-            'group_name' => 'nullable|string|max:255',
-            'mobile_no' => 'nullable|string|max:30',
-            'payment_method' => 'nullable|string|max:30',
-            'transaction_reference' => 'nullable|string|max:100',
-        ]);
-
-        try {
-            $this->cashBookService->addOnlineCollection($cashBook, $validated, auth()->id());
-            return redirect()->route('admin.cash-book.show', $cashBook->id)
-                ->with('success', 'Online collection detail added successfully.');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
-        }
+        return redirect()->back()->with('error', 'Manual online collection creation is disabled. Online collections populate automatically from transactions.');
     }
 
     /**
@@ -173,38 +122,17 @@ class CashBookController extends Controller
      */
     public function destroyOnlineCollection($id, $collectionId)
     {
-        $cashBook = CashBook::findOrFail($id);
-
-        if ($cashBook->isClosed()) {
-            return redirect()->back()->with('error', 'Cannot modify a closed Cash Book register.');
-        }
-
-        $collection = CashBookOnlineCollection::where('cash_book_id', $cashBook->id)->where('id', $collectionId)->firstOrFail();
-        $collection->delete();
-
-        return redirect()->route('admin.cash-book.show', $cashBook->id)
-            ->with('success', 'Online collection detail removed.');
+        return redirect()->back()->with('error', 'Manual online collection deletion is disabled.');
     }
 
     /**
-     * Update physical cash denomination counts and recalculate reconciliation.
+     * Physical cash denomination count method (disabled / no-op).
      */
     public function saveDenominations(Request $request, $id)
     {
         $cashBook = CashBook::findOrFail($id);
-
-        $validated = $request->validate([
-            'denominations' => 'required|array',
-            'denominations.*' => 'nullable|integer|min:0',
-        ]);
-
-        try {
-            $this->cashBookService->updateDenominations($cashBook, $validated['denominations'], auth()->id());
-            return redirect()->route('admin.cash-book.show', $cashBook->id)
-                ->with('success', 'Physical cash denomination reconciled successfully.');
-        } catch (\Exception $e) {
-            return redirect()->back()->with('error', $e->getMessage());
-        }
+        return redirect()->route('admin.cash-book.show', $cashBook->id)
+            ->with('success', 'Cash Book register reconciled successfully.');
     }
 
     /**
@@ -269,7 +197,7 @@ class CashBookController extends Controller
      */
     public function print($id)
     {
-        $cashBook = CashBook::with(['company', 'branch', 'responsibleStaff', 'closedBy', 'approvedBy', 'entries', 'onlineCollections', 'denominations'])
+        $cashBook = CashBook::with(['company', 'branch', 'responsibleStaff', 'closedBy', 'approvedBy', 'entries', 'onlineCollections'])
             ->findOrFail($id);
 
         return view('admin.cash-book.print', compact('cashBook'));
@@ -280,7 +208,7 @@ class CashBookController extends Controller
      */
     public function export($id)
     {
-        $cashBook = CashBook::with(['branch', 'entries', 'onlineCollections', 'denominations'])->findOrFail($id);
+        $cashBook = CashBook::with(['branch', 'entries', 'onlineCollections'])->findOrFail($id);
 
         $filename = 'CashBook_' . $cashBook->branch->name . '_' . $cashBook->date->format('Y-m-d') . '.csv';
 
@@ -320,7 +248,7 @@ class CashBookController extends Controller
                 fputcsv($file, [
                     $entry->entry_date->format('d/m/Y'),
                     $entry->particulars,
-                    $entry->cash_amount,
+                    $entry->category_code === 'member_no' ? (int)$entry->cash_amount : $entry->cash_amount,
                     $entry->product_amount,
                     $entry->bank_amount
                 ]);
@@ -333,8 +261,6 @@ class CashBookController extends Controller
             fputcsv($file, ['Total Cash Received', $cashBook->total_cash_received]);
             fputcsv($file, ['Total Cash Payment', $cashBook->total_cash_payment]);
             fputcsv($file, ['System Closing Cash', $cashBook->closing_cash]);
-            fputcsv($file, ['Physical Cash Total', $cashBook->physical_cash]);
-            fputcsv($file, ['Cash Difference', $cashBook->cash_difference]);
             fputcsv($file, ['Status', strtoupper($cashBook->reconciled_status)]);
 
             fclose($file);

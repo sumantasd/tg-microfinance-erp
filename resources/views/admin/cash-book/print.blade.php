@@ -70,11 +70,6 @@
                         <td class="text-end">{{ number_format($cashBook->total_product_received, 2) }}</td>
                         <td class="text-end">{{ number_format($cashBook->total_bank_received, 2) }}</td>
                     </tr>
-                    <tr class="fw-bold bg-dark text-white">
-                        <td colspan="2" class="text-end">CASH IN HAND (RECEIVED - PAYMENT)</td>
-                        <td class="text-end">{{ number_format($cashBook->closing_cash, 2) }}</td>
-                        <td colspan="2" class="text-center">₹{{ number_format($cashBook->closing_cash, 2) }}</td>
-                    </tr>
                 </tbody>
             </table>
         </div>
@@ -97,12 +92,12 @@
                         <tr>
                             <td class="text-center">{{ $entry->entry_date->format('d/m') }}</td>
                             <td class="fw-bold text-uppercase">{{ $entry->particulars }}</td>
-                            <td class="text-end fw-bold">{{ $entry->cash_amount > 0 ? number_format($entry->cash_amount, 2) : '' }}</td>
+                            <td class="text-end fw-bold">{{ $entry->cash_amount > 0 ? ($entry->category_code === 'member_no' ? number_format($entry->cash_amount, 0) : number_format($entry->cash_amount, 2)) : '' }}</td>
                             <td class="text-end">{{ $entry->product_amount > 0 ? number_format($entry->product_amount, 2) : '' }}</td>
                             <td class="text-end">{{ $entry->bank_amount > 0 ? number_format($entry->bank_amount, 2) : '' }}</td>
                         </tr>
                     @endforeach
-                    @for($i = 0; $i < max(0, 11 - $cashBook->paymentEntries->count()); $i++)
+                    @for($i = 0; $i < max(0, 7 - $cashBook->paymentEntries->count()); $i++)
                         <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
                     @endfor
                     <tr class="fw-bold bg-light">
@@ -116,66 +111,36 @@
         </div>
     </div>
 
-    <!-- LOWER SECTION: CASH DENOMINATION (LEFT) & ONLINE COLLECTION DETAILS (RIGHT) -->
+    <!-- LOWER SECTION: ONLINE COLLECTION DETAILS (FULL WIDTH) -->
     <div class="row g-2 mb-4">
-        <!-- DENOMINATION -->
-        <div class="col-6">
-            <div class="fw-bold mb-1 text-uppercase">CASH DENOMINATION DETAILS</div>
-            <table class="table table-bordered table-sm mb-0 register-table">
-                <thead class="text-center bg-light">
-                    <tr>
-                        <th>DENOMINATION</th>
-                        <th>QUANTITY</th>
-                        <th>AMOUNT (RS)</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    @php $denomMap = $cashBook->denominations->keyBy('denomination'); @endphp
-                    @foreach([500, 200, 100, 50, 20, 10, 5, 2, 1] as $denom)
-                        @php $count = $denomMap[$denom]->count ?? 0; @endphp
-                        <tr>
-                            <td class="text-center fw-bold">{{ $denom }} X</td>
-                            <td class="text-center">{{ $count > 0 ? $count : '' }}</td>
-                            <td class="text-end fw-bold">{{ $count > 0 ? number_format($denom * $count, 2) : '' }}</td>
-                        </tr>
-                    @endforeach
-                    <tr class="fw-bold bg-light">
-                        <td colspan="2" class="text-end">PHYSICAL CASH TOTAL:</td>
-                        <td class="text-end">₹{{ number_format($cashBook->physical_cash, 2) }}</td>
-                    </tr>
-                    <tr class="fw-bold">
-                        <td colspan="2" class="text-end">CASH DIFFERENCE:</td>
-                        <td class="text-end">₹{{ number_format($cashBook->cash_difference, 2) }} ({{ strtoupper($cashBook->reconciled_status) }})</td>
-                    </tr>
-                </tbody>
-            </table>
-        </div>
-
-        <!-- ONLINE COLLECTIONS -->
-        <div class="col-6">
+        <div class="col-12">
             <div class="fw-bold mb-1 text-uppercase">ONLINE COLLECTION DETAILS</div>
             <table class="table table-bordered table-sm mb-0 register-table">
                 <thead class="text-center bg-light">
                     <tr>
-                        <th style="width: 15%;">DATE</th>
+                        <th style="width: 12%;">DATE</th>
                         <th>CUSTOMER NAME</th>
-                        <th style="width: 20%;">AMOUNT</th>
+                        <th style="width: 15%;">AMOUNT (RS)</th>
                         <th>GROUP NAME</th>
                         <th>MOBILE NO</th>
+                        <th>PAYMENT METHOD</th>
+                        <th>REFERENCE NO</th>
                     </tr>
                 </thead>
                 <tbody>
                     @forelse($cashBook->onlineCollections as $oc)
                         <tr>
-                            <td class="text-center">{{ $oc->collection_date->format('d/m') }}</td>
+                            <td class="text-center">{{ $oc->collection_date->format('d/m/Y') }}</td>
                             <td class="fw-bold">{{ $oc->customer_name }}</td>
                             <td class="text-end fw-bold">{{ number_format($oc->amount, 2) }}</td>
                             <td>{{ $oc->group_name ?? '-' }}</td>
                             <td>{{ $oc->mobile_no ?? '-' }}</td>
+                            <td class="text-center text-uppercase">{{ str_replace('_', ' ', $oc->payment_method ?? 'online') }}</td>
+                            <td class="text-center">{{ $oc->transaction_reference ?? '-' }}</td>
                         </tr>
                     @empty
-                        @for($i = 0; $i < 6; $i++)
-                            <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
+                        @for($i = 0; $i < 4; $i++)
+                            <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
                         @endfor
                     @endforelse
                 </tbody>

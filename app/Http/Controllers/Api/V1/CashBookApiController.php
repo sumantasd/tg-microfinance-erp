@@ -34,53 +34,21 @@ class CashBookApiController extends Controller
 
         $date = $request->query('date', now()->toDateString());
         $cashBook = $this->cashBookService->getOrCreateCashBook($scopedBranchId, $date, $user->id);
-        $cashBook->load(['entries', 'denominations', 'branch']);
+        $cashBook->load(['entries', 'onlineCollections', 'branch']);
 
         return $this->successResponse($cashBook, 'Cash book register retrieved');
     }
 
     /**
-     * Add particular entry to cash book.
+     * Add particular entry to cash book (Disabled - automatic register).
      */
     public function addEntry(Request $request): JsonResponse
     {
-        $user = $request->user();
-
-        $validated = $request->validate([
-            'branch_id' => 'required|exists:branches,id',
-            'type' => 'required|in:received,payment',
-            'category' => 'required|string|max:100',
-            'particulars' => 'required|string|max:255',
-            'amount' => 'required|numeric|min:0.01',
-            'voucher_number' => 'nullable|string|max:50',
-            'date' => 'nullable|date',
-        ]);
-
-        if (!$user->canAccessBranch($validated['branch_id'])) {
-            return $this->forbiddenResponse('Unauthorized access to add entry in another branch');
-        }
-
-        $date = $validated['date'] ?? now()->toDateString();
-        $cashBook = $this->cashBookService->getOrCreateCashBook($validated['branch_id'], $date, $user->id);
-
-        if ($cashBook->isClosed()) {
-            return $this->errorResponse('Cash book register is closed for today. Reopen to add entries.', 422);
-        }
-
-        $entry = $this->cashBookService->addEntry($cashBook, [
-            'type' => $validated['type'],
-            'category' => $validated['category'],
-            'particulars' => $validated['particulars'],
-            'amount' => $validated['amount'],
-            'voucher_number' => $validated['voucher_number'] ?? null,
-            'created_by' => $user->id,
-        ]);
-
-        return $this->successResponse($entry, 'Cash book entry added successfully', 201);
+        return $this->errorResponse('Manual entry creation is disabled. Cash Book entries populate automatically from ERP transactions.', 422);
     }
 
     /**
-     * Save cash denomination matrix.
+     * Save cash denomination matrix (Disabled - physical count section removed).
      */
     public function saveDenomination(Request $request): JsonResponse
     {
@@ -89,8 +57,6 @@ class CashBookApiController extends Controller
         $validated = $request->validate([
             'branch_id' => 'required|exists:branches,id',
             'date' => 'nullable|date',
-            'denominations' => 'required|array',
-            'denominations.*' => 'integer|min:0',
         ]);
 
         if (!$user->canAccessBranch($validated['branch_id'])) {
@@ -100,9 +66,7 @@ class CashBookApiController extends Controller
         $date = $validated['date'] ?? now()->toDateString();
         $cashBook = $this->cashBookService->getOrCreateCashBook($validated['branch_id'], $date, $user->id);
 
-        $this->cashBookService->saveDenominations($cashBook, $validated['denominations']);
-
-        return $this->successResponse($cashBook->fresh(['denominations']), 'Cash denomination matrix saved');
+        return $this->successResponse($cashBook->fresh(['entries', 'onlineCollections']), 'Cash Book register reconciled');
     }
 
     /**

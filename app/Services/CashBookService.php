@@ -94,8 +94,6 @@ class CashBookService
                 ['code' => 'deposit_to_bank', 'particulars' => 'DEPOSIT TO BANK'],
                 ['code' => 'management_expense', 'particulars' => 'MANAGEMENT EXPENSE'],
                 ['code' => 'fund_transfer', 'particulars' => 'FUND TRANSFER TO'],
-                ['code' => 'miscellaneous', 'particulars' => 'MISCELLANEOUS'],
-                ['code' => 'distribution_payment', 'particulars' => 'DISTRIBUTION PAYMENT'],
                 ['code' => 'gl_steel_furniture', 'particulars' => 'GL STEEL FURNITURE BY CUSTOMER'],
                 ['code' => 'borrower_death', 'particulars' => 'BORROWER DEATH'],
             ];
@@ -115,24 +113,13 @@ class CashBookService
                 ]);
             }
 
-            // Seed Denominations (500, 200, 100, 50, 20, 10, 5, 2, 1)
-            $denominations = [500, 200, 100, 50, 20, 10, 5, 2, 1];
-            foreach ($denominations as $denom) {
-                CashBookDenomination::create([
-                    'cash_book_id' => $cashBook->id,
-                    'denomination' => $denom,
-                    'count' => 0,
-                    'amount' => 0.00,
-                ]);
-            }
-
             // Audit log
             $this->logAudit($cashBook->id, $userId, 'created', ['opening_balance' => $openingBalance], 'Daily Cash Book register created');
 
             // Sync ERP transactions
             $this->syncErpTransactions($cashBook);
 
-            return $cashBook->fresh(['entries', 'onlineCollections', 'denominations']);
+            return $cashBook->fresh(['entries', 'onlineCollections']);
         });
     }
 
@@ -163,10 +150,10 @@ class CashBookService
             ->where('entry_type', 'received')
             ->sum('cash_amount');
 
-        // Sum previous day's cash payments (excluding deposit_to_bank row to prevent double-deduction)
+        // Sum previous day's cash payments (excluding deposit_to_bank, member_no, and borrower_death rows)
         $prevCashPayment = CashBookEntry::where('cash_book_id', $previousCashBook->id)
             ->where('entry_type', 'payment')
-            ->where('category_code', '!=', 'deposit_to_bank')
+            ->whereNotIn('category_code', ['deposit_to_bank', 'member_no', 'borrower_death'])
             ->sum('cash_amount');
 
         // Final Physical Cash = prevCashReceived - prevCashPayment - prevApprovedDeposits
@@ -216,14 +203,44 @@ class CashBookService
         $date = $cashBook->date->format('Y-m-d');
         $branchId = $cashBook->branch_id;
 
-        // Ensure legacy category codes are updated to new exact names
+        // Delete removed payment category rows if present
         CashBookEntry::where('cash_book_id', $cashBook->id)
-            ->where('category_code', 'card_fee')
-            ->update(['category_code' => 'insurance_fee', 'particulars' => 'INSURANCE FEE']);
+            ->whereIn('category_code', ['miscellaneous', 'distribution_payment'])
+            ->delete();
 
-        CashBookEntry::where('cash_book_id', $cashBook->id)
-            ->where('category_code', 'principal_payment')
-            ->update(['category_code' => 'pre_payment', 'particulars' => 'PRE PAYMENT']);
+        // Ensure all 7 exact payment rows exist and have correct sort order
+        $paymentOrderMap = [
+            'loan_disbursed' => [1, 'LOAN DISBURSED AMOUNT'],
+            'member_no' => [2, 'MEMBER NO'],
+            'deposit_to_bank' => [3, 'DEPOSIT TO BANK'],
+            'management_expense' => [4, 'MANAGEMENT EXPENSE'],
+            'fund_transfer' => [5, 'FUND TRANSFER TO'],
+            'gl_steel_furniture' => [6, 'GL STEEL FURNITURE BY CUSTOMER'],
+            'borrower_death' => [7, 'BORROWER DEATH'],
+        ];
+
+        foreach ($paymentOrderMap as $code => $info) {
+            CashBookEntry::firstOrCreate(
+                [
+                    'cash_book_id' => $cashBook->id,
+                    'entry_type' => 'payment',
+                    'category_code' => $code,
+                ],
+                [
+                    'particulars' => $info[1],
+                    'entry_date' => $date,
+                    'cash_amount' => 0.00,
+                    'product_amount' => 0.00,
+                    'bank_amount' => 0.00,
+                    'sort_order' => $info[0],
+                ]
+            );
+
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('entry_type', 'payment')
+                ->where('category_code', $code)
+                ->update(['sort_order' => $info[0], 'particulars' => $info[1]]);
+        }
 
         // 1. CASH OPENING BALANCE Row
         $openingEntry = CashBookEntry::where('cash_book_id', $cashBook->id)
@@ -262,6 +279,7 @@ class CashBookService
         // 3. PROCESSING FEE Row
         $disbursements = LoanAccount::whereDate('disbursement_date', $date)
             ->where('branch_id', $branchId)
+            ->whereIn('status', ['active', 'disbursed', 'closed'])
             ->get();
 
         $branchLoanIds = LoanAccount::where('branch_id', $branchId)->pluck('id');
@@ -373,7 +391,79 @@ class CashBookService
                 ]);
         }
 
-        // 9. Payment Section: DEPOSIT TO BANK Row
+        // 9. Payment Section: LOAN DISBURSED Row
+        $loanDisbursementRecords = collect();
+        if (Schema::hasTable('loan_disbursements')) {
+            $loanDisbursementRecords = DB::table('loan_disbursements')
+                ->join('loan_accounts', 'loan_disbursements.loan_account_id', '=', 'loan_accounts.id')
+                ->where('loan_accounts.branch_id', $branchId)
+                ->whereDate('loan_disbursements.disbursement_date', $date)
+                ->select('loan_disbursements.*', 'loan_accounts.loan_type')
+                ->get();
+        }
+
+        $loanDisbursedCash = 0.00;
+        $loanDisbursedBank = 0.00;
+
+        if ($loanDisbursementRecords->count() > 0) {
+            foreach ($loanDisbursementRecords as $ld) {
+                $method = strtolower($ld->payment_method ?? 'cash');
+                $amt = (float)$ld->disbursed_amount;
+                if (in_array($method, ['cash', ''])) {
+                    $loanDisbursedCash += $amt;
+                } elseif ($method !== 'product_fulfillment') {
+                    $loanDisbursedBank += $amt;
+                }
+            }
+        } else if ($disbursements->count() > 0) {
+            foreach ($disbursements as $l) {
+                $method = strtolower($l->disbursement_payment_method ?? $l->payment_method ?? 'cash');
+                $amt = (float)($l->disbursed_amount > 0 ? $l->disbursed_amount : ($l->sanctioned_amount > 0 ? $l->sanctioned_amount : $l->amount));
+                if (in_array($method, ['cash', ''])) {
+                    $loanDisbursedCash += $amt;
+                } elseif ($method !== 'product_fulfillment') {
+                    $loanDisbursedBank += $amt;
+                }
+            }
+        }
+
+        CashBookEntry::where('cash_book_id', $cashBook->id)
+            ->where('category_code', 'loan_disbursed')
+            ->update([
+                'cash_amount' => $loanDisbursedCash,
+                'bank_amount' => $loanDisbursedBank,
+            ]);
+
+        // 9b. Payment Section: MEMBER NO Row
+        $distinctCustomerIds = collect();
+        $disbCusts = LoanAccount::whereDate('disbursement_date', $date)
+            ->where('branch_id', $branchId)
+            ->whereIn('status', ['active', 'disbursed', 'closed'])
+            ->whereNotNull('customer_id')
+            ->pluck('customer_id');
+        $distinctCustomerIds = $distinctCustomerIds->merge($disbCusts);
+
+        if (Schema::hasTable('loan_disbursements')) {
+            $disbTableCusts = DB::table('loan_disbursements')
+                ->join('loan_accounts', 'loan_disbursements.loan_account_id', '=', 'loan_accounts.id')
+                ->where('loan_accounts.branch_id', $branchId)
+                ->whereDate('loan_disbursements.disbursement_date', $date)
+                ->whereNotNull('loan_accounts.customer_id')
+                ->pluck('loan_accounts.customer_id');
+            $distinctCustomerIds = $distinctCustomerIds->merge($disbTableCusts);
+        }
+
+        $memberCount = $distinctCustomerIds->unique()->filter()->count();
+
+        CashBookEntry::where('cash_book_id', $cashBook->id)
+            ->where('category_code', 'member_no')
+            ->update([
+                'cash_amount' => $memberCount,
+                'product_amount' => 0.00,
+                'bank_amount' => 0.00,
+            ]);
+
+        // 10. Payment Section: DEPOSIT TO BANK Row
         $approvedDeposits = BankDeposit::where('branch_id', $branchId)
             ->whereDate('deposit_date', $date)
             ->where('status', 'approved')
@@ -385,13 +475,97 @@ class CashBookService
                 'cash_amount' => $approvedDeposits,
             ]);
 
-        // 10. Sync Online Collections sub-table
+        // 11. Payment Section: MANAGEMENT EXPENSE Row
+        $expenseCash = 0.00;
+        $expenseBank = 0.00;
+
+        if (Schema::hasTable('expense_payments')) {
+            $payments = DB::table('expense_payments')
+                ->join('expenses', 'expense_payments.expense_id', '=', 'expenses.id')
+                ->where('expenses.branch_id', $branchId)
+                ->whereDate('expense_payments.payment_date', $date)
+                ->whereIn('expenses.status', ['APPROVED', 'PAID', 'PARTIALLY_PAID'])
+                ->select('expense_payments.*')
+                ->get();
+
+            if ($payments->count() > 0) {
+                $expenseCash = $payments->filter(fn($p) => in_array(strtolower($p->payment_method ?? 'cash'), ['cash', '']))->sum('paid_amount');
+                $expenseBank = $payments->reject(fn($p) => in_array(strtolower($p->payment_method ?? 'cash'), ['cash', '']))->sum('paid_amount');
+            }
+        }
+
+        if ($expenseCash == 0 && $expenseBank == 0 && Schema::hasTable('expenses')) {
+            $expenses = DB::table('expenses')
+                ->where('branch_id', $branchId)
+                ->whereDate('expense_date', $date)
+                ->whereIn('status', ['APPROVED', 'PAID', 'PARTIALLY_PAID'])
+                ->where('paid_amount', '>', 0)
+                ->get();
+
+            if ($expenses->count() > 0) {
+                $expenseCash = $expenses->filter(fn($e) => in_array(strtolower($e->payment_method ?? 'cash'), ['cash', '']))->sum('paid_amount');
+                $expenseBank = $expenses->reject(fn($e) => in_array(strtolower($e->payment_method ?? 'cash'), ['cash', '']))->sum('paid_amount');
+            }
+        }
+
+        if ($expenseCash > 0 || $expenseBank > 0) {
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('category_code', 'management_expense')
+                ->update([
+                    'cash_amount' => $expenseCash,
+                    'bank_amount' => $expenseBank,
+                ]);
+        }
+
+        // 11b. Payment Section: BORROWER DEATH Row
+        $deathForgivenAmount = 0.00;
+
+        if (Schema::hasTable('loan_settlement_requests')) {
+            $deathRequests = DB::table('loan_settlement_requests')
+                ->where('branch_id', $branchId)
+                ->where('request_type', 'borrower_death')
+                ->whereIn('status', ['approved', 'completed'])
+                ->where(function ($q) use ($date) {
+                    $q->whereDate('as_of_date', $date)
+                      ->orWhereDate('approved_at', $date);
+                })
+                ->get();
+
+            if ($deathRequests->count() > 0) {
+                $deathForgivenAmount += $deathRequests->sum('discount_concession_amount');
+            }
+        }
+
+        $closedDeathLoans = LoanAccount::where('branch_id', $branchId)
+            ->where('status', 'closed')
+            ->where('closure_type', 'borrower_death')
+            ->whereDate('closed_at', $date)
+            ->get();
+
+        if ($closedDeathLoans->count() > 0) {
+            foreach ($closedDeathLoans as $cdl) {
+                if (!Schema::hasTable('loan_settlement_requests') || DB::table('loan_settlement_requests')->where('loan_account_id', $cdl->id)->where('request_type', 'borrower_death')->doesntExist()) {
+                    $deathForgivenAmount += (float)($cdl->sanctioned_amount ?? $cdl->disbursed_amount ?? 0);
+                }
+            }
+        }
+
+        CashBookEntry::where('cash_book_id', $cashBook->id)
+            ->where('category_code', 'borrower_death')
+            ->update([
+                'cash_amount' => $deathForgivenAmount,
+            ]);
+
+        // 12. Sync Online Collections sub-table (Every individual non-cash transaction remains a separate record)
         $onlineRepayments = $repayments->reject(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']));
+        $existingRepaymentIds = [];
+
         foreach ($onlineRepayments as $rep) {
             $customer = $rep->loanAccount->customer ?? null;
             $group = $rep->loanAccount->customerGroup ?? null;
+            $customerName = $customer ? (trim(($customer->first_name ?? '') . ' ' . ($customer->last_name ?? '')) ?: $customer->name) : ('Customer #' . $rep->loan_account_id);
 
-            CashBookOnlineCollection::firstOrCreate(
+            CashBookOnlineCollection::updateOrCreate(
                 [
                     'cash_book_id' => $cashBook->id,
                     'repayment_id' => $rep->id,
@@ -399,17 +573,25 @@ class CashBookService
                 [
                     'collection_date' => $date,
                     'customer_id' => $customer ? $customer->id : null,
-                    'customer_name' => $customer ? $customer->name : 'Customer #' . $rep->loan_account_id,
+                    'customer_name' => $customerName,
                     'amount' => $rep->amount,
                     'group_id' => $group ? $group->id : null,
                     'group_name' => $group ? $group->name : null,
-                    'mobile_no' => $customer ? $customer->mobile_number : null,
+                    'mobile_no' => $customer ? ($customer->mobile_number ?? $customer->phone ?? null) : null,
                     'payment_method' => $rep->payment_method ?? 'online',
                     'transaction_reference' => $rep->reference_number,
                     'created_by' => $cashBook->created_by,
                 ]
             );
+
+            $existingRepaymentIds[] = $rep->id;
         }
+
+        // Clean up online collection records for repayments that no longer exist or changed payment method
+        CashBookOnlineCollection::where('cash_book_id', $cashBook->id)
+            ->whereNotNull('repayment_id')
+            ->whereNotIn('repayment_id', $existingRepaymentIds)
+            ->delete();
 
         // Recalculate Cash Book totals
         $this->recalculateTotals($cashBook);
@@ -420,7 +602,7 @@ class CashBookService
      */
     public function recalculateTotals(CashBook $cashBook): void
     {
-        $cashBook->load(['entries', 'denominations']);
+        $cashBook->load(['entries']);
 
         // Sync opening cash entry with cashBook->opening_balance
         $openingEntry = $cashBook->entries->where('category_code', 'cash_opening_balance')->first();
@@ -436,23 +618,20 @@ class CashBookService
         $totalProductReceived = $receivedEntries->sum('product_amount');
         $totalBankReceived = $receivedEntries->sum('bank_amount');
 
-        $totalCashPayment = $paymentEntries->sum('cash_amount');
+        // Exclude non-cash payment categories (member_no and borrower_death) from physical cash deduction
+        $cashPaymentEntries = $paymentEntries->reject(fn($e) => in_array($e->category_code, ['member_no', 'borrower_death']));
+
+        $totalCashPayment = $cashPaymentEntries->sum('cash_amount');
         $totalProductPayment = $paymentEntries->sum('product_amount');
         $totalBankPayment = $paymentEntries->sum('bank_amount');
 
-        // Closing cash = Total Cash Received - Total Cash Payment (since Opening Cash is in Total Cash Received)
+        // Closing cash = Total Cash Received - Total Cash Payment
         $closingCash = $totalCashReceived - $totalCashPayment;
 
-        // Physical Cash Total = Sum of denominations
-        $physicalCash = $cashBook->denominations->sum('amount');
-        $cashDifference = $physicalCash - $closingCash;
-
+        // Physical Cash counting section is disabled; System Closing Cash is the cash in hand
+        $physicalCash = $closingCash;
+        $cashDifference = 0.00;
         $reconciledStatus = 'balanced';
-        if ($cashDifference < -0.01) {
-            $reconciledStatus = 'cash_short';
-        } elseif ($cashDifference > 0.01) {
-            $reconciledStatus = 'cash_excess';
-        }
 
         $cashBook->update([
             'total_cash_received' => $totalCashReceived,

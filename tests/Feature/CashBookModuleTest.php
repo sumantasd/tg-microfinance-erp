@@ -89,8 +89,7 @@ class CashBookModuleTest extends TestCase
         $this->assertEquals('2026-08-31', $cashBook->date->format('Y-m-d'));
         $this->assertEquals('open', $cashBook->status);
         $this->assertCount(8, $cashBook->receivedEntries);
-        $this->assertCount(9, $cashBook->paymentEntries);
-        $this->assertCount(9, $cashBook->denominations);
+        $this->assertCount(7, $cashBook->paymentEntries);
     }
 
     public function test_add_and_update_particular_entries_recalculates_closing_cash(): void
@@ -156,20 +155,6 @@ class CashBookModuleTest extends TestCase
 
         $cashBook->update(['opening_balance' => 90.00]);
         $this->cashBookService->recalculateTotals($cashBook);
-
-        // Count: 0 x 500, 0 x 200, 0 x 100, 1 x 50, 2 x 20 = 90
-        $this->cashBookService->updateDenominations($cashBook, [
-            500 => 0,
-            200 => 0,
-            100 => 0,
-            50 => 1,
-            20 => 2,
-            10 => 0,
-            5 => 0,
-            2 => 0,
-            1 => 0,
-        ], $this->admin->id);
-
         $cashBook->refresh();
 
         $this->assertEquals(90.00, (float)$cashBook->physical_cash);

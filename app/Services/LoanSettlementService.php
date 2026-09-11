@@ -356,6 +356,18 @@ class LoanSettlementService
             $foreclosureFee = 0.00;
             $accruedInterest = $calc['interest_outstanding'];
             $unearnedRebate = 0.00;
+        } elseif ($requestType === 'borrower_death') {
+            $finalAmount = 0.00;
+            $concession = round(
+                (float)$loan->principal_outstanding +
+                (float)$loan->interest_outstanding +
+                (float)$loan->fee_outstanding +
+                (float)$loan->penalty_outstanding,
+                2
+            );
+            $foreclosureFee = 0.00;
+            $accruedInterest = round((float)$loan->interest_outstanding, 2);
+            $unearnedRebate = 0.00;
         } else {
             // OTS
             $proposedAmount = (float) ($data['proposed_settlement_amount'] ?? 0.00);

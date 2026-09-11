@@ -13,6 +13,11 @@
             <p class="text-muted small mb-0">Manage daily branch physical & digital cash book reconciliation</p>
         </div>
         <div class="d-flex align-items-center gap-2">
+            @can('bank_deposit.view')
+                <a href="{{ route('admin.bank-deposits.index') }}" class="btn btn-outline-info rounded-pill px-3 shadow-sm font-monospace fw-bold me-2">
+                    <i class="bi bi-bank me-1"></i> Bank Deposits
+                </a>
+            @endcan
             @if($currentCashBook)
                 <a href="{{ route('admin.cash-book.show', $currentCashBook->id) }}" class="btn btn-primary rounded-pill px-3 shadow-sm font-monospace fw-bold">
                     <i class="bi bi-book-half me-1"></i> Open Register ({{ Carbon\Carbon::parse($selectedDate)->format('d M Y') }})
@@ -69,9 +74,6 @@
                         <th>Received Total</th>
                         <th>Payment Total</th>
                         <th>Closing Cash</th>
-                        <th>Physical Total</th>
-                        <th>Difference</th>
-                        <th>Reconciliation</th>
                         <th>Status</th>
                         <th class="pe-4 text-end">Action</th>
                     </tr>
@@ -91,25 +93,6 @@
                             <td class="font-monospace text-success fw-semibold">₹{{ number_format($cb->total_cash_received, 2) }}</td>
                             <td class="font-monospace text-danger fw-semibold">₹{{ number_format($cb->total_cash_payment, 2) }}</td>
                             <td class="font-monospace fw-bold text-dark">₹{{ number_format($cb->closing_cash, 2) }}</td>
-                            <td class="font-monospace">₹{{ number_format($cb->physical_cash, 2) }}</td>
-                            <td class="font-monospace {{ $cb->cash_difference < 0 ? 'text-danger fw-bold' : ($cb->cash_difference > 0 ? 'text-warning fw-bold' : 'text-muted') }}">
-                                ₹{{ number_format($cb->cash_difference, 2) }}
-                            </td>
-                            <td>
-                                @if($cb->reconciled_status === 'balanced')
-                                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5">
-                                        <i class="bi bi-check-circle-fill me-1"></i> Balanced
-                                    </span>
-                                @elseif($cb->reconciled_status === 'cash_short')
-                                    <span class="badge bg-danger-subtle text-danger border border-danger-subtle rounded-pill px-2.5">
-                                        <i class="bi bi-exclamation-triangle-fill me-1"></i> Shortage
-                                    </span>
-                                @else
-                                    <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-2.5">
-                                        <i class="bi bi-plus-circle-fill me-1"></i> Excess
-                                    </span>
-                                @endif
-                            </td>
                             <td>
                                 @if($cb->status === 'open')
                                     <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-2.5">
@@ -132,7 +115,7 @@
                         </tr>
                     @empty
                         <tr>
-                            <td colspan="11" class="text-center py-5 text-muted">
+                            <td colspan="8" class="text-center py-5 text-muted">
                                 <i class="bi bi-journal-x fs-1 d-block mb-2 text-secondary opacity-50"></i>
                                 No cash book register entries found for selected criteria.
                             </td>
