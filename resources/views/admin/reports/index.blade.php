@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Central Reports Center - TG Microfinance ERP')
+@section('title', 'Central Reports Center' . ' - ' . config('app.name'))
 
 @section('content')
 <!-- Header Strip -->

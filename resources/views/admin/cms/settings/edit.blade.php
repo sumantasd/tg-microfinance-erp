@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Website Settings - TG Microfinance ERP')
+@section('title', 'Website Settings' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -39,9 +39,9 @@
                 <h6 class="fw-bold text-primary border-bottom pb-2 mb-0"><i class="bi bi-building me-1"></i> General Branding & Company Info</h6>
             </div>
 
-            <div class="col-md-6">
+            <div class="col-md-3">
                 <label class="form-label small fw-bold text-secondary">Company Name *</label>
-                <input type="text" name="company_name" value="{{ old('company_name', $settings->company_name) }}" class="form-control bg-light" placeholder="TG Microfinance" required>
+                <input type="text" name="company_name" value="{{ old('company_name', $settings->company_name) }}" class="form-control bg-light" placeholder="System Name" required>
             </div>
 
             <div class="col-md-3">
@@ -49,8 +49,19 @@
                 <input type="file" name="logo" class="form-control bg-light">
                 @if($settings->logo)
                     <div class="mt-2 p-2 bg-light border rounded d-flex align-items-center gap-2">
-                        <img src="{{ asset('storage/' . $settings->logo) }}" alt="Logo" style="max-height: 40px;" class="rounded">
+                        <img src="{{ $settings->logo_url }}" alt="Logo" style="max-height: 36px;" class="rounded">
                         <span class="small text-muted">Current Logo</span>
+                    </div>
+                @endif
+            </div>
+
+            <div class="col-md-3">
+                <label class="form-label small fw-bold text-secondary">Logo Icon (Square)</label>
+                <input type="file" name="logo_icon" class="form-control bg-light">
+                @if($settings->logo_icon)
+                    <div class="mt-2 p-2 bg-light border rounded d-flex align-items-center gap-2">
+                        <img src="{{ $settings->logo_icon_url }}" alt="Logo Icon" style="max-height: 28px;" class="rounded">
+                        <span class="small text-muted">Current Icon</span>
                     </div>
                 @endif
             </div>
@@ -60,7 +71,7 @@
                 <input type="file" name="favicon" class="form-control bg-light">
                 @if($settings->favicon)
                     <div class="mt-2 p-2 bg-light border rounded d-flex align-items-center gap-2">
-                        <img src="{{ asset('storage/' . $settings->favicon) }}" alt="Favicon" style="max-height: 24px;">
+                        <img src="{{ $settings->favicon_url }}" alt="Favicon" style="max-height: 24px;">
                         <span class="small text-muted">Current Favicon</span>
                     </div>
                 @endif
@@ -173,7 +184,7 @@
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary">Contact Email Address</label>
-                <input type="email" name="email" value="{{ old('email', $settings->email) }}" class="form-control bg-light" placeholder="info@tgmicrofinance.org">
+                <input type="email" name="email" value="{{ old('email', $settings->email) }}" class="form-control bg-light" placeholder="info@grihalaxmifinance.org">
             </div>
 
             <div class="col-12">
@@ -188,27 +199,27 @@
 
             <div class="col-md-4">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-facebook text-primary me-1"></i> Facebook URL</label>
-                <input type="url" name="social_links[facebook]" value="{{ old('social_links.facebook', $settings->social_links['facebook'] ?? '') }}" class="form-control bg-light" placeholder="https://facebook.com/tgmicrofinance">
+                <input type="url" name="social_links[facebook]" value="{{ old('social_links.facebook', $settings->social_links['facebook'] ?? '') }}" class="form-control bg-light" placeholder="https://facebook.com/grihalaxmifinance">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-twitter-x me-1"></i> X (Twitter) URL</label>
-                <input type="url" name="social_links[twitter]" value="{{ old('social_links.twitter', $settings->social_links['twitter'] ?? '') }}" class="form-control bg-light" placeholder="https://twitter.com/tgmicrofinance">
+                <input type="url" name="social_links[twitter]" value="{{ old('social_links.twitter', $settings->social_links['twitter'] ?? '') }}" class="form-control bg-light" placeholder="https://twitter.com/grihalaxmifinance">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-linkedin text-info me-1"></i> LinkedIn URL</label>
-                <input type="url" name="social_links[linkedin]" value="{{ old('social_links.linkedin', $settings->social_links['linkedin'] ?? '') }}" class="form-control bg-light" placeholder="https://linkedin.com/company/tgmicrofinance">
+                <input type="url" name="social_links[linkedin]" value="{{ old('social_links.linkedin', $settings->social_links['linkedin'] ?? '') }}" class="form-control bg-light" placeholder="https://linkedin.com/company/grihalaxmifinance">
             </div>
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-instagram text-danger me-1"></i> Instagram URL</label>
-                <input type="url" name="social_links[instagram]" value="{{ old('social_links.instagram', $settings->social_links['instagram'] ?? '') }}" class="form-control bg-light" placeholder="https://instagram.com/tgmicrofinance">
+                <input type="url" name="social_links[instagram]" value="{{ old('social_links.instagram', $settings->social_links['instagram'] ?? '') }}" class="form-control bg-light" placeholder="https://instagram.com/grihalaxmifinance">
             </div>
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-youtube text-danger me-1"></i> YouTube URL</label>
-                <input type="url" name="social_links[youtube]" value="{{ old('social_links.youtube', $settings->social_links['youtube'] ?? '') }}" class="form-control bg-light" placeholder="https://youtube.com/@tgmicrofinance">
+                <input type="url" name="social_links[youtube]" value="{{ old('social_links.youtube', $settings->social_links['youtube'] ?? '') }}" class="form-control bg-light" placeholder="https://youtube.com/@grihalaxmifinance">
             </div>
 
             <!-- Footer Text -->
@@ -218,7 +229,7 @@
 
             <div class="col-12">
                 <label class="form-label small fw-bold text-secondary">Footer Text / Copyright Notice</label>
-                <textarea name="footer_text" rows="3" class="form-control bg-light" placeholder="© 2026 TG Microfinance ERP. All rights reserved.">{{ old('footer_text', $settings->footer_text) }}</textarea>
+                <textarea name="footer_text" rows="3" class="form-control bg-light" placeholder="© 2026 Grihalaxmi Finance ERP. All rights reserved.">{{ old('footer_text', $settings->footer_text) }}</textarea>
             </div>
 
             <div class="col-12 pt-3 border-top d-flex gap-2">

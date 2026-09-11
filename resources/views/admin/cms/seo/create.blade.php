@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Add SEO Page Setting - TG Microfinance ERP')
+@section('title', 'Add SEO Page Setting' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -45,7 +45,7 @@
 
             <div class="col-12">
                 <label class="form-label small fw-bold text-secondary">Meta Title</label>
-                <input type="text" name="meta_title" value="{{ old('meta_title') }}" class="form-control bg-light" placeholder="e.g. TG Microfinance - Fast Business Loans & High-Yield Savings">
+                <input type="text" name="meta_title" value="{{ old('meta_title') }}" class="form-control bg-light" placeholder="e.g. Grihalaxmi Finance - Fast Business Loans & High-Yield Savings">
             </div>
 
             <div class="col-12">

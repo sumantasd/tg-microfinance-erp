@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'HR Letters & Employee ID Cards - TG Microfinance ERP')
+@section('title', 'HR Letters & Employee ID Cards' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

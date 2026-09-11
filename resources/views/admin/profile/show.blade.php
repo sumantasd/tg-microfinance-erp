@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'My Profile - TG Microfinance ERP')
+@section('title', 'My Profile' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="mb-4">

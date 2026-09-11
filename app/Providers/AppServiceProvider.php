@@ -51,6 +51,21 @@ class AppServiceProvider extends ServiceProvider
             return $user->hasRole('Super Admin') ? true : null;
         });
 
+        // Dynamic System Branding Configuration & Global View Composer
+        try {
+            View::composer('*', function ($view) {
+                $branding = \App\Services\SystemBrandingService::getBranding();
+                config(['app.name' => $branding->system_name]);
+
+                $view->with('systemBranding', $branding);
+                $view->with('companyLogo', $branding->logo_url);
+                $view->with('companyLogoIcon', $branding->logo_icon_url);
+                $view->with('faviconUrl', $branding->favicon_url);
+            });
+        } catch (\Throwable $e) {
+            // Silently catch during early setup / migrations
+        }
+
         // Share WebsiteSetting and FooterSetting with all public layouts and components
         View::composer(['layouts.public', 'components.layouts.public-*', 'public.*'], function ($view) {
             try {

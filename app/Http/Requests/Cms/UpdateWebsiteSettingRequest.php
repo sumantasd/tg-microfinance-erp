@@ -19,6 +19,7 @@ class UpdateWebsiteSettingRequest extends FormRequest
             'email' => 'nullable|email|max:255',
             'address' => 'nullable|string',
             'logo' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,webp|max:2048',
+            'logo_icon' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,ico,webp|max:2048',
             'favicon' => 'nullable|image|mimes:jpeg,png,jpg,gif,svg,ico,webp|max:1024',
             'social_links' => 'nullable|array',
             'social_links.facebook' => 'nullable|url|max:255',

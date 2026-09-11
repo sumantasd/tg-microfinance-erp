@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Our Vision - TG Microfinance ERP')
-@section('meta_description', 'Learn about TG Microfinance long-term strategic vision for micro-financial technology.')
+@section('title', 'Our Vision' . ' - ' . config('app.name'))
+@section('meta_description', 'Learn about Grihalaxmi Finance long-term strategic vision for micro-financial technology.')
 
 @section('content')
 <x-ui.page-banner

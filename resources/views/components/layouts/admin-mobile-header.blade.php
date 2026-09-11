@@ -1,7 +1,6 @@
 @php
-    $settings = \App\Models\WebsiteSetting::first();
-    $companyName = $settings->company_name ?? 'Grihalaxmi Finance';
-    $companyLogo = $settings->logo_url ?? null;
+    $displayName = config('app.name');
+    $displayLogo = $companyLogo ?? asset('images/logo.png');
 @endphp
 
 <!-- True Fixed Mobile Top Header (Viewport Top) -->
@@ -11,12 +10,12 @@
         <i class="bi bi-list fs-4 text-dark"></i>
     </button>
 
-    <!-- Center: Real Grihalaxmi Logo Image -->
+    <!-- Center: Dynamic Logo Image -->
     <a href="{{ url('/admin') }}" class="text-decoration-none d-flex align-items-center justify-content-center mx-auto" style="max-width: 60vw;">
-        @if($companyLogo)
-            <img src="{{ $companyLogo }}" alt="{{ $companyName }}" style="max-height: 34px; width: auto; max-width: 170px; object-fit: contain;">
+        @if($displayLogo)
+            <img src="{{ $displayLogo }}" alt="{{ $displayName }}" style="max-height: 34px; width: auto; max-width: 170px; object-fit: contain;">
         @else
-            <span class="fw-bold font-heading text-dark fs-6 text-truncate">{{ $companyName }}</span>
+            <span class="fw-bold font-heading text-dark fs-6 text-truncate">{{ $displayName }}</span>
         @endif
     </a>
 

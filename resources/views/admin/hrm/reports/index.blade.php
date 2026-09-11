@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'HR Analytics & Reports - TG Microfinance ERP')
+@section('title', 'HR Analytics & Reports' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

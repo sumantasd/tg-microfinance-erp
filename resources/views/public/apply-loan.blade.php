@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Online Loan Application - TG Microfinance ERP')
-@section('meta_description', 'Apply online for a micro-loan or business credit facility with TG Microfinance.')
+@section('title', 'Online Loan Application' . ' - ' . config('app.name'))
+@section('meta_description', 'Apply online for a micro-loan or business credit facility with Grihalaxmi Finance.')
 
 @section('content')
 <x-ui.page-banner

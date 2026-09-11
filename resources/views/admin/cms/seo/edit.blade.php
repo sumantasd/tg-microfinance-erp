@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit SEO Page Setting - TG Microfinance ERP')
+@section('title', 'Edit SEO Page Setting' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

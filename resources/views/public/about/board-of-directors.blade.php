@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Board of Directors - TG Microfinance ERP')
-@section('meta_description', 'Meet the Board of Directors governing TG Microfinance enterprise operations and fiduciary standards.')
+@section('title', 'Board of Directors' . ' - ' . config('app.name'))
+@section('meta_description', 'Meet the Board of Directors governing Grihalaxmi Finance enterprise operations and fiduciary standards.')
 
 @section('content')
 <x-ui.page-banner

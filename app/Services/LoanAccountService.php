@@ -173,46 +173,47 @@ class LoanAccountService
                 $sDate
             );
 
-            $loanNumber = $this->accountRepository->generateLoanNumber($app->branch_id);
+                $loanNumber = $this->accountRepository->generateLoanNumber($app->branch_id);
+                $totalUpfrontNeeded = round(($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount + $downPaymentAmount, 2);
 
-            $masterData = [
-                'loan_number' => $loanNumber,
-                'company_id' => $app->company_id,
-                'branch_id' => $app->branch_id,
-                'loan_application_id' => $app->id,
-                'customer_id' => $app->customer_id,
-                'customer_group_id' => $app->customer_group_id,
-                'loan_scheme_id' => $app->loan_scheme_id,
-                'loan_type' => $app->loan_type,
-                'borrower_type' => $app->borrower_type,
-                'product_price_amount' => $productPrice,
-                'down_payment_amount' => $downPaymentAmount,
-                'sanctioned_amount' => $sanctionedPrincipal,
-                'disbursed_amount' => 0.00,
-                'tenure_months' => $app->tenure_months,
-                'repayment_frequency' => $app->repayment_frequency,
-                'interest_type' => $app->interest_type,
-                'interest_rate_per_annum' => $app->interest_rate_per_annum,
-                'processing_fee_percentage' => $app->processing_fee_percentage ?? 0.00,
-                'processing_fee_amount' => $app->processing_fee_amount ?? 0.00,
-                'insurance_fee_percentage' => $app->insurance_fee_percentage ?? 0.00,
-                'insurance_fee_amount' => $app->insurance_fee_amount ?? 0.00,
-                'other_charges_amount' => $otherChargesAmount,
-                'upfront_charges_paid' => 0.00,
-                'upfront_payment_status' => (round(($app->processing_fee_amount ?? 0) + ($app->insurance_fee_amount ?? 0), 2) <= 0) ? 'paid' : 'pending',
-                'total_interest_amount' => $scheduleData['total_interest'],
-                'total_repayment_amount' => $scheduleData['total_repayment'],
-                'principal_outstanding' => $sanctionedPrincipal,
-                'interest_outstanding' => $scheduleData['total_interest'],
-                'fee_outstanding' => round(($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount, 2),
-                'penalty_outstanding' => 0.00,
-                'total_outstanding' => round($sanctionedPrincipal + $scheduleData['total_interest'] + ($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount, 2),
-                'status' => (round(($app->processing_fee_amount ?? 0) + ($app->insurance_fee_amount ?? 0), 2) <= 0) ? 'ready_for_disbursement' : 'sanctioned',
-                'sanction_date' => $sDate->toDateString(),
-                'maturity_date' => $scheduleData['maturity_date'],
-                'created_by' => Auth::id(),
-                'updated_by' => Auth::id(),
-            ];
+                $masterData = [
+                    'loan_number' => $loanNumber,
+                    'company_id' => $app->company_id,
+                    'branch_id' => $app->branch_id,
+                    'loan_application_id' => $app->id,
+                    'customer_id' => $app->customer_id,
+                    'customer_group_id' => $app->customer_group_id,
+                    'loan_scheme_id' => $app->loan_scheme_id,
+                    'loan_type' => $app->loan_type,
+                    'borrower_type' => $app->borrower_type,
+                    'product_price_amount' => $productPrice,
+                    'down_payment_amount' => $downPaymentAmount,
+                    'sanctioned_amount' => $sanctionedPrincipal,
+                    'disbursed_amount' => 0.00,
+                    'tenure_months' => $app->tenure_months,
+                    'repayment_frequency' => $app->repayment_frequency,
+                    'interest_type' => $app->interest_type,
+                    'interest_rate_per_annum' => $app->interest_rate_per_annum,
+                    'processing_fee_percentage' => $app->processing_fee_percentage ?? 0.00,
+                    'processing_fee_amount' => $app->processing_fee_amount ?? 0.00,
+                    'insurance_fee_percentage' => $app->insurance_fee_percentage ?? 0.00,
+                    'insurance_fee_amount' => $app->insurance_fee_amount ?? 0.00,
+                    'other_charges_amount' => $otherChargesAmount,
+                    'upfront_charges_paid' => 0.00,
+                    'upfront_payment_status' => ($totalUpfrontNeeded <= 0) ? 'paid' : 'pending',
+                    'total_interest_amount' => $scheduleData['total_interest'],
+                    'total_repayment_amount' => $scheduleData['total_repayment'],
+                    'principal_outstanding' => $sanctionedPrincipal,
+                    'interest_outstanding' => $scheduleData['total_interest'],
+                    'fee_outstanding' => round(($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount, 2),
+                    'penalty_outstanding' => 0.00,
+                    'total_outstanding' => round($sanctionedPrincipal + $scheduleData['total_interest'] + ($app->processing_fee_amount ?? 0.00) + ($app->insurance_fee_amount ?? 0.00) + $otherChargesAmount, 2),
+                    'status' => ($totalUpfrontNeeded <= 0) ? 'ready_for_disbursement' : 'sanctioned',
+                    'sanction_date' => $sDate->toDateString(),
+                    'maturity_date' => $scheduleData['maturity_date'],
+                    'created_by' => Auth::id() ?? $app->created_by,
+                    'updated_by' => Auth::id() ?? $app->created_by,
+                ];
 
             $loanAccount = $this->accountRepository->createLoanAccount($masterData, [], $scheduleData['installments']);
 
@@ -435,6 +436,9 @@ class LoanAccountService
             if ($disbursement) {
                 $this->accountingService->postProductLoanIssue($updated, $disbursement);
             }
+
+            // Automatic Centralized Invoice Generation for Product Loan
+            app(BillingService::class)->generateInvoiceForProductLoan($updated);
 
             $this->activityLogService->log('product_issued_against_loan', $updated);
             $this->activityLogService->log('loan_disbursed', $updated);

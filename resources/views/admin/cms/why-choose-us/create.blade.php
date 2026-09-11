@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Add Why Choose Us Card - TG Microfinance ERP')
+@section('title', 'Add Why Choose Us Card' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

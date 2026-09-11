@@ -19,10 +19,15 @@ class Branch extends Model
         'manager_id',
         'email',
         'phone',
+        'alt_phone',
         'address',
+        'address_line_2',
         'city',
+        'district',
         'state',
+        'country',
         'pincode',
+        'gstin',
         'vault_cash_limit',
         'current_vault_balance',
         'is_active',
@@ -31,6 +36,24 @@ class Branch extends Model
         'updated_by',
         'deleted_by',
     ];
+
+    /**
+     * Accessor for formatted full branch address.
+     */
+    public function getFullAddressAttribute(): string
+    {
+        $parts = array_filter([
+            $this->address,
+            $this->address_line_2,
+            $this->city,
+            $this->district,
+            $this->state,
+            $this->pincode ? "PIN - {$this->pincode}" : null,
+            $this->country,
+        ]);
+
+        return implode(', ', $parts);
+    }
 
     protected function casts(): array
     {

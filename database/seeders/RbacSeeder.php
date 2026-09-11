@@ -19,6 +19,8 @@ class RbacSeeder extends Seeder
             'roles.view', 'roles.create', 'roles.edit', 'roles.delete', 'roles.assign',
             'permissions.view', 'permissions.assign',
             'settings.view', 'settings.edit', 'settings.manage',
+            'backup.view', 'backup.create', 'backup.download', 'backup.delete',
+            'bank_deposit.view', 'bank_deposit.create', 'bank_deposit.approve', 'bank_deposit.delete',
 
             // 2. Organization (Company & Branch)
             'company.view', 'company.create', 'company.edit', 'company.delete', 'company.restore', 'company.toggle_status',
@@ -85,6 +87,9 @@ class RbacSeeder extends Seeder
 
             // 17. Website CMS & Savings
             'website.manage', 'savings.view',
+
+            // 18. Centralized Billing & Invoices
+            'billing.view', 'billing.create', 'billing.edit', 'billing.print', 'billing.pdf', 'billing.cancel', 'billing.export',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -151,6 +156,7 @@ class RbacSeeder extends Seeder
             'reports.view', 'reports.export',
             'cashbook.view', 'cashbook.create', 'cashbook.edit', 'cashbook.delete', 'cashbook.approve', 'cashbook.close', 'cashbook.print', 'cashbook.export', 'cashbook.view_reports',
             'settings.view', 'settings.manage', 'savings.view',
+            'backup.view', 'backup.create', 'backup.download', 'backup.delete',
         ]);
 
         // 4. Branch Manager: Operational Branch Authority (Locked to Branch)
@@ -174,6 +180,9 @@ class RbacSeeder extends Seeder
             'leave.view', 'leave.create', 'leave.approve', 'leave.reject',
             'payroll.view', 'hr_letter.view', 'hr_letter.generate', 'hr_reports.view',
             'reports.view', 'reports.export', 'savings.view',
+            'cashbook.view', 'cashbook.create', 'cashbook.edit', 'cashbook.close', 'cashbook.print', 'cashbook.export',
+            'bank_deposit.view', 'bank_deposit.create',
+            'billing.view', 'billing.create', 'billing.print', 'billing.pdf',
         ]);
 
         // 5. Loan Officer & Field Officer: Field Sourcing, Applications, EMI Collection

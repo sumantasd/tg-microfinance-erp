@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Interest Rates Schedule - TG Microfinance ERP')
-@section('meta_description', 'Official transparent interest rates schedule for loans and savings products at TG Microfinance.')
+@section('title', 'Interest Rates Schedule' . ' - ' . config('app.name'))
+@section('meta_description', 'Official transparent interest rates schedule for loans and savings products at Grihalaxmi Finance.')
 
 @section('content')
 <x-ui.page-banner

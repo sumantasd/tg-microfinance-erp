@@ -4,8 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $reportData['title'] }} - Print Preview</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" href="{{ $faviconUrl ?? asset('images/logo-icon.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body {
@@ -91,7 +90,7 @@
     <!-- Official Report Header -->
     <div class="report-header d-flex justify-content-between align-items-start">
         <div>
-            <div class="company-title">{{ $company->name ?? 'TG Microfinance ERP' }}</div>
+            <div class="company-title">{{ $company->name ?? config('app.name') }}</div>
             <div class="meta-pill">
                 @if(!empty($company->registration_number)) Reg: {{ $company->registration_number }} &bull; @endif
                 @if($branch) Branch: <strong>{{ $branch->name }}</strong> ({{ $branch->code }}) @else Organization: Head Office Consolidated @endif

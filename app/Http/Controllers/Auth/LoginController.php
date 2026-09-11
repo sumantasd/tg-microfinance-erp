@@ -14,7 +14,13 @@ class LoginController extends Controller
      */
     public function showLoginForm()
     {
-        return view('auth.login');
+        if (Auth::check()) {
+            return redirect()->route('admin.dashboard');
+        }
+
+        $branding = \App\Services\SystemBrandingService::getBranding();
+
+        return view('auth.login', compact('branding'));
     }
 
     /**
@@ -22,15 +28,21 @@ class LoginController extends Controller
      */
     public function login(Request $request)
     {
-        $credentials = $request->validate([
-            'email' => ['required', 'email'],
-            'password' => ['required'],
+        $request->validate([
+            'email' => ['required', 'string'],
+            'password' => ['required', 'string'],
         ]);
 
-        $user = User::where('email', $request->email)->first();
+        $loginInput = trim($request->input('email'));
+        $loginField = filter_var($loginInput, FILTER_VALIDATE_EMAIL) ? 'email' : 'username';
+
+        $user = User::where($loginField, $loginInput)->first();
+        if (!$user && $loginField === 'username') {
+            $user = User::where('email', $loginInput)->first();
+        }
 
         // Check if user status is active
-        if ($user && $user->status !== 'active') {
+        if ($user && isset($user->status) && $user->status !== 'active') {
             return back()->withErrors([
                 'email' => "Your staff account status is currently set to " . strtoupper($user->status) . ". Please contact your System Administrator.",
             ])->onlyInput('email');
@@ -38,17 +50,24 @@ class LoginController extends Controller
 
         $remember = $request->boolean('remember');
 
+        $credentials = [
+            'email' => $user?->email ?? $loginInput,
+            'password' => $request->password,
+        ];
+
         if (Auth::attempt($credentials, $remember)) {
             /** @var User $authenticatedUser */
             $authenticatedUser = Auth::user();
-            $authenticatedUser->update([
-                'last_login_at' => now(),
-                'last_login_ip' => $request->ip(),
-            ]);
+            if (isset($authenticatedUser->last_login_at)) {
+                $authenticatedUser->update([
+                    'last_login_at' => now(),
+                    'last_login_ip' => $request->ip(),
+                ]);
+            }
 
             $request->session()->regenerate();
 
-            return redirect()->intended('/admin');
+            return redirect()->intended(route('admin.dashboard'));
         }
 
         return back()->withErrors([
@@ -66,6 +85,6 @@ class LoginController extends Controller
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 
-        return redirect('/login');
+        return redirect()->route('admin.login');
     }
 }

@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'FAQ CMS - TG Microfinance ERP')
+@section('title', 'FAQ CMS' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

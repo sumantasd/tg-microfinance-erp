@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', $article->title . ' - ' . ($settings->company_name ?? 'TG Microfinance ERP'))
+@section('title', $article->title . ' - ' . ($settings->company_name ?? config('app.name')))
 @section('meta_description', Str::limit($article->short_description ?? strip_tags($article->content), 150))
 
 @section('content')
@@ -17,7 +17,7 @@
             <x-ui.card class="p-4 p-md-5 border-0 shadow-sm">
                 <div class="d-flex align-items-center gap-3 text-muted small mb-4 pb-3 border-bottom">
                     <span><i class="bi bi-calendar-event text-primary me-1"></i> Published: {{ $article->published_date ? $article->published_date->format('F d, Y') : $article->created_at->format('F d, Y') }}</span>
-                    <span><i class="bi bi-building text-primary me-1"></i> {{ $settings->company_name ?? 'TG Microfinance' }}</span>
+                    <span><i class="bi bi-building text-primary me-1"></i> {{ $settings->company_name ?? config('app.name') }}</span>
                 </div>
 
                 @if($article->featured_image_url)

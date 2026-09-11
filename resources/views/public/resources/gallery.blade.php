@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Media Gallery - ' . ($settings->company_name ?? 'TG Microfinance ERP'))
+@section('title', 'Media Gallery - ' . ($settings->company_name ?? config('app.name')))
 @section('meta_description', 'Explore photos from community workshops, branch openings, and microfinance member success stories.')
 
 @section('content')

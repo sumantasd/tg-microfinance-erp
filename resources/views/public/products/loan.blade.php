@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Loan Products - ' . ($settings->company_name ?? 'TG Microfinance ERP'))
-@section('meta_description', 'Explore micro-loans, SME loans, group loans, and agricultural credit products offered by ' . ($settings->company_name ?? 'TG Microfinance'))
+@section('title', 'Loan Products - ' . ($settings->company_name ?? config('app.name')))
+@section('meta_description', 'Explore micro-loans, SME loans, group loans, and agricultural credit products offered by ' . ($settings->company_name ?? config('app.name')))
 
 @section('content')
 <x-ui.page-banner

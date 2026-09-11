@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Add Download Document - TG Microfinance ERP')
+@section('title', 'Add Download Document' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

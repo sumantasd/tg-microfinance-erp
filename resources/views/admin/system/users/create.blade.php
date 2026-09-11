@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Add New User - TG Microfinance ERP')
+@section('title', 'Add New User' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -36,7 +36,7 @@
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary">Staff Email Address *</label>
-                <input type="email" name="email" value="{{ old('email') }}" class="form-control bg-light" placeholder="john.doe@tgmicrofinance.com" required>
+                <input type="email" name="email" value="{{ old('email') }}" class="form-control bg-light" placeholder="john.doe@grihalaxmifinance.com" required>
             </div>
 
             <div class="col-md-6">

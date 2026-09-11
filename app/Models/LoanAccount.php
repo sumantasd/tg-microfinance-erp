@@ -98,6 +98,11 @@ class LoanAccount extends Model
         return $this->belongsTo(LoanApplication::class, 'loan_application_id');
     }
 
+    public function invoice(): \Illuminate\Database\Eloquent\Relations\MorphOne
+    {
+        return $this->morphOne(Invoice::class, 'invoiceable');
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', ($settings->company_name ?? 'TG Microfinance ERP') . ' - Empowering Financial Independence')
+@section('title', ($settings->company_name ?? config('app.name')) . ' - Empowering Financial Independence')
 @section('meta_description', 'Empowering small businesses, micro-entrepreneurs, and individuals with fast loans, high-yield savings, and enterprise financial services.')
 
 @section('content')
@@ -23,7 +23,7 @@
                                 @foreach($banners as $index => $banner)
                                     <div class="carousel-item {{ $index === 0 ? 'active' : '' }}">
                                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-1.5 rounded-pill fw-semibold mb-3 shadow-sm d-inline-flex align-items-center gap-1 text-wrap">
-                                            <i class="bi bi-shield-check me-1"></i> {{ $settings->company_name ?? 'TG Microfinance' }}
+                                            <i class="bi bi-shield-check me-1"></i> {{ $settings->company_name ?? config('app.name') }}
                                         </span>
                                         <h1 class="hero-title display-4 mb-3 text-white">{{ $banner->title }}</h1>
                                         @if($banner->subtitle)
@@ -57,7 +57,7 @@
                         <!-- Single Active Banner -->
                         @php $banner = $banners->first(); @endphp
                         <span class="badge bg-primary-subtle text-primary border border-primary-subtle fs-6 px-3 py-1.5 rounded-pill fw-semibold mb-3 shadow-sm d-inline-flex align-items-center gap-1 text-wrap">
-                            <i class="bi bi-shield-check me-1"></i> {{ $settings->company_name ?? 'TG Microfinance' }}
+                            <i class="bi bi-shield-check me-1"></i> {{ $settings->company_name ?? config('app.name') }}
                         </span>
                         <h1 class="hero-title display-4 mb-3 text-white">{{ $banner->title }}</h1>
                         @if($banner->subtitle)
@@ -233,13 +233,13 @@
     <div class="row align-items-center g-4 g-lg-5">
         <div class="col-lg-6">
             <span class="text-uppercase small fw-bold text-primary tracking-wider mb-2 d-block">
-                {{ $aboutSection->subtitle ?? 'About ' . ($settings->company_name ?? 'TG Microfinance') }}
+                {{ $aboutSection->subtitle ?? 'About ' . ($settings->company_name ?? config('app.name')) }}
             </span>
             <h2 class="display-6 fw-bold text-dark mb-3">
                 {{ $aboutSection->title ?? 'Pioneering Financial Inclusion for Over 15 Years' }}
             </h2>
             <p class="text-muted lead mb-4">
-                {{ $aboutSection->description ?? 'TG Microfinance is a regulated microfinance institution providing tailored financial capital, group savings schemes, and doorstep field banking to micro-borrowers and underserved business communities.' }}
+                {{ $aboutSection->description ?? 'Grihalaxmi Finance is a regulated microfinance institution providing tailored financial capital, group savings schemes, and doorstep field banking to micro-borrowers and underserved business communities.' }}
             </p>
 
             <div class="row g-3 mb-4">
@@ -612,10 +612,10 @@
             <div class="col-md-6">
                 <x-ui.card class="p-4 border-start border-4 border-primary h-100">
                     <span class="badge bg-primary-subtle text-primary mb-2" style="width: fit-content;">Head Office</span>
-                    <h6 class="fw-bold mb-2">{{ $hqSection->head_office_title ?? $settings->company_name ?? 'TG Microfinance Headquarters' }}</h6>
+                    <h6 class="fw-bold mb-2">{{ $hqSection->head_office_title ?? $settings->company_name ?? 'Grihalaxmi Finance Headquarters' }}</h6>
                     <p class="text-muted small mb-2"><i class="bi bi-geo-alt text-primary me-2"></i> {{ $hqSection->address ?? $settings->address ?? '100 Financial Avenue, Suite 500' }}</p>
                     <p class="text-muted small mb-2"><i class="bi bi-telephone text-primary me-2"></i> {{ $hqSection->phone ?? $settings->phone ?? '+91 (800) 555-0199' }}</p>
-                    <p class="text-muted small mb-0"><i class="bi bi-envelope text-primary me-2"></i> {{ $hqSection->email ?? $settings->email ?? 'info@tgmicrofinance.org' }}</p>
+                    <p class="text-muted small mb-0"><i class="bi bi-envelope text-primary me-2"></i> {{ $hqSection->email ?? $settings->email ?? 'info@grihalaxmifinance.org' }}</p>
                 </x-ui.card>
             </div>
 

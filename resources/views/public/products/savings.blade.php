@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Savings Products - ' . ($settings->company_name ?? 'TG Microfinance ERP'))
-@section('meta_description', 'High-yield savings accounts, fixed deposits, and group passbook accounts with ' . ($settings->company_name ?? 'TG Microfinance'))
+@section('title', 'Savings Products - ' . ($settings->company_name ?? config('app.name')))
+@section('meta_description', 'High-yield savings accounts, fixed deposits, and group passbook accounts with ' . ($settings->company_name ?? config('app.name')))
 
 @section('content')
 <x-ui.page-banner

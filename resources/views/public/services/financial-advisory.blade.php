@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Financial Advisory Services - TG Microfinance ERP')
+@section('title', 'Financial Advisory Services' . ' - ' . config('app.name'))
 @section('meta_description', 'Free business advisory, cash flow budgeting, and financial literacy workshops for micro-entrepreneurs.')
 
 @section('content')

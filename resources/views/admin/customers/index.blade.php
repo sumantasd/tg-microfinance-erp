@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Customer & Member Management - Grihalaxmi Finance ERP')
+@section('title', 'Customer & Member Management - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

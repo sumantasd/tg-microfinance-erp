@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Contact Us - ' . ($settings->company_name ?? 'TG Microfinance ERP'))
-@section('meta_description', 'Get in touch with ' . ($settings->company_name ?? 'TG Microfinance') . ' Head Office, customer support line, or branch inquiries.')
+@section('title', 'Contact Us - ' . ($settings->company_name ?? config('app.name')))
+@section('meta_description', 'Get in touch with ' . ($settings->company_name ?? config('app.name')) . ' Head Office, customer support line, or branch inquiries.')
 
 @section('content')
 <x-ui.page-banner
@@ -80,7 +80,7 @@
                 </div>
                 <div class="mb-3">
                     <h6 class="fw-bold small text-primary mb-1"><i class="bi bi-envelope me-1"></i> Email Inquiries</h6>
-                    <p class="small text-muted mb-0">{{ $settings->email ?? 'info@tgmicrofinance.com' }}</p>
+                    <p class="small text-muted mb-0">{{ $settings->email ?? 'info@grihalaxmifinance.com' }}</p>
                 </div>
             </x-ui.card>
         </div>

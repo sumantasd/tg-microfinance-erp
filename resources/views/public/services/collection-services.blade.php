@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Collection Services - TG Microfinance ERP')
-@section('meta_description', 'Doorstep collection services and automated field route posting with TG Microfinance.')
+@section('title', 'Collection Services' . ' - ' . config('app.name'))
+@section('meta_description', 'Doorstep collection services and automated field route posting with Grihalaxmi Finance.')
 
 @section('content')
 <x-ui.page-banner

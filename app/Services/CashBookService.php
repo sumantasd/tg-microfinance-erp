@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\BankDeposit;
 use App\Models\Branch;
 use App\Models\CashBook;
 use App\Models\CashBookAudit;
@@ -9,12 +10,14 @@ use App\Models\CashBookCategory;
 use App\Models\CashBookDenomination;
 use App\Models\CashBookEntry;
 use App\Models\CashBookOnlineCollection;
+use App\Models\Invoice;
 use App\Models\LoanAccount;
 use App\Models\LoanRepayment;
 use App\Models\User;
 use App\Models\Voucher;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Schema;
 
 class CashBookService
 {
@@ -30,21 +33,20 @@ class CashBookService
                 ->where('date', $formattedDate)
                 ->first();
 
+            $openingBalance = $this->getOpeningBalanceForDate($branchId, $formattedDate);
+
             if ($cashBook) {
-                // Perform ERP transaction sync if cash book is open
+                if ($cashBook->opening_balance != $openingBalance) {
+                    $cashBook->update(['opening_balance' => $openingBalance]);
+                }
+
                 if ($cashBook->isOpen()) {
                     $this->syncErpTransactions($cashBook);
+                } else {
+                    $this->recalculateTotals($cashBook);
                 }
-                return $cashBook;
+                return $cashBook->fresh(['entries', 'onlineCollections', 'denominations']);
             }
-
-            // Determine opening balance from previous day's closing balance
-            $previousCashBook = CashBook::where('branch_id', $branchId)
-                ->where('date', '<', $formattedDate)
-                ->orderByDesc('date')
-                ->first();
-
-            $openingBalance = $previousCashBook ? $previousCashBook->closing_cash : 0.00;
 
             $cashBook = CashBook::create([
                 'company_id' => $companyId,
@@ -58,14 +60,14 @@ class CashBookService
                 'updated_by' => $userId,
             ]);
 
-            // Seed default Received entries
+            // Seed default Received entries (8 exact rows in order)
             $receivedDefaults = [
                 ['code' => 'cash_opening_balance', 'particulars' => 'CASH OPENING BALANCE', 'cash' => $openingBalance],
                 ['code' => 'weekly_collection', 'particulars' => 'WEEKLY COLLECTION', 'cash' => 0],
                 ['code' => 'processing_fee', 'particulars' => 'PROCESSING FEE', 'cash' => 0],
-                ['code' => 'card_fee', 'particulars' => 'CARD FEE', 'cash' => 0],
+                ['code' => 'insurance_fee', 'particulars' => 'INSURANCE FEE', 'cash' => 0],
                 ['code' => 'new_loan_advance', 'particulars' => 'NEW LOAN ADVANCE', 'cash' => 0],
-                ['code' => 'principal_payment', 'particulars' => 'P. PAYMENT', 'cash' => 0],
+                ['code' => 'pre_payment', 'particulars' => 'PRE PAYMENT', 'cash' => 0],
                 ['code' => 'cash_selling', 'particulars' => 'CASH SELLING', 'cash' => 0],
                 ['code' => 'od_collection', 'particulars' => 'OD COLLECTION', 'cash' => 0],
             ];
@@ -127,11 +129,83 @@ class CashBookService
             // Audit log
             $this->logAudit($cashBook->id, $userId, 'created', ['opening_balance' => $openingBalance], 'Daily Cash Book register created');
 
-            // Initial sync with ERP transactions
+            // Sync ERP transactions
             $this->syncErpTransactions($cashBook);
 
             return $cashBook->fresh(['entries', 'onlineCollections', 'denominations']);
         });
+    }
+
+    /**
+     * Compute Opening Cash for a date based on previous business day's final physical cash after APPROVED bank deposits.
+     */
+    public function getOpeningBalanceForDate(int $branchId, string $date): float
+    {
+        $formattedDate = Carbon::parse($date)->format('Y-m-d');
+
+        $previousCashBook = CashBook::where('branch_id', $branchId)
+            ->where('date', '<', $formattedDate)
+            ->orderByDesc('date')
+            ->first();
+
+        if (!$previousCashBook) {
+            return 0.00;
+        }
+
+        // Calculate previous day's approved bank deposits
+        $prevApprovedDeposits = BankDeposit::where('branch_id', $branchId)
+            ->whereDate('deposit_date', $previousCashBook->date->format('Y-m-d'))
+            ->where('status', 'approved')
+            ->sum('amount');
+
+        // Sum previous day's cash receipts (including opening balance row)
+        $prevCashReceived = CashBookEntry::where('cash_book_id', $previousCashBook->id)
+            ->where('entry_type', 'received')
+            ->sum('cash_amount');
+
+        // Sum previous day's cash payments (excluding deposit_to_bank row to prevent double-deduction)
+        $prevCashPayment = CashBookEntry::where('cash_book_id', $previousCashBook->id)
+            ->where('entry_type', 'payment')
+            ->where('category_code', '!=', 'deposit_to_bank')
+            ->sum('cash_amount');
+
+        // Final Physical Cash = prevCashReceived - prevCashPayment - prevApprovedDeposits
+        $finalPhysicalCash = max(0, $prevCashReceived - $prevCashPayment - $prevApprovedDeposits);
+
+        return round($finalPhysicalCash, 2);
+    }
+
+    /**
+     * Recalculate CashBook for a given start date and cascade through all subsequent CashBooks for that branch.
+     */
+    public function recalculateForDateAndSubsequent(int $branchId, string $startDate): void
+    {
+        $formattedDate = Carbon::parse($startDate)->format('Y-m-d');
+
+        $cashBooks = CashBook::where('branch_id', $branchId)
+            ->where('date', '>=', $formattedDate)
+            ->orderBy('date')
+            ->get();
+
+        foreach ($cashBooks as $cashBook) {
+            $cbDate = $cashBook->date->format('Y-m-d');
+
+            $hasPrevious = CashBook::where('branch_id', $branchId)
+                ->where('date', '<', $cbDate)
+                ->exists();
+
+            if ($hasPrevious) {
+                $newOpening = $this->getOpeningBalanceForDate($branchId, $cbDate);
+                $cashBook->opening_balance = $newOpening;
+                $cashBook->save();
+            }
+
+            if ($cashBook->isOpen()) {
+                $this->syncErpTransactions($cashBook);
+            } else {
+                $this->recalculateTotals($cashBook);
+            }
+        }
     }
 
     /**
@@ -142,7 +216,24 @@ class CashBookService
         $date = $cashBook->date->format('Y-m-d');
         $branchId = $cashBook->branch_id;
 
-        // 1. Weekly Repayment Collections
+        // Ensure legacy category codes are updated to new exact names
+        CashBookEntry::where('cash_book_id', $cashBook->id)
+            ->where('category_code', 'card_fee')
+            ->update(['category_code' => 'insurance_fee', 'particulars' => 'INSURANCE FEE']);
+
+        CashBookEntry::where('cash_book_id', $cashBook->id)
+            ->where('category_code', 'principal_payment')
+            ->update(['category_code' => 'pre_payment', 'particulars' => 'PRE PAYMENT']);
+
+        // 1. CASH OPENING BALANCE Row
+        $openingEntry = CashBookEntry::where('cash_book_id', $cashBook->id)
+            ->where('category_code', 'cash_opening_balance')
+            ->first();
+        if ($openingEntry) {
+            $openingEntry->update(['cash_amount' => $cashBook->opening_balance]);
+        }
+
+        // Fetch today's loan repayments for this branch
         $repayments = LoanRepayment::whereDate('payment_date', $date)
             ->whereHas('loanAccount', function ($q) use ($branchId) {
                 $q->where('branch_id', $branchId);
@@ -150,23 +241,152 @@ class CashBookService
             ->with(['loanAccount.customer', 'loanAccount.customerGroup'])
             ->get();
 
-        $cashCollection = $repayments->whereIn('payment_method', ['cash', 'CASH', null])->sum('amount');
-        $bankCollection = $repayments->whereIn('payment_method', ['bank_transfer', 'cheque', 'neft', 'rtgs'])->sum('amount');
+        // 2. WEEKLY COLLECTION Row
+        // Regular installment collections (excluding prepayments and overdue/penalty payments)
+        $weeklyRepayments = $repayments->reject(function ($r) {
+            return ($r->adjustment_mode ?? '') === 'prepayment' || ($r->penalty_paid ?? 0) > 0;
+        });
 
-        // Update Weekly Collection Entry
-        $weeklyEntry = CashBookEntry::where('cash_book_id', $cashBook->id)
-            ->where('category_code', 'weekly_collection')
-            ->first();
+        if ($weeklyRepayments->count() > 0) {
+            $weeklyCash = $weeklyRepayments->filter(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']))->sum('amount');
+            $weeklyBank = $weeklyRepayments->reject(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']))->sum('amount');
 
-        if ($weeklyEntry && $weeklyEntry->cash_amount == 0 && $weeklyEntry->bank_amount == 0) {
-            $weeklyEntry->update([
-                'cash_amount' => $cashCollection,
-                'bank_amount' => $bankCollection,
-            ]);
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('category_code', 'weekly_collection')
+                ->update([
+                    'cash_amount' => $weeklyCash,
+                    'bank_amount' => $weeklyBank,
+                ]);
         }
 
-        // Sync Online Collections sub-table
-        $onlineRepayments = $repayments->whereIn('payment_method', ['upi', 'online', 'qr', 'card', 'bank_transfer', 'neft']);
+        // 3. PROCESSING FEE Row
+        $disbursements = LoanAccount::whereDate('disbursement_date', $date)
+            ->where('branch_id', $branchId)
+            ->get();
+
+        $branchLoanIds = LoanAccount::where('branch_id', $branchId)->pluck('id');
+        $hasUpfronts = false;
+        $upfronts = collect();
+
+        if (Schema::hasTable('loan_upfront_payments')) {
+            $upfronts = DB::table('loan_upfront_payments')
+                ->whereDate('payment_date', $date)
+                ->whereIn('loan_account_id', $branchLoanIds)
+                ->get();
+            $hasUpfronts = $upfronts->count() > 0;
+        }
+
+        if ($disbursements->count() > 0 || $hasUpfronts) {
+            $processingFeeCash = $disbursements->sum('processing_fee_amount');
+            $processingFeeBank = 0.00;
+
+            if ($hasUpfronts) {
+                $processingFeeCash += $upfronts->filter(fn($u) => in_array(strtolower($u->payment_method ?? 'cash'), ['cash', '']))->sum('processing_fee_paid');
+                $processingFeeBank += $upfronts->reject(fn($u) => in_array(strtolower($u->payment_method ?? 'cash'), ['cash', '']))->sum('processing_fee_paid');
+            }
+
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('category_code', 'processing_fee')
+                ->update([
+                    'cash_amount' => $processingFeeCash,
+                    'bank_amount' => $processingFeeBank,
+                ]);
+        }
+
+        // 4. INSURANCE FEE Row
+        if ($disbursements->count() > 0 || $hasUpfronts) {
+            $insuranceFeeCash = $disbursements->sum('insurance_fee_amount');
+            $insuranceFeeBank = 0.00;
+
+            if ($hasUpfronts) {
+                $insuranceFeeCash += $upfronts->filter(fn($u) => in_array(strtolower($u->payment_method ?? 'cash'), ['cash', '']))->sum('insurance_fee_paid');
+                $insuranceFeeBank += $upfronts->reject(fn($u) => in_array(strtolower($u->payment_method ?? 'cash'), ['cash', '']))->sum('insurance_fee_paid');
+            }
+
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('category_code', 'insurance_fee')
+                ->update([
+                    'particulars' => 'INSURANCE FEE',
+                    'cash_amount' => $insuranceFeeCash,
+                    'bank_amount' => $insuranceFeeBank,
+                ]);
+        }
+
+        // 5. NEW LOAN ADVANCE Row
+        if ($hasUpfronts) {
+            $newLoanAdvanceCash = $upfronts->filter(fn($u) => in_array(strtolower($u->payment_method ?? 'cash'), ['cash', '']))->sum(fn($u) => max(0, $u->amount - $u->processing_fee_paid - $u->insurance_fee_paid));
+            $newLoanAdvanceBank = $upfronts->reject(fn($u) => in_array(strtolower($u->payment_method ?? 'cash'), ['cash', '']))->sum(fn($u) => max(0, $u->amount - $u->processing_fee_paid - $u->insurance_fee_paid));
+
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('category_code', 'new_loan_advance')
+                ->update([
+                    'cash_amount' => $newLoanAdvanceCash,
+                    'bank_amount' => $newLoanAdvanceBank,
+                ]);
+        }
+
+        // 6. PRE PAYMENT Row
+        $prepaymentRepayments = $repayments->filter(fn($r) => ($r->adjustment_mode ?? '') === 'prepayment');
+        if ($prepaymentRepayments->count() > 0) {
+            $prepaymentCash = $prepaymentRepayments->filter(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']))->sum('amount');
+            $prepaymentBank = $prepaymentRepayments->reject(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']))->sum('amount');
+
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('category_code', 'pre_payment')
+                ->update([
+                    'particulars' => 'PRE PAYMENT',
+                    'cash_amount' => $prepaymentCash,
+                    'bank_amount' => $prepaymentBank,
+                ]);
+        }
+
+        // 7. CASH SELLING Row (Direct Product Sales)
+        $directSales = Invoice::whereDate('invoice_date', $date)
+            ->where('branch_id', $branchId)
+            ->where('invoice_type', 'direct_sale')
+            ->where('status', '!=', 'cancelled')
+            ->get();
+
+        if ($directSales->count() > 0) {
+            $cashSellingCash = $directSales->filter(fn($i) => in_array(strtolower($i->payment_method ?? 'cash'), ['cash', '']))->sum('paid_amount');
+            $cashSellingBank = $directSales->reject(fn($i) => in_array(strtolower($i->payment_method ?? 'cash'), ['cash', '']))->sum('paid_amount');
+
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('category_code', 'cash_selling')
+                ->update([
+                    'cash_amount' => $cashSellingCash,
+                    'bank_amount' => $cashSellingBank,
+                ]);
+        }
+
+        // 8. OD COLLECTION Row
+        $odRepayments = $repayments->filter(fn($r) => ($r->penalty_paid ?? 0) > 0);
+        if ($odRepayments->count() > 0) {
+            $odCash = $odRepayments->filter(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']))->sum('amount');
+            $odBank = $odRepayments->reject(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']))->sum('amount');
+
+            CashBookEntry::where('cash_book_id', $cashBook->id)
+                ->where('category_code', 'od_collection')
+                ->update([
+                    'cash_amount' => $odCash,
+                    'bank_amount' => $odBank,
+                ]);
+        }
+
+        // 9. Payment Section: DEPOSIT TO BANK Row
+        $approvedDeposits = BankDeposit::where('branch_id', $branchId)
+            ->whereDate('deposit_date', $date)
+            ->where('status', 'approved')
+            ->sum('amount');
+
+        CashBookEntry::where('cash_book_id', $cashBook->id)
+            ->where('category_code', 'deposit_to_bank')
+            ->update([
+                'cash_amount' => $approvedDeposits,
+            ]);
+
+        // 10. Sync Online Collections sub-table
+        $onlineRepayments = $repayments->reject(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']));
         foreach ($onlineRepayments as $rep) {
             $customer = $rep->loanAccount->customer ?? null;
             $group = $rep->loanAccount->customerGroup ?? null;
@@ -191,37 +411,6 @@ class CashBookService
             );
         }
 
-        // 2. Loan Disbursements
-        $disbursements = LoanAccount::whereDate('disbursement_date', $date)
-            ->where('branch_id', $branchId)
-            ->get();
-
-        $disbursedCash = $disbursements->sum('disbursed_amount');
-        $disbursedBank = 0.00;
-
-        $disburseEntry = CashBookEntry::where('cash_book_id', $cashBook->id)
-            ->where('category_code', 'loan_disbursed')
-            ->first();
-
-        if ($disburseEntry && $disburseEntry->cash_amount == 0 && $disburseEntry->bank_amount == 0) {
-            $disburseEntry->update([
-                'cash_amount' => $disbursedCash,
-                'bank_amount' => $disbursedBank,
-            ]);
-        }
-
-        // 3. Processing Fee & Upfront Payments
-        $processingFeeTotal = $disbursements->sum('processing_fee_amount');
-        $processingEntry = CashBookEntry::where('cash_book_id', $cashBook->id)
-            ->where('category_code', 'processing_fee')
-            ->first();
-
-        if ($processingEntry && $processingEntry->cash_amount == 0) {
-            $processingEntry->update([
-                'cash_amount' => $processingFeeTotal,
-            ]);
-        }
-
         // Recalculate Cash Book totals
         $this->recalculateTotals($cashBook);
     }
@@ -233,7 +422,7 @@ class CashBookService
     {
         $cashBook->load(['entries', 'denominations']);
 
-        // Update opening cash entry amount if present
+        // Sync opening cash entry with cashBook->opening_balance
         $openingEntry = $cashBook->entries->where('category_code', 'cash_opening_balance')->first();
         if ($openingEntry) {
             $openingEntry->cash_amount = $cashBook->opening_balance;
@@ -251,11 +440,8 @@ class CashBookService
         $totalProductPayment = $paymentEntries->sum('product_amount');
         $totalBankPayment = $paymentEntries->sum('bank_amount');
 
-        // Closing cash = Total Cash Received - Total Cash Payment (since Opening Cash is included in Total Cash Received)
-        $hasOpeningEntry = $openingEntry !== null;
-        $closingCash = $hasOpeningEntry 
-            ? ($totalCashReceived - $totalCashPayment) 
-            : ($cashBook->opening_balance + $totalCashReceived - $totalCashPayment);
+        // Closing cash = Total Cash Received - Total Cash Payment (since Opening Cash is in Total Cash Received)
+        $closingCash = $totalCashReceived - $totalCashPayment;
 
         // Physical Cash Total = Sum of denominations
         $physicalCash = $cashBook->denominations->sum('amount');

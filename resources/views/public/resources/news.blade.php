@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Corporate News & Announcements - ' . ($settings->company_name ?? 'TG Microfinance ERP'))
-@section('meta_description', 'Latest news, financial updates, and community press releases from ' . ($settings->company_name ?? 'TG Microfinance'))
+@section('title', 'Corporate News & Announcements - ' . ($settings->company_name ?? config('app.name')))
+@section('meta_description', 'Latest news, financial updates, and community press releases from ' . ($settings->company_name ?? config('app.name')))
 
 @section('content')
 <x-ui.page-banner

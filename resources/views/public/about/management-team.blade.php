@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Management Team - TG Microfinance ERP')
+@section('title', 'Management Team' . ' - ' . config('app.name'))
 @section('meta_description', 'Meet the executive management team overseeing daily microfinance operations and branch execution.')
 
 @section('content')

@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Corporate Services - TG Microfinance ERP')
+@section('title', 'Corporate Services' . ' - ' . config('app.name'))
 @section('meta_description', 'Explore our comprehensive range of microfinance services, doorstep field collections, digital banking, and financial coaching.')
 
 @section('content')

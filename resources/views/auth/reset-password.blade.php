@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Set New Password - TG Microfinance ERP')
+@section('title', 'Set New Password - ' . config('app.name'))
 
 @section('content')
 <!-- Staff Reset Password Form Template -->

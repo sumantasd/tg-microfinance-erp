@@ -1,6 +1,6 @@
 @extends('layouts.auth')
 
-@section('title', 'Forgot Password - TG Microfinance ERP')
+@section('title', 'Forgot Password - ' . config('app.name'))
 
 @section('content')
 <!-- Staff Forgot Password Form Template -->
@@ -16,7 +16,7 @@
         <label class="form-label small fw-bold text-secondary">Staff Email Address</label>
         <div class="input-group">
             <span class="input-group-text bg-light border-end-0 text-muted"><i class="bi bi-envelope"></i></span>
-            <input type="email" name="email" class="form-control bg-light border-start-0" placeholder="staff@tgmicrofinance.com" required autofocus>
+            <input type="email" name="email" class="form-control bg-light border-start-0" placeholder="staff@grihalaxmifinance.com" required autofocus>
         </div>
     </div>
 

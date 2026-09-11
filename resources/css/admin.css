@@ -149,6 +149,13 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     transform: rotate(90deg);
 }
 
+.sidebar-nav-link span {
+    color: inherit;
+    display: inline-block;
+    visibility: visible;
+    opacity: 1;
+}
+
 .sidebar-submenu {
     background-color: #f8fafc;
     padding-left: 0.25rem;
@@ -156,11 +163,70 @@ h1, h2, h3, h4, h5, h6, .font-heading {
     margin: 0.25rem 0.5rem;
 }
 
-.sidebar-submenu .sidebar-nav-link {
-    padding: 0.45rem 1rem 0.45rem 2.25rem;
-    font-size: 0.8125rem;
-    border-radius: 0.5rem;
-    margin-right: 0;
+/* 1. DESKTOP SUBMENU NORMAL, HOVER & ACTIVE STATES (BLACK TEXT #000000 BY DEFAULT) */
+#admin-sidebar .sidebar-submenu,
+#admin-sidebar .sidebar-submenu a,
+#admin-sidebar .sidebar-submenu span,
+#admin-sidebar .sidebar-submenu .sidebar-nav-link,
+#admin-sidebar .sidebar-submenu .sidebar-nav-link span,
+#admin-sidebar .sidebar-submenu .sidebar-nav-link:link,
+#admin-sidebar .sidebar-submenu .sidebar-nav-link:visited,
+.sidebar-submenu a,
+.sidebar-submenu span,
+.sidebar-submenu .sidebar-nav-link,
+.sidebar-submenu .sidebar-nav-link span {
+    color: #000000 !important;
+}
+
+#admin-sidebar .sidebar-submenu .sidebar-nav-link:hover,
+#admin-sidebar .sidebar-submenu .sidebar-nav-link:hover span,
+.sidebar-submenu .sidebar-nav-link:hover,
+.sidebar-submenu .sidebar-nav-link:hover span {
+    color: #000000 !important;
+    background-color: #e2e8f0 !important;
+}
+
+#admin-sidebar .sidebar-submenu .sidebar-nav-link.active,
+#admin-sidebar .sidebar-submenu .sidebar-nav-link.active span,
+.sidebar-submenu .sidebar-nav-link.active,
+.sidebar-submenu .sidebar-nav-link.active span {
+    color: #000000 !important;
+    background-color: var(--tg-sidebar-active-bg, #eff6ff) !important;
+    font-weight: 600 !important;
+}
+
+/* 2. MOBILE DRAWER MENU & SUBMENU NORMAL, HOVER & ACTIVE STATES (BLACK TEXT #000000 BY DEFAULT) */
+#mobileAppDrawer,
+#mobileAppDrawer nav,
+#mobileAppDrawer a,
+#mobileAppDrawer span,
+#mobileAppDrawer .sidebar-nav-link,
+#mobileAppDrawer .sidebar-nav-link span,
+#mobileAppDrawer .sidebar-nav-link:link,
+#mobileAppDrawer .sidebar-nav-link:visited,
+#mobileAppDrawer .sidebar-submenu,
+#mobileAppDrawer .sidebar-submenu a,
+#mobileAppDrawer .sidebar-submenu span,
+#mobileAppDrawer .sidebar-submenu .sidebar-nav-link,
+#mobileAppDrawer .sidebar-submenu .sidebar-nav-link span {
+    color: #000000 !important;
+}
+
+#mobileAppDrawer .sidebar-nav-link:hover,
+#mobileAppDrawer .sidebar-nav-link:hover span,
+#mobileAppDrawer .sidebar-submenu .sidebar-nav-link:hover,
+#mobileAppDrawer .sidebar-submenu .sidebar-nav-link:hover span {
+    color: #000000 !important;
+    background-color: #e2e8f0 !important;
+}
+
+#mobileAppDrawer .sidebar-nav-link.active,
+#mobileAppDrawer .sidebar-nav-link.active span,
+#mobileAppDrawer .sidebar-submenu .sidebar-nav-link.active,
+#mobileAppDrawer .sidebar-submenu .sidebar-nav-link.active span {
+    color: #000000 !important;
+    background-color: var(--tg-sidebar-active-bg, #eff6ff) !important;
+    font-weight: 600 !important;
 }
 
 /* ==========================================================================

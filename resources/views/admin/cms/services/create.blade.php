@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Add Service Page - TG Microfinance ERP')
+@section('title', 'Add Service Page' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -76,7 +76,7 @@
 
             <div class="col-12">
                 <label class="form-label small fw-bold text-secondary">SEO Meta Title</label>
-                <input type="text" name="meta_title" value="{{ old('meta_title') }}" class="form-control bg-light" placeholder="e.g. Digital Banking & Mobile Wallet Services | TG Microfinance">
+                <input type="text" name="meta_title" value="{{ old('meta_title') }}" class="form-control bg-light" placeholder="e.g. Digital Banking & Mobile Wallet Services | Grihalaxmi Finance">
             </div>
 
             <div class="col-12">

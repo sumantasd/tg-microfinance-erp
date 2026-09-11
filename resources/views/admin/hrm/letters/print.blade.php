@@ -3,8 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>{{ $letterData['title'] }} - {{ $letterData['employee']->full_name }}</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" href="{{ $faviconUrl ?? asset('images/logo-icon.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8fafc; font-family: 'Times New Roman', serif; color: #111; }
@@ -24,9 +23,9 @@
     <!-- Header Letterhead -->
     <div class="d-flex justify-content-between align-items-center border-bottom pb-4 mb-4">
         <div>
-            <h2 class="fw-bold text-dark font-monospace mb-1" style="letter-spacing: 1px;">{{ $letterData['company']->name ?? 'TG MICROFINANCE ERP' }}</h2>
+            <h2 class="fw-bold text-dark font-monospace mb-1" style="letter-spacing: 1px;">{{ $letterData['company']->name ?? strtoupper(config('app.name')) }}</h2>
             <p class="text-muted small mb-0">{{ $letterData['branch']->name ?? 'Head Office' }} | {{ $letterData['branch']->address ?? 'Address' }}, {{ $letterData['branch']->city ?? 'Kolkata' }}</p>
-            <p class="text-muted small mb-0">Phone: {{ $letterData['branch']->phone ?? 'N/A' }} | Email: {{ $letterData['company']->email ?? 'hr@tgmicrofinance.com' }}</p>
+            <p class="text-muted small mb-0">Phone: {{ $letterData['branch']->phone ?? 'N/A' }} | Email: {{ $letterData['company']->email ?? 'hr@grihalaxmifinance.com' }}</p>
         </div>
         <div class="text-end">
             <span class="badge bg-secondary text-white px-3 py-2 fs-6 font-monospace">{{ $letterData['ref_no'] }}</span>
@@ -51,7 +50,7 @@
             <p class="mb-5">Sincerely,</p>
             <div class="border-top pt-2 fw-bold text-dark" style="min-width: 200px;">
                 Authorized Signatory<br>
-                <small class="text-muted font-monospace">{{ $letterData['company']->name ?? 'TG Microfinance ERP' }}</small>
+                <small class="text-muted font-monospace">{{ $letterData['company']->name ?? config('app.name') }}</small>
             </div>
         </div>
         <div class="text-center">

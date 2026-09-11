@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Add Job Opening - TG Microfinance ERP')
+@section('title', 'Add Job Opening' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -50,7 +50,7 @@
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary">Application Contact Email</label>
-                <input type="email" name="application_email" value="{{ old('application_email', 'hr@tgmicrofinance.org') }}" class="form-control bg-light" placeholder="e.g. hr@tgmicrofinance.org">
+                <input type="email" name="application_email" value="{{ old('application_email', 'hr@grihalaxmifinance.org') }}" class="form-control bg-light" placeholder="e.g. hr@grihalaxmifinance.org">
             </div>
 
             <div class="col-md-6">

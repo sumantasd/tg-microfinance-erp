@@ -16,6 +16,39 @@
     <!-- Vite Asset Bundle -->
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 
+    @php
+        $t = \App\Services\SystemThemeService::getTheme();
+    @endphp
+
+    <!-- Dynamic Database-Driven Theme Customization CSS -->
+    <style id="system-dynamic-theme-css">
+    :root {
+        --theme-primary: {{ $t->primary_color }};
+        --theme-secondary: {{ $t->secondary_color }};
+        --theme-accent: {{ $t->accent_color }};
+        --theme-sidebar: {{ $t->sidebar_color }};
+        --theme-sidebar-text: {{ $t->sidebar_text_color }};
+        --theme-sidebar-active: {{ $t->sidebar_active_color }};
+        --theme-header: {{ $t->header_color }};
+        --theme-header-text: {{ $t->header_text_color }};
+        --theme-background: {{ $t->body_background_color }};
+        --theme-card: {{ $t->card_background_color }};
+        --theme-border: {{ $t->border_color }};
+        --theme-radius: {{ $t->button_radius }};
+
+        /* Alias TG Core Tokens */
+        --tg-primary: {{ $t->primary_color }};
+        --tg-primary-hover: {{ $t->secondary_color }};
+        --tg-sidebar-bg: {{ $t->sidebar_color }};
+        --tg-sidebar-color: {{ $t->sidebar_text_color }};
+        --tg-sidebar-active-color: {{ $t->sidebar_active_color }};
+        --tg-admin-bg: {{ $t->body_background_color }};
+        --tg-card-bg: {{ $t->card_background_color }};
+        --tg-card-border: {{ $t->border_color }};
+        --tg-card-radius: {{ $t->button_radius }};
+    }
+    </style>
+
     <!-- Critical Fixed Mobile Header & Bottom Nav CSS (Guarantees zero-underlines and fixed positioning across all viewports) -->
     <style id="mobile-fixed-nav-critical-css">
     @media (max-width: 767.98px) {

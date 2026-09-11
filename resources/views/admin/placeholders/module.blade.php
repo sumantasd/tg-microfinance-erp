@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', ($moduleTitle ?? 'Module') . ' - TG Microfinance ERP')
+@section('title', ($moduleTitle ?? 'Module') . '' . ' - ' . config('app.name'))
 
 @section('content')
 <!-- Developer Comment: Future Module Implementation Canvas -->

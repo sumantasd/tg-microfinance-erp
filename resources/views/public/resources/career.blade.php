@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Careers & Job Openings - TG Microfinance ERP')
-@section('meta_description', 'Join our team of loan officers, branch managers, collection officers, and accountants at TG Microfinance.')
+@section('title', 'Careers & Job Openings' . ' - ' . config('app.name'))
+@section('meta_description', 'Join our team of loan officers, branch managers, collection officers, and accountants at Grihalaxmi Finance.')
 
 @section('content')
 <x-ui.page-banner
@@ -35,8 +35,8 @@
                         </div>
                     @endif
                     <div class="d-flex justify-content-between align-items-center border-top pt-3">
-                        <small class="text-muted"><i class="bi bi-envelope me-1"></i>{{ $job->application_email ?? 'hr@tgmicrofinance.org' }}</small>
-                        <a href="mailto:{{ $job->application_email ?? 'hr@tgmicrofinance.org' }}?subject={{ urlencode('Application for ' . $job->title) }}" class="btn btn-outline-primary btn-sm rounded-pill font-semibold">
+                        <small class="text-muted"><i class="bi bi-envelope me-1"></i>{{ $job->application_email ?? 'hr@grihalaxmifinance.org' }}</small>
+                        <a href="mailto:{{ $job->application_email ?? 'hr@grihalaxmifinance.org' }}?subject={{ urlencode('Application for ' . $job->title) }}" class="btn btn-outline-primary btn-sm rounded-pill font-semibold">
                             {{ $job->apply_button_text ?? 'Apply for Position' }}
                         </a>
                     </div>

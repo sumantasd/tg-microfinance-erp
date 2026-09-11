@@ -6,14 +6,13 @@
             <div class="col-lg-4 col-md-6">
                 <div class="d-flex align-items-center gap-2 mb-3">
                     @if(isset($footer) && $footer->footer_logo_url)
-                        <img src="{{ $footer->footer_logo_url }}" alt="{{ $settings->company_name ?? 'Logo' }}" style="max-height: 42px; object-fit: contain;" class="rounded bg-white p-1">
+                        <img src="{{ $footer->footer_logo_url }}" alt="{{ config('app.name') }}" style="max-height: 42px; object-fit: contain;" class="rounded bg-white p-1">
+                    @elseif($companyLogo)
+                        <img src="{{ $companyLogo }}" alt="{{ config('app.name') }}" style="max-height: 42px; object-fit: contain;" class="rounded bg-white p-1">
                     @elseif(isset($settings) && $settings->logo_url)
-                        <img src="{{ $settings->logo_url }}" alt="{{ $settings->company_name ?? 'Logo' }}" style="max-height: 42px; object-fit: contain;" class="rounded bg-white p-1">
+                        <img src="{{ $settings->logo_url }}" alt="{{ config('app.name') }}" style="max-height: 42px; object-fit: contain;" class="rounded bg-white p-1">
                     @else
-                        <div class="bg-primary text-white rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
-                            <i class="bi bi-bank2 fs-6"></i>
-                        </div>
-                        <h5 class="mb-0 text-white fw-bold">{{ $settings->company_name ?? 'TG Microfinance' }}</h5>
+                        <img src="{{ asset('images/logo.png') }}" alt="{{ config('app.name') }}" style="max-height: 42px; object-fit: contain;" class="rounded bg-white p-1">
                     @endif
                 </div>
                 <p class="small text-white opacity-90 mb-3" style="max-width: 320px;">
@@ -69,17 +68,17 @@
             <!-- Head Office Info -->
             <div class="col-lg-3 col-md-6">
                 <h6 class="mb-3 text-white fw-bold">Head Office</h6>
-                <p class="small text-white opacity-90 mb-2"><i class="bi bi-building text-primary me-2"></i> {{ $settings->company_name ?? 'TG Microfinance Headquarters' }}</p>
+                <p class="small text-white opacity-90 mb-2"><i class="bi bi-building text-primary me-2"></i> {{ $settings->company_name ?? (config('app.name') . ' Headquarters') }}</p>
                 <p class="small text-white opacity-90 mb-2"><i class="bi bi-geo-alt text-primary me-2"></i> {{ $footer->address ?? ($settings->address ?? '100 Financial Avenue, Suite 500') }}</p>
                 <p class="small text-white opacity-90 mb-2"><i class="bi bi-telephone text-primary me-2"></i> {{ $footer->phone ?? ($settings->phone ?? '+1 (800) 555-0199') }}</p>
-                <p class="small text-white opacity-90 mb-2"><i class="bi bi-envelope text-primary me-2"></i> {{ $footer->email ?? ($settings->email ?? 'info@tgmicrofinance.org') }}</p>
+                <p class="small text-white opacity-90 mb-2"><i class="bi bi-envelope text-primary me-2"></i> {{ $footer->email ?? ($settings->email ?? 'info@grihalaxmifinance.com') }}</p>
             </div>
         </div>
 
         <hr class="border-secondary my-4">
 
         <div class="d-flex flex-column flex-md-row justify-content-between align-items-center small text-white opacity-90 pb-3">
-            <p class="mb-0">{{ $footer->copyright_text ?? ($settings->footer_text ?? ('© ' . date('Y') . ' Astha Welfare Society. Developed By Tech Googly')) }}</p>
+            <p class="mb-0">{{ $footer->copyright_text ?? ($settings->footer_text ?? ('© ' . date('Y') . ' ' . config('app.name') . '. All rights reserved.')) }}</p>
             <div class="mt-2 mt-md-0">
                 <a href="#" class="me-3 text-white text-decoration-none opacity-75">Privacy Policy</a>
                 <a href="#" class="me-3 text-white text-decoration-none opacity-75">Terms of Service</a>

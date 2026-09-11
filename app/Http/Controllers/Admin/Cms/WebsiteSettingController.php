@@ -16,11 +16,11 @@ class WebsiteSettingController extends Controller
         $settings = WebsiteSetting::firstOrCreate(
             ['id' => 1],
             [
-                'company_name' => 'TG Microfinance',
+                'company_name' => 'Grihalaxmi Finance',
                 'phone' => '+1 (800) 555-0199',
-                'email' => 'info@tgmicrofinance.org',
+                'email' => 'info@grihalaxmifinance.com',
                 'address' => '123 Financial Plaza, Suite 400, Capital City',
-                'footer_text' => '© ' . date('Y') . ' TG Microfinance ERP. All rights reserved. Empowering financial inclusion.',
+                'footer_text' => '© ' . date('Y') . ' Grihalaxmi Finance. All rights reserved. Empowering financial inclusion.',
                 'social_links' => [
                     'facebook' => 'https://facebook.com',
                     'twitter' => 'https://twitter.com',
@@ -48,6 +48,13 @@ class WebsiteSettingController extends Controller
             $data['logo'] = $request->file('logo')->store('cms/settings', 'public');
         }
 
+        if ($request->hasFile('logo_icon')) {
+            if ($settings->logo_icon && Storage::disk('public')->exists($settings->logo_icon)) {
+                Storage::disk('public')->delete($settings->logo_icon);
+            }
+            $data['logo_icon'] = $request->file('logo_icon')->store('cms/settings', 'public');
+        }
+
         if ($request->hasFile('favicon')) {
             if ($settings->favicon && Storage::disk('public')->exists($settings->favicon)) {
                 Storage::disk('public')->delete($settings->favicon);
@@ -56,6 +63,7 @@ class WebsiteSettingController extends Controller
         }
 
         $settings->update($data);
+        \App\Services\SystemBrandingService::clearCache();
 
         return redirect()->route('admin.cms.settings.edit')->with('success', 'Website settings updated successfully.');
     }

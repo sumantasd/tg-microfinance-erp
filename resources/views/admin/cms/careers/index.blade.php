@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Careers CMS - TG Microfinance ERP')
+@section('title', 'Careers CMS' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -56,7 +56,7 @@
                     <span class="badge bg-primary-subtle text-primary border border-primary-subtle">{{ $item->job_type }}</span>
                 </td>
                 <td>
-                    <small class="text-secondary font-monospace"><i class="bi bi-envelope me-1"></i>{{ $item->application_email ?? 'hr@tgmicrofinance.org' }}</small>
+                    <small class="text-secondary font-monospace"><i class="bi bi-envelope me-1"></i>{{ $item->application_email ?? 'hr@grihalaxmifinance.org' }}</small>
                 </td>
                 <td>
                     <small class="text-dark fw-semibold"><i class="bi bi-calendar me-1"></i>{{ $item->deadline ? $item->deadline->format('M d, Y') : 'Open Until Filled' }}</small>

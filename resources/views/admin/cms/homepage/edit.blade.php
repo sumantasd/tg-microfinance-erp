@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit Homepage Section - TG Microfinance ERP')
+@section('title', 'Edit Homepage Section' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -235,7 +235,7 @@
 
                 <div class="col-md-6">
                     <label class="form-label small fw-bold text-secondary">Head Office Title</label>
-                    <input type="text" name="head_office_title" value="{{ old('head_office_title', $section->head_office_title ?? 'TG Microfinance Headquarters') }}" class="form-control bg-light">
+                    <input type="text" name="head_office_title" value="{{ old('head_office_title', $section->head_office_title ?? 'Grihalaxmi Finance Headquarters') }}" class="form-control bg-light">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label small fw-bold text-secondary">Head Office Phone</label>
@@ -243,7 +243,7 @@
                 </div>
                 <div class="col-md-6">
                     <label class="form-label small fw-bold text-secondary">Head Office Email</label>
-                    <input type="email" name="email" value="{{ old('email', $section->email ?? 'info@tgmicrofinance.org') }}" class="form-control bg-light">
+                    <input type="email" name="email" value="{{ old('email', $section->email ?? 'info@grihalaxmifinance.org') }}" class="form-control bg-light">
                 </div>
                 <div class="col-md-6">
                     <label class="form-label small fw-bold text-secondary">Head Office Address</label>

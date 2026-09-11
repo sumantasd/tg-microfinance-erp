@@ -19,7 +19,7 @@ class HrLetterService
         $department = $employee->department;
 
         $dateStr = now()->format('F d, Y');
-        $refNo = 'TG-HR/' . strtoupper($type) . '/' . date('Y') . '/' . str_pad($employee->id, 4, '0', STR_PAD_LEFT);
+        $refNo = 'GLF-HR/' . strtoupper($type) . '/' . date('Y') . '/' . str_pad($employee->id, 4, '0', STR_PAD_LEFT);
 
         switch ($type) {
             case 'offer_letter':
@@ -37,7 +37,7 @@ class HrLetterService
                 $content = "Dear <strong>{$employee->full_name}</strong>,<br><br>"
                     . "Further to your acceptance of our offer, we are delighted to formally appoint you as <strong>{$designation->title}</strong> at <strong>{$company->name}</strong> with effect from <strong>" . ($employee->joining_date ? $employee->joining_date->format('F d, Y') : $dateStr) . "</strong>.<br><br>"
                     . "You will be posted at <strong>{$branch->name}</strong> branch, located at {$branch->address}, {$branch->city}, {$branch->state} - {$branch->pincode}.<br><br>"
-                    . "You will be on probation for a period of six months from your date of joining. Your employment will be governed by the standard policies, rules, and regulations of TG Microfinance ERP.";
+                    . "You will be on probation for a period of six months from your date of joining. Your employment will be governed by the standard policies, rules, and regulations of {$company->name}.";
                 break;
 
             case 'experience_certificate':

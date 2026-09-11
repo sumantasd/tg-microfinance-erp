@@ -3,8 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Employee ID Card - {{ $employee->full_name }}</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" href="{{ $faviconUrl ?? asset('images/logo-icon.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
@@ -25,7 +24,7 @@
 
 <div class="id-card">
     <div class="id-header">
-        <h6 class="fw-bold mb-0 text-uppercase" style="letter-spacing: 1px;">{{ $employee->company->name ?? 'TG MICROFINANCE ERP' }}</h6>
+        <h6 class="fw-bold mb-0 text-uppercase" style="letter-spacing: 1px;">{{ $employee->company->name ?? strtoupper(config('app.name')) }}</h6>
         <small class="text-white-50" style="font-size: 0.7rem;">OFFICIAL STAFF IDENTITY CARD</small>
     </div>
 

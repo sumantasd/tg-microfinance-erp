@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'TG Microfinance ERP - Empowering Financial Independence')
+@section('title', config('app.name') . ' - Empowering Financial Independence')
 @section('meta_description', 'Empowering small businesses, micro-entrepreneurs, and individuals with fast loans, high-yield savings, and enterprise financial services.')
 
 @section('content')
@@ -81,7 +81,7 @@
 <section class="container-xl py-5">
     <div class="text-center mx-auto mb-5" style="max-width: 700px;">
         <span class="text-uppercase small fw-bold text-primary tracking-wider mb-2 d-block">Core Value Offerings</span>
-        <h2 class="fw-bold text-dark">Why Micro-Borrowers Choose TG Microfinance</h2>
+        <h2 class="fw-bold text-dark">Why Micro-Borrowers Choose Grihalaxmi Finance</h2>
         <p class="text-muted">Transparent terms, fast counter disbursements, and nationwide branch accessibility.</p>
     </div>
 

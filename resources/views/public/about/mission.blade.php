@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Our Mission - TG Microfinance ERP')
-@section('meta_description', 'Discover TG Microfinance mission statement and commitment to micro-enterprise development.')
+@section('title', 'Our Mission' . ' - ' . config('app.name'))
+@section('meta_description', 'Discover Grihalaxmi Finance mission statement and commitment to micro-enterprise development.')
 
 @section('content')
 <x-ui.page-banner

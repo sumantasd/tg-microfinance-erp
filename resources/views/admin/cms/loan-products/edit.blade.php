@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit Loan Product - TG Microfinance ERP')
+@section('title', 'Edit Loan Product' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

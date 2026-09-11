@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', ($service->meta_title ?? $service->title . ' - TG Microfinance ERP'))
+@section('title', ($service->meta_title ?? $service->title . '' . ' - ' . config('app.name')))
 @section('meta_description', ($service->meta_description ?? $service->short_description))
 
 @section('content')

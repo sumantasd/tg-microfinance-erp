@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Edit Interest Rate Schedule Entry - TG Microfinance ERP')
+@section('title', 'Edit Interest Rate Schedule Entry' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">

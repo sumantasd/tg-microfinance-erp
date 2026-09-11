@@ -169,7 +169,7 @@
                                     </td>
                                     @if($cashBook->isOpen())
                                         <td class="text-center p-0">
-                                            @if(!$entry->category_code || !in_array($entry->category_code, ['cash_opening_balance', 'weekly_collection', 'processing_fee', 'card_fee']))
+                                            @if(!$entry->category_code || !in_array($entry->category_code, ['cash_opening_balance', 'weekly_collection', 'processing_fee', 'insurance_fee', 'card_fee', 'new_loan_advance', 'pre_payment', 'principal_payment', 'cash_selling', 'od_collection']))
                                                 <form action="{{ route('admin.cash-book.destroy-entry', [$cashBook->id, $entry->id]) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this particular item?')">
                                                     @csrf
                                                     @method('DELETE')

@@ -28,10 +28,15 @@ class CashBookController extends Controller
     public function index(Request $request)
     {
         $user = auth()->user();
-        $selectedBranchId = $request->input('branch_id', $user->branch_id ?? Branch::first()?->id);
+
+        // Branch isolation: Branch Managers are restricted to their assigned branch
+        $userBranchId = $user->branch_id;
+        $selectedBranchId = $userBranchId ?? $request->input('branch_id', Branch::first()?->id);
         $selectedDate = $request->input('date', today()->format('Y-m-d'));
 
-        $branches = Branch::where('is_active', true)->get();
+        $branches = $userBranchId 
+            ? Branch::where('id', $userBranchId)->where('is_active', true)->get()
+            : Branch::where('is_active', true)->get();
 
         $query = CashBook::with(['branch', 'responsibleStaff', 'closedBy'])
             ->orderByDesc('date')
@@ -54,7 +59,7 @@ class CashBookController extends Controller
             $currentCashBook = $this->cashBookService->getOrCreateCashBook($companyId, $selectedBranchId, $selectedDate, $user->id);
         }
 
-        return view('admin.cash-book.index', compact('cashBooks', 'branches', 'selectedBranchId', 'selectedDate', 'currentCashBook'));
+        return view('admin.cash-book.index', compact('cashBooks', 'branches', 'selectedBranchId', 'selectedDate', 'currentCashBook', 'userBranchId'));
     }
 
     /**
@@ -62,8 +67,14 @@ class CashBookController extends Controller
      */
     public function show(Request $request, $id)
     {
+        $user = auth()->user();
         $cashBook = CashBook::with(['branch', 'responsibleStaff', 'closedBy', 'approvedBy', 'entries', 'onlineCollections', 'denominations', 'audits.user'])
             ->findOrFail($id);
+
+        // Branch isolation check
+        if ($user->branch_id && (int)$cashBook->branch_id !== (int)$user->branch_id) {
+            abort(403, 'Unauthorized access to another branch cash book.');
+        }
 
         // Trigger ERP sync if open
         if ($cashBook->isOpen()) {
@@ -74,7 +85,12 @@ class CashBookController extends Controller
         $customers = Customer::where('branch_id', $cashBook->branch_id)->orderBy('first_name')->get();
         $customerGroups = CustomerGroup::where('branch_id', $cashBook->branch_id)->orderBy('name')->get();
 
-        return view('admin.cash-book.show', compact('cashBook', 'customers', 'customerGroups'));
+        // Bank deposits for this cashbook branch & date
+        $bankDeposits = \App\Models\BankDeposit::where('branch_id', $cashBook->branch_id)
+            ->whereDate('deposit_date', $cashBook->date->format('Y-m-d'))
+            ->get();
+
+        return view('admin.cash-book.show', compact('cashBook', 'customers', 'customerGroups', 'bankDeposits'));
     }
 
     /**

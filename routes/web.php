@@ -68,7 +68,7 @@ use Illuminate\Support\Facades\Route;
 
 /*
 |--------------------------------------------------------------------------
-| TG Microfinance ERP - Public Website Routes
+| Grihalaxmi Finance ERP - Public Website Routes
 |--------------------------------------------------------------------------
 */
 
@@ -118,12 +118,14 @@ Route::get('/apply-loan', function () { return view('public.apply-loan'); })->na
 
 /*
 |--------------------------------------------------------------------------
-| TG Microfinance ERP - Staff Authentication Routes
+| Grihalaxmi Finance ERP - Staff Authentication Routes
 |--------------------------------------------------------------------------
 */
 
 Route::get('/login', [LoginController::class, 'showLoginForm'])->name('login');
+Route::get('/admin/login', [LoginController::class, 'showLoginForm'])->name('admin.login');
 Route::post('/login', [LoginController::class, 'login']);
+Route::post('/admin/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
 Route::get('/forgot-password', function () { return view('auth.forgot-password'); })->name('forgot-password');
@@ -131,7 +133,7 @@ Route::get('/reset-password', function () { return view('auth.reset-password'); 
 
 /*
 |--------------------------------------------------------------------------
-| TG Microfinance ERP - Admin Panel Foundation & RBAC Routes (Protected)
+| Grihalaxmi Finance ERP - Admin Panel Foundation & RBAC Routes (Protected)
 |--------------------------------------------------------------------------
 */
 
@@ -159,6 +161,14 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::post('/{id}/sync-erp', [\App\Http\Controllers\Admin\CashBookController::class, 'syncErp'])->name('sync-erp')->middleware('can:cashbook.edit');
         Route::get('/{id}/print', [\App\Http\Controllers\Admin\CashBookController::class, 'print'])->name('print')->middleware('can:cashbook.print');
         Route::get('/{id}/export', [\App\Http\Controllers\Admin\CashBookController::class, 'export'])->name('export')->middleware('can:cashbook.export');
+    });
+
+    // Bank Deposit Management Module Routes
+    Route::middleware('can:bank_deposit.view')->prefix('bank-deposits')->name('admin.bank-deposits.')->group(function () {
+        Route::get('/', [\App\Http\Controllers\Admin\BankDepositController::class, 'index'])->name('index');
+        Route::post('/', [\App\Http\Controllers\Admin\BankDepositController::class, 'store'])->name('store')->middleware('can:bank_deposit.create');
+        Route::post('/{id}/approve', [\App\Http\Controllers\Admin\BankDepositController::class, 'approve'])->name('approve')->middleware('can:bank_deposit.approve');
+        Route::post('/{id}/reject', [\App\Http\Controllers\Admin\BankDepositController::class, 'reject'])->name('reject')->middleware('can:bank_deposit.approve');
     });
 
     // System Modules - Real Functional RBAC Routes
@@ -194,12 +204,33 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         // System Subpages & Settings
         Route::middleware('can:settings.view')->group(function () {
             Route::get('/settings', [\App\Http\Controllers\Admin\SystemSettingController::class, 'index'])->name('admin.system.settings.index');
+            Route::put('/settings/branding', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateBranding'])->name('admin.system.settings.update-branding');
+            Route::put('/settings/company-profile', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateCompanyProfile'])->name('admin.system.settings.update-company-profile');
             Route::put('/settings/loan-charges', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateLoanCharges'])->name('admin.system.settings.update-loan-charges');
+            Route::put('/settings/theme', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateTheme'])->name('admin.system.settings.update-theme');
+            Route::post('/settings/theme/reset', [\App\Http\Controllers\Admin\SystemSettingController::class, 'resetTheme'])->name('admin.system.settings.reset-theme');
             Route::get('/media', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Media Library', 'moduleSlug' => 'system/media']); });
             Route::get('/notifications', function () { return view('admin.placeholders.module', ['moduleTitle' => 'System Notifications', 'moduleSlug' => 'system/notifications']); });
             Route::get('/audit-logs', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Audit Logs', 'moduleSlug' => 'system/audit-logs']); });
-            Route::get('/backup', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Database Backup', 'moduleSlug' => 'system/backup']); });
+            Route::prefix('backup')->name('admin.system.backup.')->group(function () {
+                Route::get('/', [\App\Http\Controllers\Admin\System\DatabaseBackupController::class, 'index'])->name('index')->middleware('can:backup.view');
+                Route::post('/', [\App\Http\Controllers\Admin\System\DatabaseBackupController::class, 'store'])->name('store')->middleware('can:backup.create');
+                Route::get('/download/{filename}', [\App\Http\Controllers\Admin\System\DatabaseBackupController::class, 'download'])->name('download')->middleware('can:backup.download');
+                Route::delete('/{filename}', [\App\Http\Controllers\Admin\System\DatabaseBackupController::class, 'destroy'])->name('destroy')->middleware('can:backup.delete');
+            });
         });
+    });
+
+    // Billing & Invoice System Routes
+    Route::middleware('can:billing.view')->prefix('billing')->name('admin.billing.')->group(function () {
+        Route::get('/invoices', [\App\Http\Controllers\Admin\InvoiceController::class, 'index'])->name('invoices.index');
+        Route::get('/invoices/{invoice}', [\App\Http\Controllers\Admin\InvoiceController::class, 'show'])->name('invoices.show');
+        Route::get('/invoices/{invoice}/print', [\App\Http\Controllers\Admin\InvoiceController::class, 'print'])->name('invoices.print')->middleware('can:billing.print');
+        Route::get('/invoices/{invoice}/pdf', [\App\Http\Controllers\Admin\InvoiceController::class, 'pdf'])->name('invoices.pdf')->middleware('can:billing.pdf');
+        Route::post('/invoices/{invoice}/cancel', [\App\Http\Controllers\Admin\InvoiceController::class, 'cancel'])->name('invoices.cancel')->middleware('can:billing.cancel');
+
+        Route::get('/sales/create', [\App\Http\Controllers\Admin\InvoiceController::class, 'createSale'])->name('sales.create')->middleware('can:billing.create');
+        Route::post('/sales', [\App\Http\Controllers\Admin\InvoiceController::class, 'storeSale'])->name('sales.store')->middleware('can:billing.create');
     });
 
     // ERP Core Modules - Real Functional Company & Branch Routes

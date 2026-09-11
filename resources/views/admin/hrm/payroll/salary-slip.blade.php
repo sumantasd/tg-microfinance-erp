@@ -3,8 +3,7 @@
 <head>
     <meta charset="utf-8">
     <title>Pay Slip - {{ $slip->employee->full_name }} - {{ date('F Y', mktime(0,0,0,$slip->payroll->month,1)) }}</title>
-    <link rel="icon" type="image/x-icon" href="{{ asset('favicon.ico') }}">
-    <link rel="icon" type="image/svg+xml" href="{{ asset('favicon.svg') }}">
+    <link rel="icon" href="{{ $faviconUrl ?? asset('images/logo-icon.png') }}">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         body { background-color: #f8fafc; font-family: 'Inter', sans-serif; }
@@ -24,7 +23,7 @@
     <!-- Header -->
     <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-4">
         <div>
-            <h3 class="fw-bold text-dark mb-1">{{ $slip->payroll->company->name ?? 'TG Microfinance ERP' }}</h3>
+            <h3 class="fw-bold text-dark mb-1">{{ $slip->payroll->company->name ?? config('app.name') }}</h3>
             <p class="text-muted small mb-0">{{ $slip->payroll->branch->name ?? 'Head Office Branch' }} | {{ $slip->payroll->branch->address ?? 'Branch Address' }}</p>
         </div>
         <div class="text-end">

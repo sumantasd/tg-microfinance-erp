@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Forms & Downloads - ' . ($settings->company_name ?? 'TG Microfinance ERP'))
+@section('title', 'Forms & Downloads - ' . ($settings->company_name ?? config('app.name')))
 @section('meta_description', 'Download official loan application forms, passbook request documents, and financial disclosure reports.')
 
 @section('content')

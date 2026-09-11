@@ -1,6 +1,6 @@
 @extends('layouts.admin')
 
-@section('title', 'Footer CMS Settings - TG Microfinance ERP')
+@section('title', 'Footer CMS Settings' . ' - ' . config('app.name'))
 
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
@@ -69,34 +69,34 @@
 
             <div class="col-md-4">
                 <label class="form-label small fw-bold text-secondary">Support Email</label>
-                <input type="email" name="email" value="{{ old('email', $footer->email) }}" class="form-control bg-light" placeholder="info@tgmicrofinance.org">
+                <input type="email" name="email" value="{{ old('email', $footer->email) }}" class="form-control bg-light" placeholder="info@grihalaxmifinance.org">
             </div>
 
             <h5 class="fw-bold text-dark pt-3 mb-0 border-top">Social Media Handles</h5>
 
             <div class="col-md-4">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-facebook me-1 text-primary"></i> Facebook URL</label>
-                <input type="url" name="social_links[facebook]" value="{{ old('social_links.facebook', $footer->social_links['facebook'] ?? '') }}" class="form-control bg-light" placeholder="https://facebook.com/tgmicrofinance">
+                <input type="url" name="social_links[facebook]" value="{{ old('social_links.facebook', $footer->social_links['facebook'] ?? '') }}" class="form-control bg-light" placeholder="https://facebook.com/grihalaxmifinance">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-twitter-x me-1 text-dark"></i> Twitter/X URL</label>
-                <input type="url" name="social_links[twitter]" value="{{ old('social_links.twitter', $footer->social_links['twitter'] ?? '') }}" class="form-control bg-light" placeholder="https://twitter.com/tgmicrofinance">
+                <input type="url" name="social_links[twitter]" value="{{ old('social_links.twitter', $footer->social_links['twitter'] ?? '') }}" class="form-control bg-light" placeholder="https://twitter.com/grihalaxmifinance">
             </div>
 
             <div class="col-md-4">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-linkedin me-1 text-primary"></i> LinkedIn URL</label>
-                <input type="url" name="social_links[linkedin]" value="{{ old('social_links.linkedin', $footer->social_links['linkedin'] ?? '') }}" class="form-control bg-light" placeholder="https://linkedin.com/company/tgmicrofinance">
+                <input type="url" name="social_links[linkedin]" value="{{ old('social_links.linkedin', $footer->social_links['linkedin'] ?? '') }}" class="form-control bg-light" placeholder="https://linkedin.com/company/grihalaxmifinance">
             </div>
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-instagram me-1 text-danger"></i> Instagram URL</label>
-                <input type="url" name="social_links[instagram]" value="{{ old('social_links.instagram', $footer->social_links['instagram'] ?? '') }}" class="form-control bg-light" placeholder="https://instagram.com/tgmicrofinance">
+                <input type="url" name="social_links[instagram]" value="{{ old('social_links.instagram', $footer->social_links['instagram'] ?? '') }}" class="form-control bg-light" placeholder="https://instagram.com/grihalaxmifinance">
             </div>
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary"><i class="bi bi-youtube me-1 text-danger"></i> YouTube Channel URL</label>
-                <input type="url" name="social_links[youtube]" value="{{ old('social_links.youtube', $footer->social_links['youtube'] ?? '') }}" class="form-control bg-light" placeholder="https://youtube.com/@tgmicrofinance">
+                <input type="url" name="social_links[youtube]" value="{{ old('social_links.youtube', $footer->social_links['youtube'] ?? '') }}" class="form-control bg-light" placeholder="https://youtube.com/@grihalaxmifinance">
             </div>
 
             <div class="col-12 pt-3 border-top d-flex gap-2">

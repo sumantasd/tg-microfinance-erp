@@ -1,6 +1,6 @@
 @extends('layouts.public')
 
-@section('title', 'Frequently Asked Questions - ' . ($settings->company_name ?? 'TG Microfinance ERP'))
+@section('title', 'Frequently Asked Questions - ' . ($settings->company_name ?? config('app.name')))
 @section('meta_description', 'Find answers to common questions regarding loan eligibility, repayment schedules, and savings interest rates.')
 
 @section('content')

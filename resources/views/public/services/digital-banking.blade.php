@@ -1,7 +1,7 @@
 @extends('layouts.public')
 
-@section('title', 'Digital Banking Services - TG Microfinance ERP')
-@section('meta_description', 'Seamless mobile banking, digital receipts, and online account access with TG Microfinance.')
+@section('title', 'Digital Banking Services' . ' - ' . config('app.name'))
+@section('meta_description', 'Seamless mobile banking, digital receipts, and online account access with Grihalaxmi Finance.')
 
 @section('content')
 <x-ui.page-banner

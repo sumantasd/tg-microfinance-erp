@@ -1,12 +1,12 @@
 @extends('layouts.public')
 
-@section('title', 'Branch Network & Locator - TG Microfinance ERP')
-@section('meta_description', 'Locate TG Microfinance branch offices, counter opening hours, and contact details nationwide.')
+@section('title', 'Branch Network & Locator' . ' - ' . config('app.name'))
+@section('meta_description', 'Locate Grihalaxmi Finance branch offices, counter opening hours, and contact details nationwide.')
 
 @section('content')
 <x-ui.page-banner
     title="Branch Network & Locator"
-    subtitle="Locate your nearest TG Microfinance branch office for counter disbursements, deposits, and officer guidance."
+    subtitle="Locate your nearest Grihalaxmi Finance branch office for counter disbursements, deposits, and officer guidance."
     badge="Nationwide Network"
     :breadcrumbs="['Branches' => '']"
 />
