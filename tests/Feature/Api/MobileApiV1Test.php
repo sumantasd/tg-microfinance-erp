@@ -1037,4 +1037,332 @@ class MobileApiV1Test extends TestCase
 
         $responseDuplicate->assertStatus(422);
     }
+
+    public function test_loan_application_submission_from_mobile(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-APP-001',
+            'first_name' => 'App',
+            'last_name' => 'Submitter',
+            'name' => 'App Submitter',
+            'mobile_number' => '9988771122',
+            'gender' => 'female',
+            'address' => 'Test Address',
+            'registration_date' => '2026-01-01',
+            'status' => 'active',
+        ]);
+
+        $scheme = LoanScheme::create([
+            'company_id' => $this->company->id,
+            'name' => 'Micro Sourcing Cash Scheme',
+            'code' => 'MSCS-01',
+            'min_amount' => 1000,
+            'max_amount' => 20000,
+            'min_tenure_months' => 1,
+            'max_tenure_months' => 12,
+            'interest_rate' => 10.00,
+            'interest_rate_per_annum' => 10.00,
+            'interest_type' => 'flat',
+            'repayment_frequency' => 'monthly',
+            'is_active' => true,
+        ]);
+
+        $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/loans/applications', [
+                'branch_id' => $this->branch1->id,
+                'loan_scheme_id' => $scheme->id,
+                'loan_type' => 'cash',
+                'borrower_type' => 'individual',
+                'customer_id' => $customer->id,
+                'requested_amount' => 10000,
+                'tenure_months' => 6,
+                'purpose' => 'Small retail business expansion',
+                'auto_submit' => true,
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'submitted')
+            ->assertJsonPath('data.requested_amount', '10000.00');
+    }
+
+    public function test_loan_application_review_approve_and_reject_workflows(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-REV-001',
+            'first_name' => 'Review',
+            'last_name' => 'Test',
+            'name' => 'Review Test',
+            'mobile_number' => '9988771133',
+            'gender' => 'female',
+            'address' => 'Test Address',
+            'registration_date' => '2026-01-01',
+            'status' => 'active',
+        ]);
+
+        $scheme = LoanScheme::create([
+            'company_id' => $this->company->id,
+            'name' => 'Review Scheme',
+            'code' => 'REV-01',
+            'min_amount' => 1000,
+            'max_amount' => 50000,
+            'min_tenure_months' => 1,
+            'max_tenure_months' => 12,
+            'interest_rate' => 12.00,
+            'interest_rate_per_annum' => 12.00,
+            'interest_type' => 'flat',
+            'repayment_frequency' => 'monthly',
+            'is_active' => true,
+        ]);
+
+        $app = LoanApplication::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'application_number' => 'LA-REV-2026-001',
+            'application_date' => '2026-01-01',
+            'customer_id' => $customer->id,
+            'loan_scheme_id' => $scheme->id,
+            'application_type' => 'individual_cash',
+            'loan_type' => 'cash',
+            'borrower_type' => 'individual',
+            'interest_type' => 'flat',
+            'interest_rate_per_annum' => 12.00,
+            'requested_amount' => 15000,
+            'tenure_months' => 6,
+            'repayment_frequency' => 'monthly',
+            'status' => 'submitted',
+        ]);
+
+        $token = $this->superAdmin->createToken('AdminDevice')->plainTextToken;
+
+        // Start Review
+        $responseReview = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/loans/applications/' . $app->id . '/review', [
+                'action' => 'start_review',
+            ]);
+        $responseReview->assertStatus(200)
+            ->assertJsonPath('data.status', 'under_review');
+
+        // Approve Application
+        $responseApprove = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/loans/applications/' . $app->id . '/review', [
+                'action' => 'approve',
+                'approved_amount' => 15000,
+            ]);
+        $responseApprove->assertStatus(200)
+            ->assertJsonPath('data.status', 'approved');
+    }
+
+    public function test_loan_account_schedule_and_overdue_apis(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-SCHED-001',
+            'first_name' => 'Schedule',
+            'last_name' => 'Test',
+            'name' => 'Schedule Test',
+            'mobile_number' => '9988771144',
+            'gender' => 'female',
+            'address' => 'Test Address',
+            'registration_date' => '2026-01-01',
+            'status' => 'active',
+        ]);
+
+        $scheme = LoanScheme::create([
+            'company_id' => $this->company->id,
+            'name' => 'Schedule Scheme',
+            'code' => 'SCHED-01',
+            'min_amount' => 1000,
+            'max_amount' => 50000,
+            'min_tenure_months' => 1,
+            'max_tenure_months' => 12,
+            'interest_rate' => 12.00,
+            'interest_rate_per_annum' => 12.00,
+            'interest_type' => 'flat',
+            'repayment_frequency' => 'monthly',
+            'is_active' => true,
+        ]);
+
+        $app1 = LoanApplication::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'application_number' => 'LA-SCHED-APP-001',
+            'application_date' => '2026-01-01',
+            'customer_id' => $customer->id,
+            'loan_scheme_id' => $scheme->id,
+            'application_type' => 'individual_cash',
+            'loan_type' => 'cash',
+            'borrower_type' => 'individual',
+            'repayment_frequency' => 'monthly',
+            'interest_type' => 'flat',
+            'interest_rate_per_annum' => 12.00,
+            'requested_amount' => 12000,
+            'tenure_months' => 6,
+            'status' => 'approved',
+        ]);
+
+        $loanAccount = LoanAccount::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_id' => $customer->id,
+            'loan_application_id' => $app1->id,
+            'loan_scheme_id' => $scheme->id,
+            'loan_number' => 'LA-SCHED-2026-001',
+            'account_number' => 'LA-SCHED-2026-001',
+            'sanctioned_amount' => 12000,
+            'sanction_date' => '2026-01-01',
+            'principal_outstanding' => 12000,
+            'interest_outstanding' => 1440,
+            'tenure_months' => 6,
+            'repayment_frequency' => 'monthly',
+            'interest_type' => 'flat',
+            'interest_rate' => 12.00,
+            'interest_rate_per_annum' => 12.00,
+            'total_outstanding' => 13440,
+            'status' => 'active',
+        ]);
+
+        LoanInstallment::create([
+            'loan_account_id' => $loanAccount->id,
+            'installment_number' => 1,
+            'due_date' => '2026-01-15', // Overdue
+            'opening_principal' => 12000,
+            'installment_amount' => 2240,
+            'principal_amount' => 2000,
+            'interest_amount' => 240,
+            'closing_principal' => 10000,
+            'status' => 'overdue',
+        ]);
+
+        $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
+
+        // GET schedule
+        $responseSchedule = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/loans/accounts/' . $loanAccount->id . '/schedule');
+
+        $responseSchedule->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.loan_account.loan_number', 'LA-SCHED-2026-001');
+
+        // GET overdue
+        $responseOverdue = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/overdue');
+
+        $responseOverdue->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_loan_settlement_quote_and_execution_apis(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-SETTLE-001',
+            'first_name' => 'Settle',
+            'last_name' => 'Test',
+            'name' => 'Settle Test',
+            'mobile_number' => '9988771155',
+            'gender' => 'female',
+            'address' => 'Test Address',
+            'registration_date' => '2026-01-01',
+            'status' => 'active',
+        ]);
+
+        $scheme = LoanScheme::create([
+            'company_id' => $this->company->id,
+            'name' => 'Settlement Scheme',
+            'code' => 'SETTLE-01',
+            'min_amount' => 1000,
+            'max_amount' => 50000,
+            'min_tenure_months' => 1,
+            'max_tenure_months' => 12,
+            'interest_rate' => 12.00,
+            'interest_rate_per_annum' => 12.00,
+            'interest_type' => 'flat',
+            'repayment_frequency' => 'monthly',
+            'is_active' => true,
+            'allow_foreclosure' => true,
+        ]);
+
+        $app2 = LoanApplication::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'application_number' => 'LA-SETTLE-APP-001',
+            'application_date' => '2025-01-01',
+            'customer_id' => $customer->id,
+            'loan_scheme_id' => $scheme->id,
+            'application_type' => 'individual_cash',
+            'loan_type' => 'cash',
+            'borrower_type' => 'individual',
+            'repayment_frequency' => 'monthly',
+            'interest_type' => 'flat',
+            'interest_rate_per_annum' => 12.00,
+            'requested_amount' => 10000,
+            'tenure_months' => 6,
+            'status' => 'approved',
+        ]);
+
+        $loanAccount = LoanAccount::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_id' => $customer->id,
+            'loan_application_id' => $app2->id,
+            'loan_scheme_id' => $scheme->id,
+            'loan_number' => 'LA-SETTLE-2026-001',
+            'account_number' => 'LA-SETTLE-2026-001',
+            'sanctioned_amount' => 10000,
+            'sanction_date' => '2025-01-01',
+            'disbursement_date' => '2025-01-01',
+            'principal_outstanding' => 10000,
+            'interest_outstanding' => 1200,
+            'tenure_months' => 6,
+            'repayment_frequency' => 'monthly',
+            'interest_type' => 'flat',
+            'interest_rate' => 12.00,
+            'interest_rate_per_annum' => 12.00,
+            'total_outstanding' => 11200,
+            'status' => 'active',
+        ]);
+
+        LoanInstallment::create([
+            'loan_account_id' => $loanAccount->id,
+            'installment_number' => 1,
+            'due_date' => '2025-02-01',
+            'opening_principal' => 10000,
+            'installment_amount' => 1867,
+            'principal_amount' => 1667,
+            'interest_amount' => 200,
+            'closing_principal' => 8333,
+            'status' => 'pending',
+        ]);
+
+        $token = $this->superAdmin->createToken('AdminDevice')->plainTextToken;
+
+        // GET Settlement Quote
+        $responseQuote = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/loans/accounts/' . $loanAccount->id . '/settlement-quote?type=foreclosure');
+
+        $responseQuote->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        // Execute Foreclosure
+        $responseProcess = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/loans/accounts/' . $loanAccount->id . '/settlements', [
+                'request_type' => 'foreclosure',
+                'payment_method' => 'cash',
+                'execute_now' => true,
+                'remarks' => 'Voluntary early foreclosure',
+            ]);
+
+        $responseProcess->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.loan_account.status', 'closed');
+    }
 }

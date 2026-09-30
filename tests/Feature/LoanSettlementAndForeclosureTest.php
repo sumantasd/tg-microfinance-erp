@@ -41,6 +41,8 @@ class LoanSettlementAndForeclosureTest extends TestCase
     {
         parent::setUp();
 
+        Carbon::setTestNow(Carbon::parse('2026-10-01 10:00:00', LoanSettlementService::TIMEZONE));
+
         $this->seed(RbacSeeder::class);
 
         $this->company = Company::create([
@@ -665,5 +667,11 @@ class LoanSettlementAndForeclosureTest extends TestCase
         $response->assertSee('No Objection Certificate (NOC)');
         $response->assertSee($loan->loan_number);
         $response->assertSee('PAID IN FULL');
+    }
+
+    protected function tearDown(): void
+    {
+        Carbon::setTestNow();
+        parent::tearDown();
     }
 }

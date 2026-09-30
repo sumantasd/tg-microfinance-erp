@@ -38,7 +38,7 @@ class LoanSettlementService
     public function getNormalizedDate(?Carbon $asOfDate = null, ?string $asOfDateStr = null): Carbon
     {
         if ($asOfDate) {
-            $str = $asOfDate->format('Y-m-d');
+            $str = $asOfDate->copy()->setTimezone(self::TIMEZONE)->format('Y-m-d');
             return Carbon::createFromFormat('Y-m-d', $str, self::TIMEZONE)->startOfDay();
         }
         if ($asOfDateStr) {
