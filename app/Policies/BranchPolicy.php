@@ -12,6 +12,10 @@ class BranchPolicy
      */
     public function viewAny(User $user): bool
     {
+        if ($user->hasRole('Branch Manager')) {
+            return false;
+        }
+
         return $user->hasPermissionTo('branch.view');
     }
 

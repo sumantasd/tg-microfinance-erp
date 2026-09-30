@@ -27,6 +27,7 @@
     @endcan
 
     <!-- 3. ORGANIZATION MANAGEMENT -->
+    @if(!$isBranchManager)
     @can('company.view')
     @php
         $isOrgActive = request()->is('admin/company*') || request()->is('admin/branch*');
@@ -52,6 +53,7 @@
         @endcan
     </div>
     @endcan
+    @endif
 
     <!-- 4. CUSTOMERS & GROUPS -->
     @canany(['customer.view', 'group.view'])

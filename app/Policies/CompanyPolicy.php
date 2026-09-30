@@ -12,6 +12,10 @@ class CompanyPolicy
      */
     public function viewAny(User $user): bool
     {
+        if ($user->hasRole('Branch Manager')) {
+            return false;
+        }
+
         return $user->hasPermissionTo('company.view');
     }
 
@@ -20,6 +24,10 @@ class CompanyPolicy
      */
     public function view(User $user, Company $company): bool
     {
+        if ($user->hasRole('Branch Manager')) {
+            return false;
+        }
+
         if (!$user->hasPermissionTo('company.view')) {
             return false;
         }

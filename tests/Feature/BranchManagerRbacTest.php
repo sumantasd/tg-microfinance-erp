@@ -380,4 +380,39 @@ class BranchManagerRbacTest extends TestCase
             $response->assertStatus(200);
         }
     }
+
+    /** 13. Branch Manager cannot access Organization Management routes */
+    public function test_branch_manager_cannot_access_organization_management_routes(): void
+    {
+        $orgRoutes = [
+            '/admin/company',
+            '/admin/branch',
+            '/admin/company/create',
+            '/admin/branch/create',
+        ];
+
+        foreach ($orgRoutes as $route) {
+            $response = $this->actingAs($this->branchManager1)->get($route);
+            $response->assertStatus(403);
+        }
+    }
+
+    /** 14. Permitted Branch Manager routes render successfully */
+    public function test_branch_manager_permitted_menus_and_routes_render_successfully(): void
+    {
+        $permittedRoutes = [
+            '/admin/cash-book',
+            '/admin/bank-deposits',
+            '/admin/inventory',
+            '/admin/inventory/transfers',
+            '/admin/billing/invoices',
+            '/admin/my-branch',
+        ];
+
+        foreach ($permittedRoutes as $route) {
+            $response = $this->actingAs($this->branchManager1)->get($route);
+            $response->assertStatus(200);
+        }
+    }
 }
+
