@@ -97,7 +97,7 @@ class LoanApiController extends Controller
             return $this->notFoundResponse('Loan account not found');
         }
 
-        if (!$user->canAccessBranch($account->branch_id)) {
+        if (!$user->canAccessCompany($account->company_id) || !$user->canAccessBranch($account->branch_id)) {
             return $this->forbiddenResponse('Unauthorized access to another branch loan account');
         }
 
@@ -116,7 +116,7 @@ class LoanApiController extends Controller
             return $this->notFoundResponse('Loan account not found');
         }
 
-        if (!$user->canAccessBranch($account->branch_id)) {
+        if (!$user->canAccessCompany($account->company_id) || !$user->canAccessBranch($account->branch_id)) {
             return $this->forbiddenResponse('Unauthorized access to disburse loan in another branch');
         }
 

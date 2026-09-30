@@ -791,4 +791,85 @@ class MobileApiV1Test extends TestCase
             'reference_id' => $loanAccount->id,
         ]);
     }
+
+    public function test_login_api_rate_limiting_blocks_excessive_attempts(): void
+    {
+        for ($i = 0; $i < 10; $i++) {
+            $this->postJson('/api/v1/auth/login', [
+                'email' => 'rajesh@grihalaxmifinance.com',
+                'password' => 'WrongPassword',
+            ]);
+        }
+
+        $responseThrottled = $this->postJson('/api/v1/auth/login', [
+            'email' => 'rajesh@grihalaxmifinance.com',
+            'password' => 'WrongPassword',
+        ]);
+
+        $responseThrottled->assertStatus(429);
+    }
+
+    public function test_group_api_enforces_company_and_branch_data_isolation(): void
+    {
+        $company2 = Company::create([
+            'name' => 'Other Company Ltd',
+            'code' => 'OTH',
+            'email' => 'other@company.com',
+            'phone' => '9800098000',
+            'address' => '456 Other St',
+        ]);
+        $otherBranch = Branch::create([
+            'company_id' => $company2->id,
+            'name' => 'Other Branch',
+            'code' => 'OTH001',
+            'phone' => '03322110003',
+            'address' => '789 Other Road',
+            'city' => 'Other City',
+            'state' => 'West Bengal',
+            'pincode' => '700001',
+            'opening_date' => '2026-01-01',
+        ]);
+
+        $groupBranch1 = CustomerGroup::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'group_code' => 'GRP-BR1-001',
+            'name' => 'Branch 1 Group',
+            'formation_date' => '2026-01-01',
+        ]);
+
+        $groupBranch2 = CustomerGroup::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch2->id,
+            'group_code' => 'GRP-BR2-002',
+            'name' => 'Branch 2 Group',
+            'formation_date' => '2026-01-01',
+        ]);
+
+        $groupOtherCompany = CustomerGroup::create([
+            'company_id' => $company2->id,
+            'branch_id' => $otherBranch->id,
+            'group_code' => 'GRP-OTH-003',
+            'name' => 'Other Company Group',
+            'formation_date' => '2026-01-01',
+        ]);
+
+        $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
+
+        // Valid branch 1 group lookup
+        $response1 = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/groups/' . $groupBranch1->id);
+        $response1->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        // Cross-branch group lookup blocked
+        $response2 = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/groups/' . $groupBranch2->id);
+        $response2->assertStatus(403);
+
+        // Cross-company group lookup blocked
+        $response3 = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/groups/' . $groupOtherCompany->id);
+        $response3->assertStatus(403);
+    }
 }

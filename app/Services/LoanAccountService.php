@@ -706,74 +706,94 @@ class LoanAccountService
             $interestPaid = 0.00;
             $principalPaid = 0.00;
 
-            // A. Global Waterfall Allocation: 1. Penalty -> 2. Fee -> 3. Interest -> 4. Principal
-            if ((float) $loanAccount->penalty_outstanding > 0 && $rem > 0) {
-                $penaltyPaid = min($rem, (float) $loanAccount->penalty_outstanding);
-                $rem -= $penaltyPaid;
-            }
-
-            if ((float) $loanAccount->fee_outstanding > 0 && $rem > 0) {
-                $feePaid = min($rem, (float) $loanAccount->fee_outstanding);
-                $rem -= $feePaid;
-            }
-
-            if ((float) $loanAccount->interest_outstanding > 0 && $rem > 0) {
-                $interestPaid = min($rem, (float) $loanAccount->interest_outstanding);
-                $rem -= $interestPaid;
-            }
-
-            if ((float) $loanAccount->principal_outstanding > 0 && $rem > 0) {
-                $principalPaid = min($rem, (float) $loanAccount->principal_outstanding);
-                $rem -= $principalPaid;
-            }
-
-            // B. Distribute allocated amounts across installments (oldest unpaid first)
             $installments = $loanAccount->installments()->orderBy('installment_number', 'asc')->get();
-            $remPen = $penaltyPaid;
-            $remFee = $feePaid;
-            $remInt = $interestPaid;
-            $remPrin = $principalPaid;
 
             foreach ($installments as $inst) {
-                if ($inst->status === 'paid') continue;
-
-                if ($remPen > 0) {
-                    $penDue = max(0, (float) $inst->penalty_amount - (float) $inst->penalty_paid);
-                    $alloc = min($remPen, $penDue);
-                    $inst->penalty_paid += $alloc;
-                    $remPen -= $alloc;
+                if ($inst->status === 'paid' || $rem <= 0) {
+                    continue;
                 }
 
-                if ($remFee > 0) {
-                    $feeDue = max(0, (float) $inst->fee_amount - (float) $inst->fee_paid);
-                    $alloc = min($remFee, $feeDue);
-                    $inst->fee_paid += $alloc;
-                    $remFee -= $alloc;
+                // 1. Penalty due on this installment
+                $penDue = max(0, round((float) $inst->penalty_amount - (float) $inst->penalty_paid, 2));
+                if ($penDue > 0 && $rem > 0) {
+                    $alloc = min($rem, $penDue);
+                    $inst->penalty_paid = round((float) $inst->penalty_paid + $alloc, 2);
+                    $penaltyPaid = round($penaltyPaid + $alloc, 2);
+                    $rem = round($rem - $alloc, 2);
                 }
 
-                if ($remInt > 0) {
-                    $intDue = max(0, (float) $inst->interest_amount - (float) $inst->interest_paid);
-                    $alloc = min($remInt, $intDue);
-                    $inst->interest_paid += $alloc;
-                    $remInt -= $alloc;
+                // 2. Fee due on this installment
+                $feeDue = max(0, round((float) $inst->fee_amount - (float) $inst->fee_paid, 2));
+                if ($feeDue > 0 && $rem > 0) {
+                    $alloc = min($rem, $feeDue);
+                    $inst->fee_paid = round((float) $inst->fee_paid + $alloc, 2);
+                    $feePaid = round($feePaid + $alloc, 2);
+                    $rem = round($rem - $alloc, 2);
                 }
 
-                if ($remPrin > 0) {
-                    $prinDue = max(0, (float) $inst->principal_amount - (float) $inst->principal_paid);
-                    $alloc = min($remPrin, $prinDue);
-                    $inst->principal_paid += $alloc;
-                    $remPrin -= $alloc;
+                // 3. Interest due on this installment
+                $intDue = max(0, round((float) ($inst->interest_amount ?? $inst->interest_component ?? 0) - (float) $inst->interest_paid, 2));
+                if ($intDue > 0 && $rem > 0) {
+                    $alloc = min($rem, $intDue);
+                    $inst->interest_paid = round((float) $inst->interest_paid + $alloc, 2);
+                    $interestPaid = round($interestPaid + $alloc, 2);
+                    $rem = round($rem - $alloc, 2);
                 }
 
-                $inst->total_paid = round($inst->penalty_paid + $inst->fee_paid + $inst->interest_paid + $inst->principal_paid, 2);
+                // 4. Principal due on this installment
+                $prinDue = max(0, round((float) ($inst->principal_amount ?? $inst->principal_component ?? 0) - (float) $inst->principal_paid, 2));
+                if ($prinDue > 0 && $rem > 0) {
+                    $alloc = min($rem, $prinDue);
+                    $inst->principal_paid = round((float) $inst->principal_paid + $alloc, 2);
+                    $principalPaid = round($principalPaid + $alloc, 2);
+                    $rem = round($rem - $alloc, 2);
+                }
 
-                if ($inst->total_paid >= $inst->installment_amount - 0.01) {
+                $inst->total_paid = round((float) $inst->penalty_paid + (float) $inst->fee_paid + (float) $inst->interest_paid + (float) $inst->principal_paid, 2);
+
+                $targetInstAmount = (float) ($inst->installment_amount ?? $inst->amount ?? ($inst->principal_amount + $inst->interest_amount));
+                if ($inst->total_paid >= $targetInstAmount - 0.01) {
                     $inst->status = 'paid';
                     $inst->paid_at = $pDate;
                 } else if ($inst->total_paid > 0) {
                     $inst->status = 'partial';
                 }
                 $inst->save();
+            }
+
+            // Excess payment beyond all scheduled installment dues or unallocated global balances
+            if ($rem > 0) {
+                // A. Unallocated Penalty
+                $unallocPen = max(0, round((float) $loanAccount->penalty_outstanding - $penaltyPaid, 2));
+                if ($unallocPen > 0 && $rem > 0) {
+                    $alloc = min($rem, $unallocPen);
+                    $penaltyPaid = round($penaltyPaid + $alloc, 2);
+                    $rem = round($rem - $alloc, 2);
+                }
+
+                // B. Unallocated Fee
+                $unallocFee = max(0, round((float) $loanAccount->fee_outstanding - $feePaid, 2));
+                if ($unallocFee > 0 && $rem > 0) {
+                    $alloc = min($rem, $unallocFee);
+                    $feePaid = round($feePaid + $alloc, 2);
+                    $rem = round($rem - $alloc, 2);
+                }
+
+                // C. Unallocated Interest
+                $unallocInt = max(0, round((float) $loanAccount->interest_outstanding - $interestPaid, 2));
+                if ($unallocInt > 0 && $rem > 0) {
+                    $alloc = min($rem, $unallocInt);
+                    $interestPaid = round($interestPaid + $alloc, 2);
+                    $rem = round($rem - $alloc, 2);
+                }
+
+                // D. Unallocated Principal / Prepayment
+                $unallocPrin = max(0, round((float) $loanAccount->principal_outstanding - $principalPaid, 2));
+                if ($unallocPrin > 0 && $rem > 0) {
+                    $alloc = min($rem, $unallocPrin);
+                    $principalPaid = round($principalPaid + $alloc, 2);
+                    $rem = round($rem - $alloc, 2);
+                }
             }
 
             $penaltyPaid = round($penaltyPaid, 2);

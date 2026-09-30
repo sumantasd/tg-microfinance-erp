@@ -131,7 +131,7 @@ class CollectionApiController extends Controller
             return $this->notFoundResponse('Loan account not found');
         }
 
-        if (!$user->canAccessBranch($loanAccount->branch_id)) {
+        if (!$user->canAccessCompany($loanAccount->company_id) || !$user->canAccessBranch($loanAccount->branch_id)) {
             return $this->forbiddenResponse('Cannot collect EMI for another branch loan account');
         }
 

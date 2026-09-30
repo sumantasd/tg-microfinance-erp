@@ -69,7 +69,7 @@ class CustomerApiController extends Controller
             return $this->notFoundResponse('Customer not found');
         }
 
-        if (!$user->canAccessBranch($customer->branch_id)) {
+        if (!$user->canAccessCompany($customer->company_id) || !$user->canAccessBranch($customer->branch_id)) {
             return $this->forbiddenResponse('You are not authorized to view customer from another branch');
         }
 

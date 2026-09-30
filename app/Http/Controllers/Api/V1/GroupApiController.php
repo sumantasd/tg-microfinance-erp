@@ -58,7 +58,7 @@ class GroupApiController extends Controller
             return $this->notFoundResponse('Customer group not found');
         }
 
-        if (!$user->canAccessBranch($group->branch_id)) {
+        if (!$user->canAccessCompany($group->company_id) || !$user->canAccessBranch($group->branch_id)) {
             return $this->forbiddenResponse('Unauthorized access to another branch group');
         }
 

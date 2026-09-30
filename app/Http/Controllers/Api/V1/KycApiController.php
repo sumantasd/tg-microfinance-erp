@@ -34,7 +34,7 @@ class KycApiController extends Controller
             return $this->notFoundResponse('Customer not found');
         }
 
-        if (!$user->canAccessBranch($customer->branch_id)) {
+        if (!$user->canAccessCompany($customer->company_id) || !$user->canAccessBranch($customer->branch_id)) {
             return $this->forbiddenResponse('Unauthorized access to upload KYC document for another branch customer');
         }
 
@@ -74,7 +74,7 @@ class KycApiController extends Controller
             return $this->notFoundResponse('KYC document not found');
         }
 
-        if (!$user->canAccessBranch($kycDoc->customer?->branch_id)) {
+        if (!$user->canAccessCompany($kycDoc->customer?->company_id) || !$user->canAccessBranch($kycDoc->customer?->branch_id)) {
             return $this->forbiddenResponse('Unauthorized access to document file');
         }
 
