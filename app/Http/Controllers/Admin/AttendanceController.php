@@ -24,11 +24,18 @@ class AttendanceController extends Controller
         $this->authorize('viewAny', Attendance::class);
 
         $filters = $request->only(['company_id', 'branch_id', 'date', 'status', 'search']);
+        if (auth()->user()?->hasRole('Branch Manager')) {
+            $empId = auth()->user()->employee?->id;
+            $filters['employee_id'] = $empId;
+            $employees = Employee::where('id', $empId)->get();
+        } else {
+            $employees = Employee::where('status', 'active')->get();
+        }
+
         $attendances = $this->attendanceService->getPaginatedAttendances($filters, 15);
 
         $companies = auth()->user()->isSuperAdmin() ? Company::where('is_active', true)->get() : collect();
         $branches = Branch::where('is_active', true)->get();
-        $employees = Employee::where('status', 'active')->get();
 
         return view('admin.hrm.attendance.index', compact('attendances', 'filters', 'companies', 'branches', 'employees'));
     }

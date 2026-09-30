@@ -33,6 +33,10 @@ class PayrollController extends Controller
 
     public function store(ProcessPayrollRequest $request): RedirectResponse
     {
+        if ($request->user()->hasRole('Branch Manager')) {
+            abort(403, 'Branch Managers are not authorized to process payroll.');
+        }
+
         $this->authorize('process', Payroll::class);
 
         $payroll = $this->payrollService->runMonthlyPayroll($request->validated());
@@ -49,11 +53,21 @@ class PayrollController extends Controller
 
         $this->authorize('view', $payroll);
 
+        $user = auth()->user();
+        if ($user && $user->hasRole('Branch Manager')) {
+            $userEmpId = $user->employee?->id ?? \App\Models\Employee::where('user_id', $user->id)->orWhere('id', $user->employee_id)->value('id');
+            $payroll->setRelation('salarySlips', $payroll->salarySlips->filter(fn ($s) => (int)$s->employee_id === (int)$userEmpId));
+        }
+
         return view('admin.hrm.payroll.show', compact('payroll'));
     }
 
     public function disburse(int $id): RedirectResponse
     {
+        if (auth()->user()->hasRole('Branch Manager')) {
+            abort(403, 'Branch Managers are not authorized to disburse payroll.');
+        }
+
         $payroll = $this->payrollService->getPayrollById($id);
         if (!$payroll) {
             abort(404);
@@ -71,6 +85,14 @@ class PayrollController extends Controller
         $slip = $this->payrollService->getSalarySlipByUuid($uuid);
         if (!$slip) {
             abort(404);
+        }
+
+        $user = auth()->user();
+        if ($user && $user->hasRole('Branch Manager')) {
+            $userEmpId = $user->employee?->id ?? \App\Models\Employee::where('user_id', $user->id)->orWhere('id', $user->employee_id)->value('id');
+            if (!$userEmpId || (int)$slip->employee_id !== (int)$userEmpId) {
+                abort(403, 'Unauthorized access to another employee salary slip.');
+            }
         }
 
         return view('admin.hrm.payroll.salary-slip', compact('slip'));

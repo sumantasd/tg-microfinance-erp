@@ -9,12 +9,16 @@ class DepartmentPolicy
 {
     public function viewAny(User $user): bool
     {
+        if ($user->hasRole('Branch Manager')) {
+            return false;
+        }
+
         return $user->hasPermissionTo('department.view');
     }
 
     public function view(User $user, Department $department): bool
     {
-        if (!$user->hasPermissionTo('department.view')) {
+        if ($user->hasRole('Branch Manager') || !$user->hasPermissionTo('department.view')) {
             return false;
         }
 

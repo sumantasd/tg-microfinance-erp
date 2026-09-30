@@ -17,18 +17,11 @@ class LeaveRepository implements LeaveRepositoryInterface
 
         if ($user && !$user->isSuperAdmin()) {
             if ($user->hasRole('Branch Manager')) {
-                $assignedBranchId = $user->branch_id;
-                $userId = $user->id;
-
-                if ($assignedBranchId) {
-                    $query->where('branch_id', $assignedBranchId);
+                $empId = $user->employee?->id ?? \App\Models\Employee::where('user_id', $user->id)->orWhere('id', $user->employee_id)->value('id');
+                if ($empId) {
+                    $query->where('employee_id', $empId);
                 } else {
-                    $managedBranchIds = Branch::where('manager_id', $userId)->pluck('id')->toArray();
-                    if (!empty($managedBranchIds)) {
-                        $query->whereIn('branch_id', $managedBranchIds);
-                    } else {
-                        $query->whereRaw('1 = 0');
-                    }
+                    $query->whereRaw('1 = 0');
                 }
             } elseif ($user->hasRole('Company Admin') || $user->company_id) {
                 if ($user->company_id) {

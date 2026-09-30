@@ -68,6 +68,10 @@ class EmployeeRepository implements EmployeeRepositoryInterface
             }
         }
 
+        if (!empty($filters['employee_id'])) {
+            $query->where('id', $filters['employee_id']);
+        }
+
         if (!empty($filters['department_id'])) {
             $query->where('department_id', $filters['department_id']);
         }

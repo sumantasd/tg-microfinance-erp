@@ -9,12 +9,16 @@ class DesignationPolicy
 {
     public function viewAny(User $user): bool
     {
+        if ($user->hasRole('Branch Manager')) {
+            return false;
+        }
+
         return $user->hasPermissionTo('designation.view');
     }
 
     public function view(User $user, Designation $designation): bool
     {
-        if (!$user->hasPermissionTo('designation.view')) {
+        if ($user->hasRole('Branch Manager') || !$user->hasPermissionTo('designation.view')) {
             return false;
         }
 

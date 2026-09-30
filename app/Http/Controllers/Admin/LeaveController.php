@@ -25,12 +25,19 @@ class LeaveController extends Controller
         $this->authorize('viewAny', Leave::class);
 
         $filters = $request->only(['company_id', 'branch_id', 'status', 'leave_type_id', 'search']);
+        if (auth()->user()?->hasRole('Branch Manager')) {
+            $empId = auth()->user()->employee?->id;
+            $filters['employee_id'] = $empId;
+            $employees = Employee::where('id', $empId)->get();
+        } else {
+            $employees = Employee::where('status', 'active')->get();
+        }
+
         $leaves = $this->leaveService->getPaginatedLeaves($filters, 15);
 
         $companies = auth()->user()->isSuperAdmin() ? Company::where('is_active', true)->get() : collect();
         $branches = Branch::where('is_active', true)->get();
         $leaveTypes = LeaveType::where('is_active', true)->get();
-        $employees = Employee::where('status', 'active')->get();
 
         return view('admin.hrm.leaves.index', compact('leaves', 'filters', 'companies', 'branches', 'leaveTypes', 'employees'));
     }
@@ -46,6 +53,10 @@ class LeaveController extends Controller
 
     public function approve(Leave $leave): RedirectResponse
     {
+        if (auth()->user()->hasRole('Branch Manager')) {
+            abort(403, 'Branch Managers cannot approve leave applications.');
+        }
+
         $this->authorize('approve', $leave);
 
         $this->leaveService->approveLeave($leave);
@@ -55,6 +66,10 @@ class LeaveController extends Controller
 
     public function reject(Request $request, Leave $leave): RedirectResponse
     {
+        if (auth()->user()->hasRole('Branch Manager')) {
+            abort(403, 'Branch Managers cannot reject leave applications.');
+        }
+
         $this->authorize('approve', $leave);
 
         $request->validate(['rejection_reason' => 'required|string|max:500']);

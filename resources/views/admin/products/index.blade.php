@@ -11,12 +11,16 @@
         <p class="text-muted small mb-0">Manage products, SKUs, MRP pricing, tax rates, brand masters, and category classifications for Product Loans.</p>
     </div>
     <div class="mt-3 mt-md-0 d-flex gap-2 flex-wrap">
+        @can('product_brand.view')
         <a href="{{ route('admin.product-brand.index') }}" class="btn btn-outline-primary rounded-pill px-3">
             <i class="bi bi-tag-fill me-1"></i> Brand Master
         </a>
+        @endcan
+        @can('product_category.view')
         <a href="{{ route('admin.product-category.index') }}" class="btn btn-outline-success rounded-pill px-3">
             <i class="bi bi-grid-3x3-gap-fill me-1"></i> Category Master
         </a>
+        @endcan
         @can('product.create')
             <a href="{{ route('admin.product.create') }}" class="btn btn-info text-white fw-bold shadow-sm rounded-pill px-4">
                 <i class="bi bi-plus-circle me-1"></i> Add Product
@@ -136,6 +140,7 @@
                                 <i class="bi bi-pencil"></i>
                             </a>
                         @endcan
+                        @can('product.delete')
                         <form action="{{ route('admin.product.destroy', $product->id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete product \'{{ $product->name }}\'?');" class="d-inline">
                             @csrf
                             @method('DELETE')
@@ -143,6 +148,7 @@
                                 <i class="bi bi-trash"></i>
                             </button>
                         </form>
+                        @endcan
                     </div>
                 </td>
             </tr>

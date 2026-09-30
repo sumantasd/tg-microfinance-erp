@@ -34,7 +34,10 @@ class UserController extends Controller
         $this->authorize('create', User::class);
 
         $roles = Role::all();
-        return view('admin.system.users.create', compact('roles'));
+        $branches = \App\Models\Branch::where('is_active', true)->orderBy('name')->get();
+        $companies = \App\Models\Company::where('is_active', true)->orderBy('name')->get();
+
+        return view('admin.system.users.create', compact('roles', 'branches', 'companies'));
     }
 
     public function store(StoreUserRequest $request)
@@ -49,7 +52,10 @@ class UserController extends Controller
         $this->authorize('update', $user);
 
         $roles = Role::all();
-        return view('admin.system.users.edit', compact('user', 'roles'));
+        $branches = \App\Models\Branch::where('is_active', true)->orderBy('name')->get();
+        $companies = \App\Models\Company::where('is_active', true)->orderBy('name')->get();
+
+        return view('admin.system.users.edit', compact('user', 'roles', 'branches', 'companies'));
     }
 
     public function update(UpdateUserRequest $request, User $user)

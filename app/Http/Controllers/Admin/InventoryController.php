@@ -25,6 +25,16 @@ class InventoryController extends Controller
     {
         $user = auth()->user();
 
+        if ($user && $user->hasRole('Branch Manager')) {
+            if (!$user->branch_id) {
+                abort(403, 'Branch Manager has no assigned branch.');
+            }
+            if ($request->filled('branch_id') && (int) $request->get('branch_id') !== (int) $user->branch_id) {
+                abort(403, 'Unauthorized access to another branch inventory.');
+            }
+            $request->merge(['branch_id' => $user->branch_id]);
+        }
+
         // 1. Retrieve accessible retail branches for the logged-in user according to RBAC
         $branchQuery = Branch::where('is_active', true)->where('is_warehouse', false);
         if ($user && !$user->isSuperAdmin()) {
@@ -44,12 +54,15 @@ class InventoryController extends Controller
             $requestedBranchId = (int) $request->get('branch_id');
 
             // Server-side authorization check: user must have access to the requested branch
-            if (!$user || !$user->canAccessBranch($requestedBranchId) || !$branches->contains('id', $requestedBranchId)) {
-                return redirect()->route('admin.inventory.index')
-                    ->with('error', 'You are not authorized to view inventory for the requested branch.');
+            if (!$user || !$user->canAccessBranch($requestedBranchId)) {
+                abort(403, 'You are not authorized to view inventory for the requested branch.');
             }
 
-            $selectedBranch = $branches->firstWhere('id', $requestedBranchId) ?? Branch::find($requestedBranchId);
+            $selectedBranch = Branch::find($requestedBranchId);
+            if (!$selectedBranch) {
+                abort(404, 'Requested branch not found.');
+            }
+
             $filters['branch_id'] = $selectedBranch->id;
 
             // Fetch inventory stock scoped exclusively to the selected branch
@@ -131,7 +144,11 @@ class InventoryController extends Controller
             $query->where('company_id', $user->company_id);
         }
 
-        $products = $query->orderBy('name')->get(['id', 'name', 'sku', 'unit_price', 'cost_price']);
+        $selectFields = ($user && $user->hasRole('Branch Manager'))
+            ? ['id', 'name', 'sku', 'unit_price']
+            : ['id', 'name', 'sku', 'unit_price', 'cost_price'];
+
+        $products = $query->orderBy('name')->get($selectFields);
 
         return response()->json($products);
     }
@@ -150,6 +167,10 @@ class InventoryController extends Controller
 
     public function restock(RestockInventoryRequest $request): RedirectResponse
     {
+        if ($request->user()->hasRole('Branch Manager') || !$request->user()->can('inventory.restock')) {
+            abort(403, 'Branch Managers are not authorized to perform stock restocking.');
+        }
+
         $data = $request->validated();
         $movement = $this->inventoryService->restockBranchProduct(
             $data['branch_id'],
@@ -165,6 +186,10 @@ class InventoryController extends Controller
 
     public function adjust(AdjustStockRequest $request): RedirectResponse
     {
+        if ($request->user()->hasRole('Branch Manager') || !$request->user()->can('inventory.adjust')) {
+            abort(403, 'Branch Managers are not authorized to perform stock adjustments.');
+        }
+
         $data = $request->validated();
         $movement = $this->inventoryService->adjustBranchStock(
             $data['branch_id'],

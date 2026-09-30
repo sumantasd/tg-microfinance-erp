@@ -25,6 +25,10 @@ class EmployeeController extends Controller
 
     public function index(Request $request)
     {
+        if (auth()->user()?->hasRole('Branch Manager')) {
+            abort(403, 'Branch Managers are not authorized to access the employee directory.');
+        }
+
         $this->authorize('viewAny', Employee::class);
 
         $filters = $request->only(['search', 'status', 'company_id', 'branch_id', 'department_id', 'designation_id']);
@@ -67,7 +71,7 @@ class EmployeeController extends Controller
 
     public function show(int $id)
     {
-        $employee = $this->employeeRepository->findWithTrashed($id);
+        $employee = Employee::withTrashed()->find($id);
         if (!$employee) {
             abort(404);
         }

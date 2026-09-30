@@ -150,10 +150,12 @@
                                     </button>
                                 </form>
                             @endif
-                            <form action="{{ route('admin.customer-group.member.destroy', [$group->id, $m->customer_id]) }}" method="POST" onsubmit="return confirm('Remove customer {{ $m->customer->full_name }} from this group?');" class="d-inline">
-                                @csrf @method('DELETE')
-                                <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from Group"><i class="bi bi-trash"></i></button>
-                            </form>
+                            @can('group.delete')
+                                <form action="{{ route('admin.customer-group.member.destroy', [$group->id, $m->customer_id]) }}" method="POST" onsubmit="return confirm('Remove customer {{ $m->customer->full_name }} from this group?');" class="d-inline">
+                                    @csrf @method('DELETE')
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="Remove from Group"><i class="bi bi-trash"></i></button>
+                                </form>
+                            @endcan
                         @endcan
                     </div>
                 </td>

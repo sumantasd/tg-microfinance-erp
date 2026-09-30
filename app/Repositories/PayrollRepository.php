@@ -105,10 +105,12 @@ class PayrollRepository implements PayrollRepositoryInterface
         // Apply data isolation on parent payroll
         $user = auth()->user();
         if ($user && !$user->isSuperAdmin()) {
-            if ($user->hasRole('Branch Manager') && $slip->payroll->branch_id !== $user->branch_id) {
-                return null;
-            }
-            if (($user->hasRole('Company Admin') || $user->company_id) && $slip->payroll->company_id !== $user->company_id) {
+            if ($user->hasRole('Branch Manager')) {
+                $userEmpId = $user->employee?->id ?? \App\Models\Employee::where('user_id', $user->id)->orWhere('id', $user->employee_id)->value('id');
+                if (!$userEmpId || (int) $slip->employee_id !== (int) $userEmpId) {
+                    return null;
+                }
+            } elseif (($user->hasRole('Company Admin') || $user->company_id) && $slip->payroll->company_id !== $user->company_id) {
                 return null;
             }
         }

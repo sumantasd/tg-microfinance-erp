@@ -22,6 +22,13 @@ class UserService
         $data['created_by'] = Auth::id();
         $data['updated_by'] = Auth::id();
 
+        if (!empty($data['branch_id']) && empty($data['company_id'])) {
+            $branch = \App\Models\Branch::find($data['branch_id']);
+            if ($branch && $branch->company_id) {
+                $data['company_id'] = $branch->company_id;
+            }
+        }
+
         $roleName = $data['role'] ?? null;
         unset($data['role']);
 
@@ -43,6 +50,13 @@ class UserService
         }
 
         $data['updated_by'] = Auth::id();
+
+        if (!empty($data['branch_id']) && empty($data['company_id'])) {
+            $branch = \App\Models\Branch::find($data['branch_id']);
+            if ($branch && $branch->company_id) {
+                $data['company_id'] = $branch->company_id;
+            }
+        }
 
         $roleName = $data['role'] ?? null;
         unset($data['role']);

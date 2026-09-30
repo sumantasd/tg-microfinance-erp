@@ -181,7 +181,6 @@ class BranchInventoryUxTest extends TestCase
         $response = $this->actingAs($this->branchStaffA)
             ->get(route('admin.inventory.index', ['branch_id' => $this->branchB->id]));
 
-        $response->assertRedirect(route('admin.inventory.index'));
-        $response->assertSessionHas('error');
+        $response->assertStatus(403);
     }
 }

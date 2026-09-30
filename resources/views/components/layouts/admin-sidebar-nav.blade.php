@@ -26,7 +26,7 @@
     @endcan
 
     <!-- 3. ORGANIZATION MANAGEMENT -->
-    @canany(['company.view', 'branch.view'])
+    @can('company.view')
     @php
         $isOrgActive = request()->is('admin/company*') || request()->is('admin/branch*');
         $orgTarget = '#' . $p . 'sidebarOrgCollapse';
@@ -39,12 +39,10 @@
     </a>
 
     <div class="collapse sidebar-submenu {{ $isOrgActive ? 'show' : '' }}" id="{{ $orgId }}">
-        @can('company.view')
         <a class="sidebar-nav-link {{ request()->is('admin/company*') ? 'active' : '' }}" href="{{ url('/admin/company') }}">
             <i class="bi bi-building-gear nav-icon text-primary"></i>
             <span>Company Profile</span>
         </a>
-        @endcan
         @can('branch.view')
         <a class="sidebar-nav-link {{ request()->is('admin/branch*') ? 'active' : '' }}" href="{{ url('/admin/branch') }}">
             <i class="bi bi-diagram-3 nav-icon text-warning"></i>
@@ -52,7 +50,7 @@
         </a>
         @endcan
     </div>
-    @endcanany
+    @endcan
 
     <!-- 4. CUSTOMERS & GROUPS -->
     @canany(['customer.view', 'group.view'])
@@ -145,6 +143,7 @@
     <!-- 6. PRODUCTS & INVENTORY -->
     @canany(['product.view', 'product_brand.view', 'product_category.view', 'inventory.view', 'inventory.transfer.view'])
     @php
+        $isBranchManager = auth()->user()?->hasRole('Branch Manager');
         $isProductActive = (request()->is('admin/product*') && !request()->is('admin/product-purchase*')) || (request()->is('admin/inventory*') && !request()->is('admin/inventory/purchases*')) || request()->is('admin/billing*');
         $prodTarget = '#' . $p . 'sidebarProductsInventoryCollapse';
         $prodId = $p . 'sidebarProductsInventoryCollapse';
@@ -156,24 +155,26 @@
     </a>
 
     <div class="collapse sidebar-submenu {{ $isProductActive ? 'show' : '' }}" id="{{ $prodId }}">
-        @can('product.view')
-        <a class="sidebar-nav-link {{ (request()->is('admin/product') || request()->is('admin/product/*')) && !request()->is('admin/product-brand*') && !request()->is('admin/product-category*') && !request()->is('admin/product-purchase*') ? 'active' : '' }}" href="{{ route('admin.product.index') }}">
-            <i class="bi bi-box-seam nav-icon text-info"></i>
-            <span>Product Catalog</span>
-        </a>
-        @endcan
-        @can('product_brand.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/product-brand*') ? 'active' : '' }}" href="{{ route('admin.product-brand.index') }}">
-            <i class="bi bi-tag nav-icon text-primary"></i>
-            <span>Product Brands</span>
-        </a>
-        @endcan
-        @can('product_category.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/product-category*') ? 'active' : '' }}" href="{{ route('admin.product-category.index') }}">
-            <i class="bi bi-grid-3x3-gap nav-icon text-success"></i>
-            <span>Product Categories</span>
-        </a>
-        @endcan
+        @if(!$isBranchManager)
+            @can('product.view')
+            <a class="sidebar-nav-link {{ (request()->is('admin/product') || request()->is('admin/product/*')) && !request()->is('admin/product-brand*') && !request()->is('admin/product-category*') && !request()->is('admin/product-purchase*') ? 'active' : '' }}" href="{{ route('admin.product.index') }}">
+                <i class="bi bi-box-seam nav-icon text-info"></i>
+                <span>Product Catalog</span>
+            </a>
+            @endcan
+            @can('product_brand.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/product-brand*') ? 'active' : '' }}" href="{{ route('admin.product-brand.index') }}">
+                <i class="bi bi-tag nav-icon text-primary"></i>
+                <span>Product Brands</span>
+            </a>
+            @endcan
+            @can('product_category.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/product-category*') ? 'active' : '' }}" href="{{ route('admin.product-category.index') }}">
+                <i class="bi bi-grid-3x3-gap nav-icon text-success"></i>
+                <span>Product Categories</span>
+            </a>
+            @endcan
+        @endif
         @can('inventory.view')
         <a class="sidebar-nav-link {{ request()->is('admin/inventory') || (request()->is('admin/inventory/*') && !request()->is('admin/inventory/transfers*') && !request()->is('admin/inventory/purchases*')) ? 'active' : '' }}" href="{{ route('admin.inventory.index') }}">
             <i class="bi bi-stack nav-icon text-warning"></i>
@@ -190,7 +191,7 @@
     @endcanany
 
     <!-- 7. PROCUREMENT -->
-    @canany(['purchase.view', 'supplier.view', 'suppliers.view', 'inventory.view'])
+    @canany(['purchase.view', 'supplier.view', 'suppliers.view'])
     @php
         $isProcurementActive = request()->is('admin/warehouse*') || request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') || request()->is('admin/suppliers*');
         $procTarget = '#' . $p . 'sidebarProcurementCollapse';
@@ -203,13 +204,11 @@
     </a>
 
     <div class="collapse sidebar-submenu {{ $isProcurementActive ? 'show' : '' }}" id="{{ $procId }}">
-        @can('inventory.view')
+        @can('purchase.view')
         <a class="sidebar-nav-link {{ request()->is('admin/warehouse*') ? 'active' : '' }}" href="{{ route('admin.warehouse.index') }}">
             <i class="bi bi-building nav-icon text-primary"></i>
             <span>Warehouse</span>
         </a>
-        @endcan
-        @can('purchase.view')
         <a class="sidebar-nav-link {{ request()->is('admin/inventory/purchases*') || request()->is('admin/product-purchase*') ? 'active' : '' }}" href="{{ route('admin.product-purchase.index') }}">
             <i class="bi bi-cart-check nav-icon text-primary"></i>
             <span>Product Purchases</span>
@@ -281,24 +280,26 @@
     </a>
 
     <div class="collapse sidebar-submenu {{ $isHrmActive ? 'show' : '' }}" id="{{ $hrmId }}">
-        @can('employee.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/employee*') ? 'active' : '' }}" href="{{ route('admin.employee.index') }}">
-            <i class="bi bi-person-lines-fill nav-icon"></i>
-            <span>Employees</span>
-        </a>
-        @endcan
-        @can('department.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/department*') ? 'active' : '' }}" href="{{ route('admin.department.index') }}">
-            <i class="bi bi-diagram-2 nav-icon"></i>
-            <span>Departments</span>
-        </a>
-        @endcan
-        @can('designation.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/designation*') ? 'active' : '' }}" href="{{ route('admin.designation.index') }}">
-            <i class="bi bi-person-workspace nav-icon"></i>
-            <span>Designations</span>
-        </a>
-        @endcan
+        @if(!$isBranchManager)
+            @can('employee.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/employee*') ? 'active' : '' }}" href="{{ route('admin.employee.index') }}">
+                <i class="bi bi-person-lines-fill nav-icon"></i>
+                <span>Employees</span>
+            </a>
+            @endcan
+            @can('department.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/department*') ? 'active' : '' }}" href="{{ route('admin.department.index') }}">
+                <i class="bi bi-diagram-2 nav-icon"></i>
+                <span>Departments</span>
+            </a>
+            @endcan
+            @can('designation.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/designation*') ? 'active' : '' }}" href="{{ route('admin.designation.index') }}">
+                <i class="bi bi-person-workspace nav-icon"></i>
+                <span>Designations</span>
+            </a>
+            @endcan
+        @endif
         @can('attendance.view')
         <a class="sidebar-nav-link {{ request()->is('admin/hrm/attendance*') ? 'active' : '' }}" href="{{ route('admin.hrm.attendance.index') }}">
             <i class="bi bi-calendar-check nav-icon"></i>
@@ -418,19 +419,28 @@
     @endcan
 
     <!-- 12. SYSTEM / SETTINGS -->
-    @canany(['users.view', 'roles.view', 'permissions.view', 'settings.view'])
     @php
-        $isSystemActive = request()->is('admin/system*');
+        $isSystemActive = request()->is('admin/system*') || request()->is('admin/my-branch*') || request()->is('admin/profile*');
         $sysTarget = '#' . $p . 'sidebarSystemCollapse';
         $sysId = $p . 'sidebarSystemCollapse';
     @endphp
     <a class="sidebar-nav-link {{ $isSystemActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="{{ $sysTarget }}" role="button" aria-expanded="{{ $isSystemActive ? 'true' : 'false' }}" aria-controls="{{ $sysId }}">
         <i class="bi bi-gear-fill nav-icon text-secondary"></i>
-        <span>System / Settings</span>
+        <span>Settings</span>
         <i class="bi bi-chevron-right accordion-arrow"></i>
     </a>
 
     <div class="collapse sidebar-submenu {{ $isSystemActive ? 'show' : '' }}" id="{{ $sysId }}">
+        @can('branch.view')
+        <a class="sidebar-nav-link {{ request()->is('admin/my-branch*') ? 'active' : '' }}" href="{{ route('admin.my-branch') }}">
+            <i class="bi bi-building-check nav-icon text-warning"></i>
+            <span>My Branch Details</span>
+        </a>
+        @endcan
+        <a class="sidebar-nav-link {{ request()->is('admin/profile*') ? 'active' : '' }}" href="{{ route('admin.profile.show') }}">
+            <i class="bi bi-person-circle nav-icon text-info"></i>
+            <span>My Profile</span>
+        </a>
         @can('users.view')
         <a class="sidebar-nav-link {{ request()->is('admin/system/users*') ? 'active' : '' }}" href="{{ url('/admin/system/users') }}">
             <i class="bi bi-person-gear nav-icon text-primary"></i>
@@ -460,9 +470,8 @@
         </a>
         <a class="sidebar-nav-link {{ request()->is('admin/system/settings*') ? 'active' : '' }}" href="{{ url('/admin/system/settings') }}">
             <i class="bi bi-sliders nav-icon text-secondary"></i>
-            <span>Settings</span>
+            <span>Global Settings</span>
         </a>
         @endcan
     </div>
-    @endcanany
 </nav>

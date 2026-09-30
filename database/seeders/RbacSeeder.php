@@ -90,6 +90,9 @@ class RbacSeeder extends Seeder
 
             // 18. Centralized Billing & Invoices
             'billing.view', 'billing.create', 'billing.edit', 'billing.print', 'billing.pdf', 'billing.cancel', 'billing.export',
+
+            // 19. Expenses & Finance Operations
+            'expense.view', 'expense.create', 'expense.edit', 'expense.delete', 'expense.submit', 'expense.approve', 'expense.reject', 'expense.pay', 'expense.cancel',
         ];
 
         foreach ($permissions as $permissionName) {
@@ -150,7 +153,7 @@ class RbacSeeder extends Seeder
             'employee.view', 'employee.create', 'employee.edit', 'employee.toggle_status',
             'attendance.view', 'attendance.create', 'attendance.edit',
             'leave.view', 'leave.create', 'leave.approve', 'leave.reject', 'leave.delete',
-            'payroll.view', 'payroll.process', 'payroll.disburse',
+            'payroll.view', 'payroll.process', 'payroll.disburse', 'expense.view', 'expense.create', 'expense.edit', 'expense.delete', 'expense.approve',
             'hr_letter.view', 'hr_letter.generate',
             'hr_reports.view',
             'reports.view', 'reports.export',
@@ -162,28 +165,26 @@ class RbacSeeder extends Seeder
 
         // 4. Branch Manager: Operational Branch Authority (Locked to Branch)
         Role::findByName('Branch Manager', 'web')->syncPermissions([
-            'company.view', 'branch.view',
+            'branch.view',
             'customer.view', 'customer.create', 'customer.edit', 'customer.verify_kyc', 'customer.manage_guarantor', 'customer.manage_nominee', 'customer.change_status',
             'group.view', 'group.create', 'group.edit', 'group.change_status', 'group.manage_members', 'group.assign_leader',
-            'loan_scheme.view',
             'loan_application.view', 'loan_application.create', 'loan_application.edit', 'loan_application.submit', 'loan_application.review', 'loan_application.approve', 'loan_application.reject',
             'loan.view', 'loan.create', 'loan.sanction', 'loan.disburse', 'loan.issue_product', 'loan.view_schedule', 'loan.record_down_payment', 'loan.record_repayment',
             'loan_closure.view', 'loan_closure.calculate', 'loan_foreclosure.process', 'loan_settlement.request', 'loan_settlement.approve', 'loan_closure.certificate',
             'collection.view', 'loan.collection.view', 'loan.collection.create', 'loan.collection.receipt', 'loan.collection.history',
             'overdue.view', 'dpd.view', 'overdue.branch_report',
             'penalty.view', 'penalty.waive', 'loans.waive_penalty', 'loan.waive_penalty',
-            'product.view', 'product_brand.view', 'product_category.view',
-            'inventory.view', 'inventory.manage', 'inventory.adjust',
-            'inventory.transfer.view', 'inventory.transfer.create', 'inventory.transfer.receive', 'inventory.transfer.dispatch',
-            'purchase.view', 'purchase.receive',
-            'department.view', 'designation.view', 'employee.view', 'employee.create', 'employee.edit', 'employee.toggle_status',
-            'attendance.view', 'attendance.create', 'attendance.edit',
-            'leave.view', 'leave.create', 'leave.approve', 'leave.reject',
-            'payroll.view', 'hr_letter.view', 'hr_letter.generate', 'hr_reports.view',
-            'reports.view', 'reports.export', 'savings.view',
+            'inventory.view',
+            'inventory.transfer.view', 'inventory.transfer.receive',
+            'employee.view',
+            'attendance.view',
+            'leave.view', 'leave.create',
+            'payroll.view', 'hr_letter.view', 'hr_letter.generate',
+            'savings.view',
             'cashbook.view', 'cashbook.create', 'cashbook.edit', 'cashbook.close', 'cashbook.print', 'cashbook.export',
             'bank_deposit.view', 'bank_deposit.create',
             'billing.view', 'billing.create', 'billing.print', 'billing.pdf',
+            'expense.view', 'expense.create', 'expense.edit',
         ]);
 
         // 5. Loan Officer & Field Officer: Field Sourcing, Applications, EMI Collection

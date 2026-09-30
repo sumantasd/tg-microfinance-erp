@@ -89,15 +89,20 @@
                 </thead>
                 <tbody>
                     @foreach($cashBook->paymentEntries as $entry)
+                        @if($entry->category_code === 'fund_transfer')
+                            @continue
+                        @endif
                         <tr>
                             <td class="text-center">{{ $entry->entry_date->format('d/m') }}</td>
-                            <td class="fw-bold text-uppercase">{{ $entry->particulars }}</td>
+                            <td class="fw-bold text-uppercase">
+                                {{ $entry->category_code === 'gl_steel_furniture' ? 'ONLINE / UPI EMI COLLECTION' : $entry->particulars }}
+                            </td>
                             <td class="text-end fw-bold">{{ $entry->cash_amount > 0 ? ($entry->category_code === 'member_no' ? number_format($entry->cash_amount, 0) : number_format($entry->cash_amount, 2)) : '' }}</td>
                             <td class="text-end">{{ $entry->product_amount > 0 ? number_format($entry->product_amount, 2) : '' }}</td>
                             <td class="text-end">{{ $entry->bank_amount > 0 ? number_format($entry->bank_amount, 2) : '' }}</td>
                         </tr>
                     @endforeach
-                    @for($i = 0; $i < max(0, 7 - $cashBook->paymentEntries->count()); $i++)
+                    @for($i = 0; $i < max(0, 6 - $cashBook->paymentEntries->where('category_code', '!=', 'fund_transfer')->count()); $i++)
                         <tr><td>&nbsp;</td><td></td><td></td><td></td><td></td></tr>
                     @endfor
                     <tr class="fw-bold bg-light">
@@ -105,6 +110,13 @@
                         <td class="text-end">{{ number_format($cashBook->total_cash_payment, 2) }}</td>
                         <td class="text-end">{{ number_format($cashBook->total_product_payment, 2) }}</td>
                         <td class="text-end">{{ number_format($cashBook->total_bank_payment, 2) }}</td>
+                    </tr>
+                    <tr class="fw-bold bg-dark text-white">
+                        <td colspan="2" class="text-end">CASH IN HAND RS.</td>
+                        <td class="text-end">₹{{ number_format($cashBook->closing_cash, 2) }}</td>
+                        <td colspan="2" class="text-center small">
+                            {{ $cashBook->closing_cash < 0 ? '[ CASH SHORT ]' : '[ BALANCED ]' }}
+                        </td>
                     </tr>
                 </tbody>
             </table>

@@ -8,7 +8,7 @@ class UpdateProductRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        return !$this->user()?->hasRole('Branch Manager') && ($this->user()?->can('product.edit') ?? false);
     }
 
     public function rules(): array

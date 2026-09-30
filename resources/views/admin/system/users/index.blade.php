@@ -75,7 +75,13 @@
                     @endforeach
                 </td>
                 <td>
-                    <span class="small text-secondary fw-medium"><i class="bi bi-building me-1"></i>Head Office Branch</span>
+                    @if($user->branch)
+                        <span class="small text-secondary fw-semibold"><i class="bi bi-building me-1 text-primary"></i>{{ $user->branch->name }}</span>
+                    @elseif($user->hasRole('Branch Manager'))
+                        <span class="badge bg-danger text-white border border-danger shadow-sm"><i class="bi bi-exclamation-triangle-fill me-1"></i>Unassigned Branch</span>
+                    @else
+                        <span class="small text-muted italic"><i class="bi bi-buildings me-1"></i>All / Head Office</span>
+                    @endif
                 </td>
                 <td>
                     @if($user->status === 'active')

@@ -7,10 +7,15 @@
     <!-- Top Action Bar -->
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3 mb-3">
         <div>
-            <div class="d-flex align-items-center gap-2">
-                <a href="{{ route('admin.cash-book.index') }}" class="btn btn-sm btn-light rounded-circle"><i class="bi bi-arrow-left"></i></a>
+            <div class="d-flex align-items-center gap-2 flex-wrap">
+                <a href="{{ route('admin.cash-book.branch', $cashBook->branch_id) }}" class="btn btn-outline-secondary rounded-pill px-3 btn-sm fw-bold me-1">
+                    <i class="bi bi-arrow-left me-1"></i> Back to Overview
+                </a>
+                <a href="{{ route('admin.cash-book.index') }}" class="btn btn-outline-primary rounded-pill px-3 btn-sm fw-bold me-1">
+                    <i class="bi bi-building me-1"></i> Branch Selection
+                </a>
                 <h4 class="fw-bold mb-0 font-heading text-dark">
-                    DAILY CASH BOOK REGISTER — <span class="text-primary">{{ strtoupper($cashBook->branch->name) }}</span>
+                    DAILY CASH BOOK REGISTER — <span class="text-primary">{{ strtoupper($cashBook->branch->name) }} ({{ $cashBook->branch->code }})</span>
                 </h4>
                 @if($cashBook->status === 'open')
                     <span class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3">
@@ -22,14 +27,20 @@
                     </span>
                 @endif
             </div>
-            <p class="text-muted small mb-0 ms-4 mt-1">
-                Date: <strong>{{ $cashBook->date->format('d/m/Y') }}</strong> | 
+            <p class="text-muted small mb-0 mt-1">
+                Register Date: <strong>{{ $cashBook->date->format('d/m/Y') }}</strong> | 
                 Responsible Staff: <strong>{{ $cashBook->responsibleStaff->name ?? 'System Staff' }}</strong> | 
                 Company: <strong>{{ $cashBook->company->name ?? 'Grihalaxmi Finance' }}</strong>
             </p>
         </div>
 
         <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- Date Filter Picker -->
+            <form action="{{ route('admin.cash-book.show', $cashBook->id) }}" method="GET" class="d-inline-flex align-items-center me-1">
+                <label class="small text-muted fw-bold me-1 font-monospace">Date:</label>
+                <input type="date" name="date" value="{{ $cashBook->date->format('Y-m-d') }}" onchange="this.form.submit()" class="form-control form-control-sm bg-light border-secondary-subtle font-monospace shadow-sm" style="width: 140px;" title="Switch Register Date">
+            </form>
+
             @if($cashBook->isOpen())
                 <form action="{{ route('admin.cash-book.sync-erp', $cashBook->id) }}" method="POST" class="d-inline">
                     @csrf
@@ -201,9 +212,14 @@
                         </thead>
                         <tbody>
                             @forelse($cashBook->paymentEntries as $entry)
+                                @if($entry->category_code === 'fund_transfer')
+                                    @continue
+                                @endif
                                 <tr>
                                     <td class="text-center">{{ $entry->entry_date->format('d/m') }}</td>
-                                    <td class="fw-semibold text-uppercase text-dark">{{ $entry->particulars }}</td>
+                                    <td class="fw-semibold text-uppercase text-dark">
+                                        {{ $entry->category_code === 'gl_steel_furniture' ? 'ONLINE / UPI EMI COLLECTION' : $entry->particulars }}
+                                    </td>
                                     <td class="text-end fw-bold text-danger">
                                         {{ $entry->cash_amount > 0 ? ($entry->category_code === 'member_no' ? number_format($entry->cash_amount, 0) : number_format($entry->cash_amount, 2)) : '' }}
                                     </td>
@@ -227,6 +243,42 @@
                             </tr>
                         </tbody>
                     </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- CASH IN HAND SUMMARY BANNER -->
+    <div class="card border-0 shadow-sm rounded-3 mb-4 bg-dark text-white overflow-hidden">
+        <div class="card-body p-3">
+            <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-3">
+                <div class="d-flex align-items-center gap-3">
+                    <div class="rounded-circle p-2 bg-white bg-opacity-10">
+                        <i class="bi bi-wallet2 text-warning fs-3"></i>
+                    </div>
+                    <div>
+                        <span class="text-white-50 small font-monospace text-uppercase d-block">PHYSICAL CASH IN HAND (NET CLOSING CASH BALANCE)</span>
+                        <h3 class="fw-bold font-monospace mb-0 text-white">
+                            ₹{{ number_format($cashBook->closing_cash, 2) }}
+                        </h3>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-md-end">
+                        <span class="text-white-50 small font-monospace d-block">TOTAL RECEIVED: <strong class="text-success">₹{{ number_format($cashBook->total_cash_received, 2) }}</strong></span>
+                        <span class="text-white-50 small font-monospace d-block">TOTAL ELIGIBLE PAYMENT: <strong class="text-danger">₹{{ number_format($cashBook->total_cash_payment, 2) }}</strong></span>
+                    </div>
+                    <div>
+                        @if($cashBook->closing_cash < 0)
+                            <span class="badge bg-danger text-white border border-danger-subtle rounded-pill px-3 py-2 font-monospace fs-6">
+                                <i class="bi bi-exclamation-triangle-fill me-1"></i> CASH SHORT (RECONCILIATION REQUIRED)
+                            </span>
+                        @else
+                            <span class="badge bg-success text-white border border-success-subtle rounded-pill px-3 py-2 font-monospace fs-6">
+                                <i class="bi bi-check-circle-fill me-1"></i> BALANCED
+                            </span>
+                        @endif
+                    </div>
                 </div>
             </div>
         </div>

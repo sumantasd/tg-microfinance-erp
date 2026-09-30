@@ -113,4 +113,20 @@ class BranchController extends Controller
 
         return redirect()->route('admin.branch.index')->with('success', 'Branch office record restored successfully.');
     }
+
+    public function myBranch()
+    {
+        $user = auth()->user();
+        $branchId = $user->resolveScopedBranchId();
+        if (!$branchId) {
+            return redirect()->route('admin.dashboard')->with('error', 'No assigned branch found for your profile.');
+        }
+
+        $branch = $this->branchRepository->findWithTrashed($branchId);
+        if (!$branch) {
+            abort(404);
+        }
+
+        return view('admin.branches.show', compact('branch'));
+    }
 }

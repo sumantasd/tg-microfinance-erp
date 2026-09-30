@@ -32,9 +32,11 @@
     </div>
     <div class="d-flex flex-wrap gap-2 mt-3 mt-md-0">
         @if(isset($selectedBranch) && $selectedBranch)
-            <a href="{{ route('admin.inventory.index') }}" class="btn btn-outline-secondary rounded-pill px-3 fw-bold">
-                <i class="bi bi-arrow-left me-1"></i> All Branches
-            </a>
+            @unless(auth()->user()?->hasRole('Branch Manager'))
+                <a href="{{ route('admin.inventory.index') }}" class="btn btn-outline-secondary rounded-pill px-3 fw-bold">
+                    <i class="bi bi-arrow-left me-1"></i> All Branches
+                </a>
+            @endunless
         @endif
         @can('purchase.view')
             <a href="{{ route('admin.product-purchase.index') }}" class="btn btn-outline-primary rounded-pill px-3 fw-bold">
@@ -212,7 +214,7 @@
                 <tr>
                     <td class="px-3 py-3">
                         @if($stk->product)
-                            <a href="{{ route('admin.product.show', $stk->product->id) }}" class="fw-bold text-dark text-decoration-none hover-primary">{{ $stk->product->name }}</a>
+                            <div class="fw-bold text-dark">{{ $stk->product->name }}</div>
                             <div class="small font-monospace text-info">{{ $stk->product->sku }}</div>
                         @else
                             <span class="text-danger fw-bold"><i class="bi bi-exclamation-triangle me-1"></i>Unknown Product (ID: {{ $stk->product_id }})</span>

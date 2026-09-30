@@ -150,6 +150,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     // Daily Cash Book Register Module Routes
     Route::middleware('can:cashbook.view')->prefix('cash-book')->name('admin.cash-book.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\CashBookController::class, 'index'])->name('index');
+        Route::get('/branch/{branchId}', [\App\Http\Controllers\Admin\CashBookController::class, 'openBranch'])->name('branch');
         Route::get('/{id}', [\App\Http\Controllers\Admin\CashBookController::class, 'show'])->name('show');
         Route::post('/{id}/entry', [\App\Http\Controllers\Admin\CashBookController::class, 'storeEntry'])->name('store-entry')->middleware('can:cashbook.edit');
         Route::delete('/{id}/entry/{entryId}', [\App\Http\Controllers\Admin\CashBookController::class, 'destroyEntry'])->name('destroy-entry')->middleware('can:cashbook.edit');
@@ -247,6 +248,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     });
 
     Route::middleware('can:branch.view')->group(function () {
+        Route::get('/my-branch', [BranchController::class, 'myBranch'])->name('admin.my-branch');
         Route::get('/branch', [BranchController::class, 'index'])->name('admin.branch.index');
         Route::get('/branch/create', [BranchController::class, 'create'])->name('admin.branch.create')->middleware('can:branch.create');
         Route::post('/branch', [BranchController::class, 'store'])->name('admin.branch.store')->middleware('can:branch.create');

@@ -102,6 +102,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Relationship to associated Employee profile.
+     */
+    public function employee()
+    {
+        return $this->hasOne(Employee::class, 'user_id');
+    }
+
+    /**
      * Relationship to creator user.
      */
     public function creator()

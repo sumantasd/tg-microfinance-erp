@@ -19,7 +19,8 @@ class EmployeePolicy
         }
 
         if ($user->hasRole('Branch Manager')) {
-            return (int) $user->branch_id === (int) $employee->branch_id;
+            $userEmpId = $user->employee?->id ?? Employee::where('user_id', $user->id)->value('id');
+            return (int) $employee->user_id === (int) $user->id || ($userEmpId && (int) $employee->id === (int) $userEmpId);
         }
 
         if ($user->hasRole('Company Admin') || $user->company_id) {
@@ -31,6 +32,10 @@ class EmployeePolicy
 
     public function create(User $user): bool
     {
+        if ($user->hasRole('Branch Manager')) {
+            return false;
+        }
+
         return $user->hasPermissionTo('employee.create');
     }
 
@@ -41,7 +46,8 @@ class EmployeePolicy
         }
 
         if ($user->hasRole('Branch Manager')) {
-            return (int) $user->branch_id === (int) $employee->branch_id;
+            $userEmpId = $user->employee?->id ?? Employee::where('user_id', $user->id)->value('id');
+            return (int) $employee->user_id === (int) $user->id || ($userEmpId && (int) $employee->id === (int) $userEmpId);
         }
 
         if ($user->hasRole('Company Admin') || $user->company_id) {
@@ -53,12 +59,12 @@ class EmployeePolicy
 
     public function toggleStatus(User $user, Employee $employee): bool
     {
-        if (!$user->hasPermissionTo('employee.toggle_status')) {
+        if ($user->hasRole('Branch Manager')) {
             return false;
         }
 
-        if ($user->hasRole('Branch Manager')) {
-            return (int) $user->branch_id === (int) $employee->branch_id;
+        if (!$user->hasPermissionTo('employee.toggle_status')) {
+            return false;
         }
 
         if ($user->hasRole('Company Admin') || $user->company_id) {
@@ -70,12 +76,12 @@ class EmployeePolicy
 
     public function delete(User $user, Employee $employee): bool
     {
-        if (!$user->hasPermissionTo('employee.delete')) {
+        if ($user->hasRole('Branch Manager')) {
             return false;
         }
 
-        if ($user->hasRole('Branch Manager')) {
-            return (int) $user->branch_id === (int) $employee->branch_id;
+        if (!$user->hasPermissionTo('employee.delete')) {
+            return false;
         }
 
         if ($user->hasRole('Company Admin') || $user->company_id) {

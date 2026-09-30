@@ -18,6 +18,10 @@ class ProductCategoryController extends Controller
     public function index(Request $request): View
     {
         $user = Auth::user();
+        if ($user && ($user->hasRole('Branch Manager') || !$user->can('product_category.view'))) {
+            abort(403, 'Branch Managers are not authorized to access Product Categories.');
+        }
+
         $query = ProductCategory::with(['company', 'creator'])->withCount('products');
 
         if ($user && !$user->isSuperAdmin()) {

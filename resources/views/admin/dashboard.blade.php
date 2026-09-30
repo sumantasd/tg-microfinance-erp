@@ -4,6 +4,18 @@
 
 @section('content')
 
+@if(auth()->user()->hasRole('Branch Manager') && !auth()->user()->branch_id)
+    <div class="alert alert-danger shadow-sm rounded-4 p-3 mb-4 border border-danger-subtle" role="alert">
+        <div class="d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-4 text-danger"></i>
+            <div>
+                <h6 class="fw-bold mb-0 text-danger">Mandatory Branch Assignment Required</h6>
+                <p class="mb-0 small text-dark opacity-75">Your account is designated as a <strong>Branch Manager</strong>, but no operational branch is currently assigned to your profile. All branch-specific operations remain restricted until a System Administrator assigns a branch to your user account.</p>
+            </div>
+        </div>
+    </div>
+@endif
+
 <!-- 1. TOP HEADER BANNER: GREETING, BRANCH SELECTOR & OPERATIONAL CONTEXT -->
 <div class="card border-0 shadow-sm rounded-4 mb-4 bg-white" style="padding: var(--dashboard-card-padding-y) var(--dashboard-card-padding-x);">
     <div class="d-flex flex-column flex-lg-row justify-content-between align-items-lg-center gap-3">

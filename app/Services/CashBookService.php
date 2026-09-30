@@ -87,14 +87,13 @@ class CashBookService
                 ]);
             }
 
-            // Seed default Payment entries
+            // Seed default Payment entries (6 exact rows in order)
             $paymentDefaults = [
                 ['code' => 'loan_disbursed', 'particulars' => 'LOAN DISBURSED AMOUNT'],
                 ['code' => 'member_no', 'particulars' => 'MEMBER NO'],
                 ['code' => 'deposit_to_bank', 'particulars' => 'DEPOSIT TO BANK'],
                 ['code' => 'management_expense', 'particulars' => 'MANAGEMENT EXPENSE'],
-                ['code' => 'fund_transfer', 'particulars' => 'FUND TRANSFER TO'],
-                ['code' => 'gl_steel_furniture', 'particulars' => 'GL STEEL FURNITURE BY CUSTOMER'],
+                ['code' => 'gl_steel_furniture', 'particulars' => 'ONLINE / UPI EMI COLLECTION'],
                 ['code' => 'borrower_death', 'particulars' => 'BORROWER DEATH'],
             ];
 
@@ -124,7 +123,7 @@ class CashBookService
     }
 
     /**
-     * Compute Opening Cash for a date based on previous business day's final physical cash after APPROVED bank deposits.
+     * Compute Opening Cash for a date based on previous business day's final physical Cash In Hand.
      */
     public function getOpeningBalanceForDate(int $branchId, string $date): float
     {
@@ -139,27 +138,7 @@ class CashBookService
             return 0.00;
         }
 
-        // Calculate previous day's approved bank deposits
-        $prevApprovedDeposits = BankDeposit::where('branch_id', $branchId)
-            ->whereDate('deposit_date', $previousCashBook->date->format('Y-m-d'))
-            ->where('status', 'approved')
-            ->sum('amount');
-
-        // Sum previous day's cash receipts (including opening balance row)
-        $prevCashReceived = CashBookEntry::where('cash_book_id', $previousCashBook->id)
-            ->where('entry_type', 'received')
-            ->sum('cash_amount');
-
-        // Sum previous day's cash payments (excluding deposit_to_bank, member_no, and borrower_death rows)
-        $prevCashPayment = CashBookEntry::where('cash_book_id', $previousCashBook->id)
-            ->where('entry_type', 'payment')
-            ->whereNotIn('category_code', ['deposit_to_bank', 'member_no', 'borrower_death'])
-            ->sum('cash_amount');
-
-        // Final Physical Cash = prevCashReceived - prevCashPayment - prevApprovedDeposits
-        $finalPhysicalCash = max(0, $prevCashReceived - $prevCashPayment - $prevApprovedDeposits);
-
-        return round($finalPhysicalCash, 2);
+        return round((float) $previousCashBook->closing_cash, 2);
     }
 
     /**
@@ -205,18 +184,17 @@ class CashBookService
 
         // Delete removed payment category rows if present
         CashBookEntry::where('cash_book_id', $cashBook->id)
-            ->whereIn('category_code', ['miscellaneous', 'distribution_payment'])
+            ->whereIn('category_code', ['miscellaneous', 'distribution_payment', 'fund_transfer'])
             ->delete();
 
-        // Ensure all 7 exact payment rows exist and have correct sort order
+        // Ensure all 6 exact payment rows exist and have correct sort order
         $paymentOrderMap = [
             'loan_disbursed' => [1, 'LOAN DISBURSED AMOUNT'],
             'member_no' => [2, 'MEMBER NO'],
             'deposit_to_bank' => [3, 'DEPOSIT TO BANK'],
             'management_expense' => [4, 'MANAGEMENT EXPENSE'],
-            'fund_transfer' => [5, 'FUND TRANSFER TO'],
-            'gl_steel_furniture' => [6, 'GL STEEL FURNITURE BY CUSTOMER'],
-            'borrower_death' => [7, 'BORROWER DEATH'],
+            'gl_steel_furniture' => [5, 'ONLINE / UPI EMI COLLECTION'],
+            'borrower_death' => [6, 'BORROWER DEATH'],
         ];
 
         foreach ($paymentOrderMap as $code => $info) {
@@ -556,8 +534,18 @@ class CashBookService
                 'cash_amount' => $deathForgivenAmount,
             ]);
 
-        // 12. Sync Online Collections sub-table (Every individual non-cash transaction remains a separate record)
+        // 11c. Payment Section: ONLINE / UPI EMI COLLECTION (GL STEEL FURNITURE BY CUSTOMER)
         $onlineRepayments = $repayments->reject(fn($r) => in_array(strtolower($r->payment_method ?? 'cash'), ['cash', '']));
+        $onlineEmiTotal = $onlineRepayments->sum('amount');
+
+        CashBookEntry::where('cash_book_id', $cashBook->id)
+            ->where('category_code', 'gl_steel_furniture')
+            ->update([
+                'particulars' => 'ONLINE / UPI EMI COLLECTION',
+                'bank_amount' => $onlineEmiTotal,
+            ]);
+
+        // 12. Sync Online Collections sub-table (Every individual non-cash transaction remains a separate record)
         $existingRepaymentIds = [];
 
         foreach ($onlineRepayments as $rep) {
@@ -618,20 +606,24 @@ class CashBookService
         $totalProductReceived = $receivedEntries->sum('product_amount');
         $totalBankReceived = $receivedEntries->sum('bank_amount');
 
-        // Exclude non-cash payment categories (member_no and borrower_death) from physical cash deduction
-        $cashPaymentEntries = $paymentEntries->reject(fn($e) => in_array($e->category_code, ['member_no', 'borrower_death']));
+        // Requirement 2: Total Payment Amount must include ONLY these three categories:
+        // 1. DEPOSIT TO BANK (deposit_to_bank)
+        // 2. MANAGEMENT EXPENSE (management_expense)
+        // 3. BORROWER DEATH (borrower_death)
+        $eligiblePaymentEntries = $paymentEntries->filter(function ($e) {
+            return in_array($e->category_code, ['deposit_to_bank', 'management_expense', 'borrower_death']);
+        });
 
-        $totalCashPayment = $cashPaymentEntries->sum('cash_amount');
-        $totalProductPayment = $paymentEntries->sum('product_amount');
-        $totalBankPayment = $paymentEntries->sum('bank_amount');
+        $totalCashPayment = $eligiblePaymentEntries->sum('cash_amount');
+        $totalProductPayment = $eligiblePaymentEntries->sum('product_amount');
+        $totalBankPayment = $eligiblePaymentEntries->sum('bank_amount');
 
-        // Closing cash = Total Cash Received - Total Cash Payment
+        // Requirement 3: Cash In Hand = Total Received Amount - Total Payment Amount
         $closingCash = $totalCashReceived - $totalCashPayment;
 
-        // Physical Cash counting section is disabled; System Closing Cash is the cash in hand
         $physicalCash = $closingCash;
         $cashDifference = 0.00;
-        $reconciledStatus = 'balanced';
+        $reconciledStatus = $closingCash < 0 ? 'cash_short' : 'balanced';
 
         $cashBook->update([
             'total_cash_received' => $totalCashReceived,

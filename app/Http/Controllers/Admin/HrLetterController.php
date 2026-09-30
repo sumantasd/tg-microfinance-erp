@@ -20,16 +20,32 @@ class HrLetterController extends Controller
     {
         $this->authorize('viewAny', Employee::class);
 
-        $employees = $this->employeeService->getPaginatedEmployees($request->only(['search']), 20);
+        $user = auth()->user();
+        $filters = $request->only(['search']);
+
+        if ($user->hasRole('Branch Manager')) {
+            $userEmpId = $user->employee?->id ?? Employee::where('user_id', $user->id)->orWhere('id', $user->employee_id)->value('id');
+            $filters['employee_id'] = $userEmpId ?: 0;
+        }
+
+        $employees = $this->employeeService->getPaginatedEmployees($filters, 20);
 
         return view('admin.hrm.letters.index', compact('employees'));
     }
 
     public function generate(Request $request, int $employeeId): View
     {
-        $employee = $this->employeeService->getEmployeeById($employeeId);
+        $employee = Employee::find($employeeId);
         if (!$employee) {
             abort(404);
+        }
+
+        $user = auth()->user();
+        if ($user->hasRole('Branch Manager')) {
+            $userEmpId = $user->employee?->id ?? Employee::where('user_id', $user->id)->orWhere('id', $user->employee_id)->value('id');
+            if ((int)$employee->id !== (int)$userEmpId && (int)$employee->user_id !== (int)$user->id) {
+                abort(403, 'Unauthorized access to another employee HR letter.');
+            }
         }
 
         $this->authorize('view', $employee);
@@ -42,9 +58,17 @@ class HrLetterController extends Controller
 
     public function idCard(int $employeeId): View
     {
-        $employee = $this->employeeService->getEmployeeById($employeeId);
+        $employee = Employee::find($employeeId);
         if (!$employee) {
             abort(404);
+        }
+
+        $user = auth()->user();
+        if ($user->hasRole('Branch Manager')) {
+            $userEmpId = $user->employee?->id ?? Employee::where('user_id', $user->id)->orWhere('id', $user->employee_id)->value('id');
+            if ((int)$employee->id !== (int)$userEmpId && (int)$employee->user_id !== (int)$user->id) {
+                abort(403, 'Unauthorized access to another employee ID card.');
+            }
         }
 
         $this->authorize('view', $employee);

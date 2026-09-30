@@ -23,57 +23,125 @@ class CashBookController extends Controller
     }
 
     /**
-     * Display a listing of daily cash book registers.
+     * Step 1: Display Branch Selection page showing authorized active branches with current live cash balances.
      */
     public function index(Request $request)
     {
         $user = auth()->user();
+        $companyId = $user->company_id ?? 1;
 
-        // Branch isolation: Branch Managers are restricted to their assigned branch
-        $userBranchId = $user->branch_id;
-        $selectedBranchId = $userBranchId ?? $request->input('branch_id', Branch::first()?->id);
+        // Build active branches query enforcing company & branch RBAC scoping
+        $branchesQuery = Branch::where('is_active', true);
+
+        if ($user->company_id) {
+            $branchesQuery->where('company_id', $user->company_id);
+        }
+
+        if ($user->branch_id) {
+            $branchesQuery->where('id', $user->branch_id);
+        }
+
+        // Branch search & filter (by name, code, city, state, or address)
+        $search = trim($request->input('search', ''));
+        if ($search !== '') {
+            $branchesQuery->where(function ($q) use ($search) {
+                $q->where('name', 'LIKE', "%{$search}%")
+                  ->orWhere('code', 'LIKE', "%{$search}%")
+                  ->orWhere('city', 'LIKE', "%{$search}%")
+                  ->orWhere('state', 'LIKE', "%{$search}%")
+                  ->orWhere('address', 'LIKE', "%{$search}%");
+            });
+        }
+
+        $branches = $branchesQuery->orderBy('name')->get();
+
+        $todayDate = Carbon::now('Asia/Kolkata')->format('Y-m-d');
+
+        // Safely retrieve current cash balance for each authorized branch using accounting CashBookService
+        $branchBalances = [];
+
+        foreach ($branches as $branch) {
+            $cashBook = $this->cashBookService->getOrCreateCashBook($companyId, $branch->id, $todayDate, $user->id);
+            $branchBalances[$branch->id] = (float)$cashBook->closing_cash;
+        }
+
+        return view('admin.cash-book.index', compact('branches', 'branchBalances', 'todayDate', 'search'));
+    }
+
+    /**
+     * Step 2 & 3: Display Date-Wise Cashbook Overview screen for a specific selected branch.
+     */
+    public function openBranch(Request $request, $branchId)
+    {
+        $user = auth()->user();
+        $companyId = $user->company_id ?? 1;
+
+        $branch = Branch::where('is_active', true)->findOrFail($branchId);
+
+        // Server-side authorization checks: Company and Branch isolation
+        if ($user->company_id && (int)$branch->company_id !== (int)$user->company_id) {
+            abort(403, 'Unauthorized access to another company branch cash book.');
+        }
+
+        if ($user->hasRole('Branch Manager')) {
+            if (!$user->branch_id || (int)$branch->id !== (int)$user->branch_id) {
+                abort(403, 'Unauthorized access to another branch cash book.');
+            }
+        } elseif ($user->branch_id && (int)$branch->id !== (int)$user->branch_id) {
+            abort(403, 'Unauthorized access to another branch cash book.');
+        }
+
         $selectedDate = $request->input('date', Carbon::now('Asia/Kolkata')->format('Y-m-d'));
 
-        $branches = $userBranchId 
-            ? Branch::where('id', $userBranchId)->where('is_active', true)->get()
-            : Branch::where('is_active', true)->get();
-
+        // Query historical date-wise cashbook registers scoped strictly to this branch
         $query = CashBook::with(['branch', 'responsibleStaff', 'closedBy'])
+            ->where('branch_id', $branch->id)
             ->orderByDesc('date')
             ->orderByDesc('id');
-
-        if ($selectedBranchId) {
-            $query->where('branch_id', $selectedBranchId);
-        }
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
         }
 
+        if ($request->filled('date')) {
+            $query->whereDate('date', $request->input('date'));
+        } elseif ($request->filled('filter_date')) {
+            $query->whereDate('date', $request->input('filter_date'));
+        }
+
         $cashBooks = $query->paginate(15);
 
         // Fetch or prepare current active cash book for selected branch & date
-        $currentCashBook = null;
-        if ($selectedBranchId) {
-            $companyId = $user->company_id ?? 1;
-            $currentCashBook = $this->cashBookService->getOrCreateCashBook($companyId, $selectedBranchId, $selectedDate, $user->id);
-        }
+        $currentCashBook = $this->cashBookService->getOrCreateCashBook($companyId, $branch->id, $selectedDate, $user->id);
 
-        return view('admin.cash-book.index', compact('cashBooks', 'branches', 'selectedBranchId', 'selectedDate', 'currentCashBook', 'userBranchId'));
+        return view('admin.cash-book.overview', compact('branch', 'cashBooks', 'selectedDate', 'currentCashBook'));
     }
 
     /**
-     * Display the Daily Cash Book Register screen (2-column layout matching physical register).
+     * Step 4: Display the detailed Daily Cash Book Register transaction ledger for a selected register ID.
      */
     public function show(Request $request, $id)
     {
         $user = auth()->user();
-        $cashBook = CashBook::with(['branch', 'responsibleStaff', 'closedBy', 'approvedBy', 'entries', 'onlineCollections', 'audits.user'])
+        $cashBook = CashBook::with(['company', 'branch', 'responsibleStaff', 'closedBy', 'approvedBy', 'entries', 'onlineCollections', 'audits.user'])
             ->findOrFail($id);
 
-        // Branch isolation check
+        // Server-side authorization checks: Company and Branch isolation
+        if ($user->company_id && (int)$cashBook->company_id !== (int)$user->company_id) {
+            abort(403, 'Unauthorized access to another company cash book.');
+        }
+
         if ($user->branch_id && (int)$cashBook->branch_id !== (int)$user->branch_id) {
             abort(403, 'Unauthorized access to another branch cash book.');
+        }
+
+        // Date filter within the branch cashbook screen
+        if ($request->filled('date')) {
+            $requestedDate = Carbon::parse($request->input('date'))->format('Y-m-d');
+            if ($requestedDate !== $cashBook->date->format('Y-m-d')) {
+                $companyId = $user->company_id ?? $cashBook->company_id;
+                $cashBook = $this->cashBookService->getOrCreateCashBook($companyId, $cashBook->branch_id, $requestedDate, $user->id);
+            }
         }
 
         // Trigger ERP sync if open

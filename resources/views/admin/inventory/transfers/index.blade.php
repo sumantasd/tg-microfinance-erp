@@ -15,9 +15,11 @@
             <i class="bi bi-boxes me-1"></i> Branch Stock
         </a>
         @can('inventory.transfer.create')
-            <a href="{{ route('admin.inventory-transfer.create') }}" class="btn btn-warning text-dark fw-bold shadow-sm rounded-pill px-4">
-                <i class="bi bi-plus-circle me-1"></i> Create New Transfer
-            </a>
+            @unless(auth()->user()?->hasRole('Branch Manager'))
+                <a href="{{ route('admin.inventory-transfer.create') }}" class="btn btn-warning text-dark fw-bold shadow-sm rounded-pill px-4">
+                    <i class="bi bi-plus-circle me-1"></i> Create New Transfer
+                </a>
+            @endunless
         @endcan
     </div>
 </div>

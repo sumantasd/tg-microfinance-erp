@@ -67,6 +67,10 @@ class InventoryApiController extends Controller
 
         $products = $query->get();
 
+        if ($request->user()?->hasRole('Branch Manager')) {
+            $products->makeHidden(['cost_price']);
+        }
+
         return $this->successResponse($products, 'Products retrieved');
     }
 
@@ -85,6 +89,14 @@ class InventoryApiController extends Controller
         }
 
         $stocks = $query->get();
+
+        if ($user?->hasRole('Branch Manager')) {
+            $stocks->each(function ($stock) {
+                if ($stock->product) {
+                    $stock->product->makeHidden(['cost_price']);
+                }
+            });
+        }
 
         return $this->successResponse($stocks, 'Branch inventory stock levels retrieved');
     }

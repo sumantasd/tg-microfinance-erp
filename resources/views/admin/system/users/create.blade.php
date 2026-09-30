@@ -51,12 +51,29 @@
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary">Assigned Role *</label>
-                <select name="role" class="form-select bg-light" required>
+                <select name="role" id="userRoleSelect" class="form-select bg-light" required>
                     <option value="">Select Role Assignment...</option>
                     @foreach($roles as $role)
                         <option value="{{ $role->name }}" {{ old('role') === $role->name ? 'selected' : '' }}>{{ $role->name }}</option>
                     @endforeach
                 </select>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-secondary">
+                    Assigned Branch <span id="branchRequiredBadge" class="text-danger" style="display: none;">*</span>
+                </label>
+                <select name="branch_id" id="userBranchSelect" class="form-select bg-light">
+                    <option value="">-- Select Active Branch --</option>
+                    @foreach($branches as $branch)
+                        <option value="{{ $branch->id }}" {{ old('branch_id') == $branch->id ? 'selected' : '' }}>
+                            {{ $branch->name }} ({{ $branch->code }})
+                        </option>
+                    @endforeach
+                </select>
+                <small class="form-text text-muted d-block mt-1" id="branchHelpText">
+                    Mandatory when role is <strong>Branch Manager</strong>.
+                </small>
             </div>
 
             <div class="col-md-6">
@@ -84,4 +101,27 @@
         </div>
     </form>
 </x-ui.card>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const roleSelect = document.getElementById('userRoleSelect');
+    const branchSelect = document.getElementById('userBranchSelect');
+    const branchRequiredBadge = document.getElementById('branchRequiredBadge');
+
+    function toggleBranchRequirement() {
+        if (roleSelect && roleSelect.value === 'Branch Manager') {
+            if (branchRequiredBadge) branchRequiredBadge.style.display = 'inline';
+            if (branchSelect) branchSelect.setAttribute('required', 'required');
+        } else {
+            if (branchRequiredBadge) branchRequiredBadge.style.display = 'none';
+            if (branchSelect) branchSelect.removeAttribute('required');
+        }
+    }
+
+    if (roleSelect) {
+        roleSelect.addEventListener('change', toggleBranchRequirement);
+        toggleBranchRequirement();
+    }
+});
+</script>
 @endsection

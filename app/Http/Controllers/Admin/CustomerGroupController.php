@@ -53,6 +53,11 @@ class CustomerGroupController extends Controller
     {
         $this->authorize('group.view');
 
+        $user = auth()->user();
+        if ($user && $user->branch_id && $user->branch_id !== $group->branch_id) {
+            abort(403, 'Unauthorized access to customer group from another branch.');
+        }
+
         $group = $this->groupService->getGroupById($group->id);
 
         // Fetch eligible customers from the same branch who are NOT already active members of this group
@@ -71,6 +76,11 @@ class CustomerGroupController extends Controller
     {
         $this->authorize('group.edit');
 
+        $user = auth()->user();
+        if ($user && $user->branch_id && $user->branch_id !== $group->branch_id) {
+            abort(403, 'Unauthorized access to customer group from another branch.');
+        }
+
         $branches = Branch::where('is_active', true)->get();
         $companies = Company::where('is_active', true)->get();
 
@@ -79,6 +89,11 @@ class CustomerGroupController extends Controller
 
     public function update(UpdateCustomerGroupRequest $request, CustomerGroup $group): RedirectResponse
     {
+        $user = auth()->user();
+        if ($user && $user->branch_id && $user->branch_id !== $group->branch_id) {
+            abort(403, 'Unauthorized access to customer group from another branch.');
+        }
+
         $updatedGroup = $this->groupService->updateGroup($group, $request->validated());
 
         return redirect()->route('admin.customer-group.show', $updatedGroup->id)
@@ -89,6 +104,11 @@ class CustomerGroupController extends Controller
     {
         $this->authorize('group.delete');
 
+        $user = auth()->user();
+        if ($user && $user->branch_id && $user->branch_id !== $group->branch_id) {
+            abort(403, 'Unauthorized access to customer group from another branch.');
+        }
+
         $name = $group->name;
         $this->groupService->deleteGroup($group);
 
@@ -98,6 +118,11 @@ class CustomerGroupController extends Controller
 
     public function addMember(AddGroupMemberRequest $request, CustomerGroup $group): RedirectResponse
     {
+        $user = auth()->user();
+        if ($user && $user->branch_id && $user->branch_id !== $group->branch_id) {
+            abort(403, 'Unauthorized access to customer group from another branch.');
+        }
+
         $this->groupService->addMemberToGroup(
             $group,
             $request->validated('customer_id'),
@@ -110,7 +135,12 @@ class CustomerGroupController extends Controller
 
     public function removeMember(Request $request, CustomerGroup $group, Customer $customer): RedirectResponse
     {
-        $this->authorize('group.manage_members');
+        $this->authorize('group.delete');
+
+        $user = auth()->user();
+        if ($user && $user->branch_id && $user->branch_id !== $group->branch_id) {
+            abort(403, 'Unauthorized access to customer group from another branch.');
+        }
 
         $this->groupService->removeMemberFromGroup($group, $customer->id);
 
@@ -121,6 +151,11 @@ class CustomerGroupController extends Controller
     public function assignLeader(Request $request, CustomerGroup $group): RedirectResponse
     {
         $this->authorize('group.edit');
+
+        $user = auth()->user();
+        if ($user && $user->branch_id && $user->branch_id !== $group->branch_id) {
+            abort(403, 'Unauthorized access to customer group from another branch.');
+        }
 
         $request->validate([
             'leader_customer_id' => 'required|exists:customers,id',
@@ -135,6 +170,11 @@ class CustomerGroupController extends Controller
     public function toggleStatus(Request $request, CustomerGroup $group): RedirectResponse
     {
         $this->authorize('group.change_status');
+
+        $user = auth()->user();
+        if ($user && $user->branch_id && $user->branch_id !== $group->branch_id) {
+            abort(403, 'Unauthorized access to customer group from another branch.');
+        }
 
         $request->validate([
             'status' => 'required|in:active,inactive,closed',
