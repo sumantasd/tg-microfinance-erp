@@ -37,15 +37,22 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['can:customer.view'])->group(function () {
             Route::get('/customers', [CustomerApiController::class, 'index']);
             Route::get('/customers/{id}', [CustomerApiController::class, 'show']);
+            Route::get('/customers/{id}/guarantors', [CustomerApiController::class, 'guarantors']);
+            Route::get('/customers/{id}/nominees', [CustomerApiController::class, 'nominees']);
         });
         Route::middleware(['can:customer.create'])->group(function () {
             Route::post('/customers', [CustomerApiController::class, 'store']);
+            Route::put('/customers/{id}', [CustomerApiController::class, 'update']);
+            Route::post('/customers/{id}/guarantors', [CustomerApiController::class, 'storeGuarantor']);
+            Route::post('/customers/{id}/nominees', [CustomerApiController::class, 'storeNominee']);
         });
 
         // Customer Groups
         Route::middleware(['can:group.view'])->group(function () {
             Route::get('/groups', [GroupApiController::class, 'index']);
             Route::get('/groups/{id}', [GroupApiController::class, 'show']);
+            Route::post('/groups', [GroupApiController::class, 'store']);
+            Route::post('/groups/{id}/members', [GroupApiController::class, 'addMember']);
         });
 
         // Loans

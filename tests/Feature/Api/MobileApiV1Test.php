@@ -872,4 +872,169 @@ class MobileApiV1Test extends TestCase
             ->getJson('/api/v1/groups/' . $groupOtherCompany->id);
         $response3->assertStatus(403);
     }
+
+    public function test_customer_update_api_modifies_profile_and_enforces_branch_scoping(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-UPD-001',
+            'first_name' => 'Original',
+            'last_name' => 'Name',
+            'name' => 'Original Name',
+            'mobile_number' => '9988776655',
+            'gender' => 'female',
+            'address' => 'Old Address',
+            'registration_date' => '2026-01-01',
+        ]);
+
+        $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
+
+        $response = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->putJson('/api/v1/customers/' . $customer->id, [
+                'first_name' => 'Updated',
+                'last_name' => 'Name',
+                'address' => 'New Updated Address',
+                'city' => 'Kolkata',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.first_name', 'Updated');
+
+        $this->assertDatabaseHas('customers', [
+            'id' => $customer->id,
+            'first_name' => 'Updated',
+        ]);
+    }
+
+    public function test_customer_guarantor_api_adds_and_lists_guarantors(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-GUAR-001',
+            'first_name' => 'Guarantor',
+            'last_name' => 'Test',
+            'name' => 'Guarantor Test',
+            'mobile_number' => '9988776644',
+            'gender' => 'female',
+            'address' => 'Test Address',
+            'registration_date' => '2026-01-01',
+        ]);
+
+        $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
+
+        // Add guarantor
+        $responseAdd = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/customers/' . $customer->id . '/guarantors', [
+                'full_name' => 'Ramesh Gupta',
+                'relationship' => 'Brother',
+                'mobile' => '9800012345',
+                'occupation' => 'Business',
+                'monthly_income' => 25000,
+            ]);
+
+        $responseAdd->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.full_name', 'Ramesh Gupta');
+
+        // List guarantors
+        $responseList = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/customers/' . $customer->id . '/guarantors');
+
+        $responseList->assertStatus(200)
+            ->assertJsonPath('success', true);
+        $this->assertCount(1, $responseList->json('data'));
+    }
+
+    public function test_customer_nominee_api_adds_and_lists_nominees(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-NOM-001',
+            'first_name' => 'Nominee',
+            'last_name' => 'Test',
+            'name' => 'Nominee Test',
+            'mobile_number' => '9988776633',
+            'gender' => 'female',
+            'address' => 'Test Address',
+            'registration_date' => '2026-01-01',
+        ]);
+
+        $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
+
+        // Add nominee
+        $responseAdd = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/customers/' . $customer->id . '/nominees', [
+                'nominee_name' => 'Sunita Devi',
+                'relationship' => 'Mother',
+                'share_percentage' => 100,
+            ]);
+
+        $responseAdd->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.nominee_name', 'Sunita Devi');
+
+        // List nominees
+        $responseList = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/customers/' . $customer->id . '/nominees');
+
+        $responseList->assertStatus(200)
+            ->assertJsonPath('success', true);
+        $this->assertCount(1, $responseList->json('data'));
+    }
+
+    public function test_group_creation_and_membership_management_apis(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-GRP-MEMBER',
+            'first_name' => 'Group',
+            'last_name' => 'Member',
+            'name' => 'Group Member',
+            'mobile_number' => '9988776622',
+            'gender' => 'female',
+            'address' => 'Test Address',
+            'registration_date' => '2026-01-01',
+            'status' => 'active',
+        ]);
+
+        $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
+
+        // Create Group via API
+        $responseGroup = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/groups', [
+                'name' => 'Annapurna Women SHG',
+                'branch_id' => $this->branch1->id,
+                'meeting_frequency' => 'weekly',
+            ]);
+
+        $responseGroup->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.name', 'Annapurna Women SHG');
+
+        $groupId = $responseGroup->json('data.id');
+
+        // Add Member to Group via API
+        $responseMember = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/groups/' . $groupId . '/members', [
+                'customer_id' => $customer->id,
+                'role' => 'group_leader',
+            ]);
+
+        $responseMember->assertStatus(201)
+            ->assertJsonPath('success', true);
+
+        // Verify duplicate active member addition returns validation error
+        $responseDuplicate = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/groups/' . $groupId . '/members', [
+                'customer_id' => $customer->id,
+                'role' => 'member',
+            ]);
+
+        $responseDuplicate->assertStatus(422);
+    }
 }
