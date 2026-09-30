@@ -34,7 +34,9 @@ class MobileApiV1Test extends TestCase
     protected Branch $branch1;
     protected Branch $branch2;
     protected User $superAdmin;
+    protected User $branchManager;
     protected User $loanOfficer;
+    protected Role $branchManagerRole;
     protected Role $loanOfficerRole;
 
     protected function setUp(): void
@@ -45,24 +47,27 @@ class MobileApiV1Test extends TestCase
             'customer.view', 'customer.create', 'group.view', 'loan.view',
             'loan.disburse', 'collection.collect', 'inventory.view',
             'cashbook.view', 'cashbook.create_entry', 'cashbook.close_register',
-            'customer.kyc_upload', 'customer.kyc_view'
+            'customer.kyc_upload', 'customer.kyc_view',
+            'bank_deposit.view', 'bank_deposit.create', 'bank_deposit.approve',
+            'expense.view', 'expense.create', 'expense.approve', 'expense.pay'
         ];
 
         foreach ($permissions as $p) {
-            if (!Permission::where('name', $p)->where('guard_name', 'web')->exists()) {
-                Permission::create(['name' => $p, 'guard_name' => 'web']);
-            }
+            Permission::firstOrCreate(['name' => $p, 'guard_name' => 'web']);
         }
 
-        $superAdminRole = Role::where('name', 'Super Admin')->where('guard_name', 'web')->first()
-            ?? Role::create(['name' => 'Super Admin', 'guard_name' => 'web']);
+        $superAdminRole = Role::firstOrCreate(['name' => 'Super Admin', 'guard_name' => 'web']);
 
-        $this->loanOfficerRole = Role::where('name', 'Loan Officer')->where('guard_name', 'web')->first()
-            ?? Role::create(['name' => 'Loan Officer', 'guard_name' => 'web']);
+        $this->branchManagerRole = Role::firstOrCreate(['name' => 'Branch Manager', 'guard_name' => 'web']);
+        $this->branchManagerRole->givePermissionTo($permissions);
+
+        $this->loanOfficerRole = Role::firstOrCreate(['name' => 'Loan Officer', 'guard_name' => 'web']);
         $this->loanOfficerRole->givePermissionTo([
             'customer.view', 'customer.create', 'group.view', 'loan.view',
             'collection.collect', 'inventory.view', 'cashbook.view',
-            'customer.kyc_upload', 'customer.kyc_view'
+            'customer.kyc_upload', 'customer.kyc_view',
+            'bank_deposit.view', 'bank_deposit.create',
+            'expense.view', 'expense.create'
         ]);
 
         $this->company = Company::create([
@@ -106,6 +111,16 @@ class MobileApiV1Test extends TestCase
             'status' => 'active',
         ]);
         $this->superAdmin->assignRole($superAdminRole);
+
+        $this->branchManager = User::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'name' => 'BM User',
+            'email' => 'bm@grihalaxmifinance.com',
+            'password' => Hash::make('Secret123'),
+            'status' => 'active',
+        ]);
+        $this->branchManager->assignRole($this->branchManagerRole);
 
         $this->loanOfficer = User::create([
             'company_id' => $this->company->id,
@@ -1364,5 +1379,135 @@ class MobileApiV1Test extends TestCase
         $responseProcess->assertStatus(200)
             ->assertJsonPath('success', true)
             ->assertJsonPath('data.loan_account.status', 'closed');
+    }
+
+    public function test_bank_deposit_submission_listing_and_approval_via_api(): void
+    {
+        \Laravel\Sanctum\Sanctum::actingAs($this->branchManager);
+
+        // 1. Submit Bank Deposit for Branch 1
+        $responseSubmit = $this->postJson('/api/v1/bank-deposits', [
+                'branch_id' => $this->branch1->id,
+                'deposit_date' => '2026-02-15',
+                'amount' => 15000.00,
+                'bank_name' => 'State Bank of India',
+                'account_number' => 'SBIN00012345',
+                'reference_number' => 'DEP-20260215-001',
+                'description' => 'Daily Cash Collection Deposit',
+            ]);
+
+        $responseSubmit->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.amount', '15000.00');
+
+        $depositId = $responseSubmit->json('data.id');
+
+        // 2. Listing Bank Deposits
+        $responseIndex = $this->getJson('/api/v1/bank-deposits?branch_id=' . $this->branch1->id);
+
+        $responseIndex->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        // 3. Unauthorized Cross-Branch Submission Check
+        $responseUnauthBranch = $this->postJson('/api/v1/bank-deposits', [
+                'branch_id' => $this->branch2->id,
+                'deposit_date' => '2026-02-15',
+                'amount' => 5000.00,
+                'bank_name' => 'HDFC Bank',
+            ]);
+
+        $responseUnauthBranch->assertStatus(403);
+
+        // 4. Approve Deposit with Super Admin (BM cannot approve own deposit)
+        \Laravel\Sanctum\Sanctum::actingAs($this->superAdmin);
+
+        $responseApprove = $this->postJson('/api/v1/bank-deposits/' . $depositId . '/approve', [
+                'remarks' => 'Verified with bank statement receipt',
+            ]);
+
+        $responseApprove->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'approved');
+    }
+
+    public function test_expense_logging_submission_approval_and_payment_via_api(): void
+    {
+        \Laravel\Sanctum\Sanctum::actingAs($this->branchManager);
+
+        // Create Expense Category
+        $category = \App\Models\ExpenseCategory::create([
+            'company_id' => $this->company->id,
+            'category_code' => 'OFFICE-SUPPLIES',
+            'category_name' => 'Office Stationery',
+            'is_active' => true,
+        ]);
+
+        // 1. GET Categories
+        $responseCat = $this->getJson('/api/v1/expenses/categories');
+
+        $responseCat->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        // 2. Log Expense with auto-submit
+        $responseStore = $this->postJson('/api/v1/expenses', [
+                'branch_id' => $this->branch1->id,
+                'expense_category_id' => $category->id,
+                'expense_date' => '2026-02-16',
+                'amount' => 2500.00,
+                'tax_amount' => 0.00,
+                'payee_name' => 'City Book Store',
+                'description' => 'Branch Printer Paper and Registers',
+                'auto_submit' => true,
+            ]);
+
+        $responseStore->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'PENDING_APPROVAL')
+            ->assertJsonPath('data.total_amount', '2500.00');
+
+        $expenseId = $responseStore->json('data.id');
+
+        // 3. Approve Expense with Super Admin
+        \Laravel\Sanctum\Sanctum::actingAs($this->superAdmin);
+
+        $responseApprove = $this->postJson('/api/v1/expenses/' . $expenseId . '/approve');
+
+        $responseApprove->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'APPROVED');
+
+        // 4. Record Payment for Approved Expense
+        $responsePay = $this->postJson('/api/v1/expenses/' . $expenseId . '/pay', [
+                'paid_amount' => 2500.00,
+                'payment_method' => 'cash',
+                'payment_date' => '2026-02-16',
+                'notes' => 'Paid from branch petty cash',
+            ]);
+
+        $responsePay->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.expense.status', 'PAID');
+    }
+
+    public function test_cash_book_retrieval_and_reconciliation_via_api(): void
+    {
+        \Laravel\Sanctum\Sanctum::actingAs($this->branchManager);
+
+        // GET Cash Book
+        $responseShow = $this->getJson('/api/v1/cash-book?branch_id=' . $this->branch1->id . '&date=2026-02-16');
+
+        $responseShow->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.branch_id', $this->branch1->id);
+
+        // Save Denominations
+        $responseReconcile = $this->postJson('/api/v1/cash-book/reconcile', [
+                'branch_id' => $this->branch1->id,
+                'date' => '2026-02-16',
+            ]);
+
+        $responseReconcile->assertStatus(200)
+            ->assertJsonPath('success', true);
     }
 }

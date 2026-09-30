@@ -2,10 +2,12 @@
 
 use App\Http\Controllers\Api\V1\AttendanceApiController;
 use App\Http\Controllers\Api\V1\AuthController;
+use App\Http\Controllers\Api\V1\BankDepositApiController;
 use App\Http\Controllers\Api\V1\CashBookApiController;
 use App\Http\Controllers\Api\V1\CollectionApiController;
 use App\Http\Controllers\Api\V1\CustomerApiController;
 use App\Http\Controllers\Api\V1\DashboardApiController;
+use App\Http\Controllers\Api\V1\ExpenseApiController;
 use App\Http\Controllers\Api\V1\GroupApiController;
 use App\Http\Controllers\Api\V1\InventoryApiController;
 use App\Http\Controllers\Api\V1\KycApiController;
@@ -96,6 +98,37 @@ Route::prefix('v1')->group(function () {
         });
         Route::middleware(['can:cashbook.close_register'])->group(function () {
             Route::post('/cash-book/close', [CashBookApiController::class, 'closeRegister']);
+        });
+
+        // Bank Deposits
+        Route::middleware(['can:bank_deposit.view'])->group(function () {
+            Route::get('/bank-deposits', [BankDepositApiController::class, 'index']);
+            Route::get('/bank-deposits/{id}', [BankDepositApiController::class, 'show']);
+        });
+        Route::middleware(['can:bank_deposit.create'])->group(function () {
+            Route::post('/bank-deposits', [BankDepositApiController::class, 'store']);
+        });
+        Route::middleware(['can:bank_deposit.approve'])->group(function () {
+            Route::post('/bank-deposits/{id}/approve', [BankDepositApiController::class, 'approve']);
+            Route::post('/bank-deposits/{id}/reject', [BankDepositApiController::class, 'reject']);
+        });
+
+        // Branch Expenses
+        Route::middleware(['can:expense.view'])->group(function () {
+            Route::get('/expenses/categories', [ExpenseApiController::class, 'categories']);
+            Route::get('/expenses', [ExpenseApiController::class, 'index']);
+            Route::get('/expenses/{id}', [ExpenseApiController::class, 'show']);
+        });
+        Route::middleware(['can:expense.create'])->group(function () {
+            Route::post('/expenses', [ExpenseApiController::class, 'store']);
+            Route::post('/expenses/{id}/submit', [ExpenseApiController::class, 'submit']);
+        });
+        Route::middleware(['can:expense.approve'])->group(function () {
+            Route::post('/expenses/{id}/approve', [ExpenseApiController::class, 'approve']);
+            Route::post('/expenses/{id}/reject', [ExpenseApiController::class, 'reject']);
+        });
+        Route::middleware(['can:expense.pay'])->group(function () {
+            Route::post('/expenses/{id}/pay', [ExpenseApiController::class, 'pay']);
         });
 
         // Staff Attendance & GPS Location

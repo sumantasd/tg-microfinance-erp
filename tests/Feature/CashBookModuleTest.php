@@ -89,7 +89,7 @@ class CashBookModuleTest extends TestCase
         $this->assertEquals('2026-08-31', $cashBook->date->format('Y-m-d'));
         $this->assertEquals('open', $cashBook->status);
         $this->assertCount(8, $cashBook->receivedEntries);
-        $this->assertCount(7, $cashBook->paymentEntries);
+        $this->assertCount(6, $cashBook->paymentEntries);
     }
 
     public function test_add_and_update_particular_entries_recalculates_closing_cash(): void
@@ -138,10 +138,12 @@ class CashBookModuleTest extends TestCase
 
         $cashBook->refresh();
 
-        // Formula: Opening (90) + Weekly Collection (11110) = 11200 Total Received. Total Payment = 11110. Closing Cash = 11200 - 11110 = 90.
+        // Eligible cash payments: deposit_to_bank (9650) + management_expense (70) = 9720.00.
+        // Total Received: Opening (90) + Weekly Collection (11110) = 11200.00.
+        // Closing Cash = 11200 - 9720 = 1480.00.
         $this->assertEquals(11200.00, (float)$cashBook->total_cash_received);
-        $this->assertEquals(11110.00, (float)$cashBook->total_cash_payment);
-        $this->assertEquals(90.00, (float)$cashBook->closing_cash);
+        $this->assertEquals(9720.00, (float)$cashBook->total_cash_payment);
+        $this->assertEquals(1480.00, (float)$cashBook->closing_cash);
     }
 
     public function test_cash_denomination_reconciliation(): void

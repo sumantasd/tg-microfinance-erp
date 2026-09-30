@@ -32,8 +32,13 @@ class CashBookApiController extends Controller
             return $this->errorResponse('Branch selection is required', 422);
         }
 
+        if (!$user->canAccessBranch($scopedBranchId)) {
+            return $this->forbiddenResponse('Unauthorized access to cash book in another branch');
+        }
+
+        $companyId = $user->company_id ?? 1;
         $date = $request->query('date', now()->toDateString());
-        $cashBook = $this->cashBookService->getOrCreateCashBook($scopedBranchId, $date, $user->id);
+        $cashBook = $this->cashBookService->getOrCreateCashBook($companyId, $scopedBranchId, $date, $user->id);
         $cashBook->load(['entries', 'onlineCollections', 'branch']);
 
         return $this->successResponse($cashBook, 'Cash book register retrieved');
@@ -63,8 +68,9 @@ class CashBookApiController extends Controller
             return $this->forbiddenResponse('Unauthorized access to update cash denomination');
         }
 
+        $companyId = $user->company_id ?? 1;
         $date = $validated['date'] ?? now()->toDateString();
-        $cashBook = $this->cashBookService->getOrCreateCashBook($validated['branch_id'], $date, $user->id);
+        $cashBook = $this->cashBookService->getOrCreateCashBook($companyId, $validated['branch_id'], $date, $user->id);
 
         return $this->successResponse($cashBook->fresh(['entries', 'onlineCollections']), 'Cash Book register reconciled');
     }
@@ -86,8 +92,9 @@ class CashBookApiController extends Controller
             return $this->forbiddenResponse('Unauthorized access to close register in another branch');
         }
 
+        $companyId = $user->company_id ?? 1;
         $date = $validated['date'] ?? now()->toDateString();
-        $cashBook = $this->cashBookService->getOrCreateCashBook($validated['branch_id'], $date, $user->id);
+        $cashBook = $this->cashBookService->getOrCreateCashBook($companyId, $validated['branch_id'], $date, $user->id);
 
         $closedCashBook = $this->cashBookService->closeCashBook($cashBook, $user->id, $validated['notes'] ?? null);
 
