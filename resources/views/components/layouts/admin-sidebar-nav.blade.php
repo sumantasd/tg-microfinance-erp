@@ -2,6 +2,7 @@
 
 @php
     $p = $idPrefix;
+    $isBranchManager = auth()->check() && auth()->user()->hasRole('Branch Manager');
 @endphp
 
 <nav class="nav flex-column py-2">
@@ -143,7 +144,6 @@
     <!-- 6. PRODUCTS & INVENTORY -->
     @canany(['product.view', 'product_brand.view', 'product_category.view', 'inventory.view', 'inventory.transfer.view'])
     @php
-        $isBranchManager = auth()->user()?->hasRole('Branch Manager');
         $isProductActive = (request()->is('admin/product*') && !request()->is('admin/product-purchase*')) || (request()->is('admin/inventory*') && !request()->is('admin/inventory/purchases*')) || request()->is('admin/billing*');
         $prodTarget = '#' . $p . 'sidebarProductsInventoryCollapse';
         $prodId = $p . 'sidebarProductsInventoryCollapse';

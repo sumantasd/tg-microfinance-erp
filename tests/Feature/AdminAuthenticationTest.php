@@ -230,4 +230,51 @@ class AdminAuthenticationTest extends TestCase
         $bmSystemResp = $this->actingAs($this->branchManagerUser)->get('/admin/system/users');
         $bmSystemResp->assertStatus(403);
     }
+
+    /**
+     * Regression Test: Staff user with HRM permissions (and no product permissions)
+     * renders dashboard without HTTP 500 or undefined variable error.
+     */
+    public function test_staff_user_with_hrm_permissions_can_login_and_render_dashboard_without_undefined_variable_error(): void
+    {
+        $hrUser = User::create([
+            'company_id' => $this->adminUser->company_id,
+            'branch_id' => $this->adminUser->branch_id,
+            'name' => 'HR Staff Member',
+            'email' => 'hrstaff@apexmicrofinance.com',
+            'password' => bcrypt('Password123!'),
+            'status' => 'active',
+        ]);
+        $hrUser->assignRole('HR Manager');
+
+        $response = $this->actingAs($hrUser)->get('/admin');
+
+        $response->assertStatus(200);
+        $response->assertSee('Dashboard');
+    }
+
+    /**
+     * Regression Test: All standard staff roles (Loan Officer, Accountant, HR Manager, Cashier, etc.)
+     * can log in and view admin pages without HTTP 500 error.
+     */
+    public function test_staff_login_and_dashboard_renders_for_all_staff_roles_without_500_error(): void
+    {
+        $rolesToTest = ['HR Manager', 'Loan Officer', 'Accountant', 'Cashier', 'Inventory Manager', 'Viewer'];
+
+        foreach ($rolesToTest as $roleName) {
+            $user = User::create([
+                'company_id' => $this->adminUser->company_id,
+                'branch_id' => $this->adminUser->branch_id,
+                'name' => "Test {$roleName}",
+                'email' => strtolower(str_replace(' ', '', $roleName)) . '@apexmicrofinance.com',
+                'password' => bcrypt('Password123!'),
+                'status' => 'active',
+            ]);
+            $user->assignRole($roleName);
+
+            $response = $this->actingAs($user)->get('/admin');
+            $response->assertStatus(200);
+        }
+    }
 }
+
