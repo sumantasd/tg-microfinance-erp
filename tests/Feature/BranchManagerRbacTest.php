@@ -414,5 +414,39 @@ class BranchManagerRbacTest extends TestCase
             $response->assertStatus(200);
         }
     }
+
+    /** 15. Targeted BranchManagerRoleSeeder syncs exact intended permissions and removes obsolete ones */
+    public function test_branch_manager_role_seeder_syncs_exact_intended_permissions_and_removes_obsolete_permissions(): void
+    {
+        $role = \Spatie\Permission\Models\Role::findByName('Branch Manager', 'web');
+
+        // Intentionally give obsolete permission company.view & product.view to simulate live production state before fix
+        $role->givePermissionTo(['company.view', 'product.view']);
+        $this->assertTrue($role->hasPermissionTo('company.view'));
+        $this->assertTrue($role->hasPermissionTo('product.view'));
+
+        // Run the targeted BranchManagerRoleSeeder
+        $this->seed(\Database\Seeders\BranchManagerRoleSeeder::class);
+        $role->refresh();
+
+        // Verify obsolete company.view and product.view are removed
+        $this->assertFalse($role->hasPermissionTo('company.view'));
+        $this->assertFalse($role->hasPermissionTo('product.view'));
+
+        // Verify required menu permissions are granted
+        $this->assertTrue($role->hasPermissionTo('cashbook.view'));
+        $this->assertTrue($role->hasPermissionTo('bank_deposit.view'));
+        $this->assertTrue($role->hasPermissionTo('inventory.view'));
+        $this->assertTrue($role->hasPermissionTo('billing.view'));
+        $this->assertTrue($role->hasPermissionTo('branch.view'));
+
+        // Verify exact count of 73 permissions
+        $this->assertCount(73, $role->permissions);
+
+        // Verify other roles were NOT modified
+        $adminRole = \Spatie\Permission\Models\Role::findByName('Super Admin', 'web');
+        $this->assertTrue($adminRole->hasPermissionTo('company.view'));
+    }
 }
+
 

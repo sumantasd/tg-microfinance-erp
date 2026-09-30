@@ -164,28 +164,7 @@ class RbacSeeder extends Seeder
         ]);
 
         // 4. Branch Manager: Operational Branch Authority (Locked to Branch)
-        Role::findByName('Branch Manager', 'web')->syncPermissions([
-            'branch.view',
-            'customer.view', 'customer.create', 'customer.edit', 'customer.verify_kyc', 'customer.manage_guarantor', 'customer.manage_nominee', 'customer.change_status',
-            'group.view', 'group.create', 'group.edit', 'group.change_status', 'group.manage_members', 'group.assign_leader',
-            'loan_application.view', 'loan_application.create', 'loan_application.edit', 'loan_application.submit', 'loan_application.review', 'loan_application.approve', 'loan_application.reject',
-            'loan.view', 'loan.create', 'loan.sanction', 'loan.disburse', 'loan.issue_product', 'loan.view_schedule', 'loan.record_down_payment', 'loan.record_repayment',
-            'loan_closure.view', 'loan_closure.calculate', 'loan_foreclosure.process', 'loan_settlement.request', 'loan_settlement.approve', 'loan_closure.certificate',
-            'collection.view', 'loan.collection.view', 'loan.collection.create', 'loan.collection.receipt', 'loan.collection.history',
-            'overdue.view', 'dpd.view', 'overdue.branch_report',
-            'penalty.view', 'penalty.waive', 'loans.waive_penalty', 'loan.waive_penalty',
-            'inventory.view',
-            'inventory.transfer.view', 'inventory.transfer.receive',
-            'employee.view',
-            'attendance.view',
-            'leave.view', 'leave.create',
-            'payroll.view', 'hr_letter.view', 'hr_letter.generate',
-            'savings.view',
-            'cashbook.view', 'cashbook.create', 'cashbook.edit', 'cashbook.close', 'cashbook.print', 'cashbook.export',
-            'bank_deposit.view', 'bank_deposit.create',
-            'billing.view', 'billing.create', 'billing.print', 'billing.pdf',
-            'expense.view', 'expense.create', 'expense.edit',
-        ]);
+        Role::findByName('Branch Manager', 'web')->syncPermissions(BranchManagerRoleSeeder::getPermissions());
 
         // 5. Loan Officer & Field Officer: Field Sourcing, Applications, EMI Collection
         $loanOfficerPermissions = [
