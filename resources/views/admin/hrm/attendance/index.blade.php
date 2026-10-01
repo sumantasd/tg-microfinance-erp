@@ -54,8 +54,8 @@
         @forelse($attendances as $att)
             <tr>
                 <td>
-                    <div class="fw-bold text-dark">{{ $att->employee->full_name }}</div>
-                    <div class="font-monospace small text-primary">{{ $att->employee->employee_code }}</div>
+                    <div class="fw-bold text-dark">{{ $att->employee?->full_name ?? 'Unknown / Former Employee' }}</div>
+                    <div class="font-monospace small text-primary">{{ $att->employee?->employee_code ?? 'N/A' }}</div>
                 </td>
                 <td><span class="small fw-semibold text-secondary">{{ $att->branch->name ?? 'N/A' }}</span></td>
                 <td><span class="fw-semibold text-dark">{{ $att->attendance_date->format('M d, Y') }}</span></td>

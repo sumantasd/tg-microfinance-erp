@@ -45,7 +45,9 @@ class AttendanceRepository implements AttendanceRepositoryInterface
 
     public function getPaginatedAttendances(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Attendance::with(['company', 'branch', 'employee']);
+        $query = Attendance::with(['company', 'branch', 'employee' => function ($q) {
+            $q->withTrashed();
+        }]);
         $query = $this->applyAttendanceScope($query);
 
         $user = auth()->user();
@@ -80,7 +82,9 @@ class AttendanceRepository implements AttendanceRepositoryInterface
 
     public function findById(int $id): ?Attendance
     {
-        $query = Attendance::with(['company', 'branch', 'employee', 'creator']);
+        $query = Attendance::with(['company', 'branch', 'employee' => function ($q) {
+            $q->withTrashed();
+        }, 'creator']);
         return $this->applyAttendanceScope($query)->find($id);
     }
 

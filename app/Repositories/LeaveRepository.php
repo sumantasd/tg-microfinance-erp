@@ -45,7 +45,9 @@ class LeaveRepository implements LeaveRepositoryInterface
 
     public function getPaginatedLeaves(array $filters = [], int $perPage = 15): LengthAwarePaginator
     {
-        $query = Leave::with(['company', 'branch', 'employee', 'leaveType', 'approver']);
+        $query = Leave::with(['company', 'branch', 'employee' => function ($q) {
+            $q->withTrashed();
+        }, 'leaveType', 'approver']);
         $query = $this->applyLeaveScope($query);
 
         $user = auth()->user();
@@ -80,7 +82,9 @@ class LeaveRepository implements LeaveRepositoryInterface
 
     public function findById(int $id): ?Leave
     {
-        $query = Leave::with(['company', 'branch', 'employee', 'leaveType', 'approver']);
+        $query = Leave::with(['company', 'branch', 'employee' => function ($q) {
+            $q->withTrashed();
+        }, 'leaveType', 'approver']);
         return $this->applyLeaveScope($query)->find($id);
     }
 

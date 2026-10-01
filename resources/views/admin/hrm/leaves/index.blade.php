@@ -57,8 +57,8 @@
         @forelse($leaves as $leave)
             <tr>
                 <td>
-                    <div class="fw-bold text-dark">{{ $leave->employee->full_name }}</div>
-                    <div class="font-monospace small text-primary">{{ $leave->employee->employee_code }}</div>
+                    <div class="fw-bold text-dark">{{ $leave->employee?->full_name ?? 'Unknown / Former Employee' }}</div>
+                    <div class="font-monospace small text-primary">{{ $leave->employee?->employee_code ?? 'N/A' }}</div>
                 </td>
                 <td><span class="badge bg-light text-dark border">{{ $leave->leaveType->name ?? 'Leave' }}</span></td>
                 <td><span class="small fw-semibold text-dark">{{ $leave->start_date->format('M d, Y') }} - {{ $leave->end_date->format('M d, Y') }}</span></td>
