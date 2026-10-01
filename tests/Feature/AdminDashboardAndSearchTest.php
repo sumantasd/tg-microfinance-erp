@@ -678,10 +678,10 @@ class AdminDashboardAndSearchTest extends TestCase
     public function test_unauthenticated_guest_is_redirected_from_dashboard_and_search(): void
     {
         $resDash = $this->get(route('admin.dashboard'));
-        $resDash->assertRedirect(route('login'));
+        $resDash->assertRedirect(route('admin.login'));
 
         $resSearch = $this->get(route('admin.search', ['q' => 'test']));
-        $resSearch->assertRedirect(route('login'));
+        $resSearch->assertRedirect(route('admin.login'));
     }
 }
 

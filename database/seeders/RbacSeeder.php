@@ -93,6 +93,13 @@ class RbacSeeder extends Seeder
 
             // 19. Expenses & Finance Operations
             'expense.view', 'expense.create', 'expense.edit', 'expense.delete', 'expense.submit', 'expense.approve', 'expense.reject', 'expense.pay', 'expense.cancel',
+
+            // 20. Enterprise Media, Notifications, Audit, Field Tracking & TA Claims
+            'media.view', 'media.upload', 'media.delete',
+            'notifications.view', 'notifications.manage',
+            'audit_logs.view',
+            'field_tracking.view',
+            'ta_claims.view', 'ta_claims.create', 'ta_claims.approve', 'ta_claims.pay',
         ];
 
         foreach ($permissions as $permissionName) {

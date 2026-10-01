@@ -209,8 +209,7 @@ class GlobalSearchController extends Controller
                 ->where(function ($q) use ($query) {
                     $q->where('name', 'like', "%{$query}%")
                       ->orWhere('sku', 'like', "%{$query}%")
-                      ->orWhere('model_number', 'like', "%{$query}%")
-                      ->orWhere('barcode', 'like', "%{$query}%");
+                      ->orWhere('model_number', 'like', "%{$query}%");
                 })
                 ->limit($entityLimit)
                 ->get();

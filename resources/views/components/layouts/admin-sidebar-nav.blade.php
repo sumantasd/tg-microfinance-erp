@@ -461,11 +461,37 @@
             <span>Permissions</span>
         </a>
         @endcan
-        @can('settings.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/system/audit-logs*') ? 'active' : '' }}" href="{{ url('/admin/system/audit-logs') }}">
-            <i class="bi bi-journal-text nav-icon text-info"></i>
+        @can('media.view')
+        <a class="sidebar-nav-link {{ request()->is('admin/media*') ? 'active' : '' }}" href="{{ route('admin.media.index') }}">
+            <i class="bi bi-folder-symlink nav-icon text-primary"></i>
+            <span>Media Library</span>
+        </a>
+        @endcan
+        @can('notifications.view')
+        <a class="sidebar-nav-link {{ request()->is('admin/notifications*') ? 'active' : '' }}" href="{{ route('admin.notifications.index') }}">
+            <i class="bi bi-bell nav-icon text-warning"></i>
+            <span>Notifications</span>
+        </a>
+        @endcan
+        @can('field_tracking.view')
+        <a class="sidebar-nav-link {{ request()->is('admin/field-tracking*') ? 'active' : '' }}" href="{{ route('admin.field-tracking.index') }}">
+            <i class="bi bi-geo-alt nav-icon text-danger"></i>
+            <span>Field Tracking</span>
+        </a>
+        @endcan
+        @can('ta_claims.view')
+        <a class="sidebar-nav-link {{ request()->is('admin/ta-claims*') ? 'active' : '' }}" href="{{ route('admin.ta-claims.index') }}">
+            <i class="bi bi-car-front nav-icon text-success"></i>
+            <span>TA Claims</span>
+        </a>
+        @endcan
+        @can('audit_logs.view')
+        <a class="sidebar-nav-link {{ request()->is('admin/activity-logs*') ? 'active' : '' }}" href="{{ route('admin.activity-logs.index') }}">
+            <i class="bi bi-shield-check nav-icon text-info"></i>
             <span>Audit Logs</span>
         </a>
+        @endcan
+        @can('settings.view')
         <a class="sidebar-nav-link {{ request()->is('admin/system/backup*') ? 'active' : '' }}" href="{{ url('/admin/system/backup') }}">
             <i class="bi bi-database-up nav-icon text-primary"></i>
             <span>Backup</span>

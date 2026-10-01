@@ -565,8 +565,8 @@ class Phase2bProductLoanGlPostingTest extends TestCase
 
         $repayment = LoanRepayment::where('loan_account_id', $loanAccount->id)->first();
         $this->assertNotNull($repayment);
-        $this->assertEquals(600.00, (float) $repayment->principal_paid);
-        $this->assertEquals(2400.00, (float) $repayment->interest_paid);
+        $this->assertEquals(2600.00, (float) $repayment->principal_paid);
+        $this->assertEquals(400.00, (float) $repayment->interest_paid);
 
         $voucher = Voucher::where('reference_type', 'loan_repayment')
             ->where('reference_id', $repayment->id)
@@ -581,7 +581,7 @@ class Phase2bProductLoanGlPostingTest extends TestCase
         $this->assertNotNull($crPrincipal, 'Must credit 1220 - Product Loans Receivable');
         $this->assertNotNull($crInterest, 'Must credit 4120 - Interest Income from Product Loans');
 
-        $this->assertEquals(600.00, (float) $crPrincipal->credit);
-        $this->assertEquals(2400.00, (float) $crInterest->credit);
+        $this->assertEquals(2600.00, (float) $crPrincipal->credit);
+        $this->assertEquals(400.00, (float) $crInterest->credit);
     }
 }

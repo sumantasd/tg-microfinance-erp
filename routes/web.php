@@ -54,6 +54,11 @@ use App\Http\Controllers\Admin\SupplierController;
 use App\Http\Controllers\Admin\SupplierPaymentController;
 use App\Http\Controllers\Admin\ProductController as AdminProductController;
 use App\Http\Controllers\Admin\ProfileController;
+use App\Http\Controllers\Admin\MediaController;
+use App\Http\Controllers\Admin\NotificationController;
+use App\Http\Controllers\Admin\FieldTrackingController;
+use App\Http\Controllers\Admin\TravelAllowanceController;
+use App\Http\Controllers\Admin\System\ActivityLogController;
 use App\Http\Controllers\Admin\System\PermissionController;
 use App\Http\Controllers\Admin\System\RoleController;
 use App\Http\Controllers\Admin\System\UserController;
@@ -534,6 +539,46 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::get('/{category}/{type}', [ReportsController::class, 'show'])->name('show');
         Route::get('/{category}/{type}/print', [ReportsController::class, 'print'])->name('print');
         Route::get('/{category}/{type}/export', [ReportsController::class, 'export'])->name('export')->middleware('can:reports.export');
+    });
+
+    // Enterprise Media Library Routes
+    Route::prefix('media')->name('admin.media.')->group(function () {
+        Route::get('/', [MediaController::class, 'index'])->name('index')->middleware('can:media.view');
+        Route::post('/upload', [MediaController::class, 'store'])->name('store')->middleware('can:media.upload');
+        Route::get('/{mediaFile}/download', [MediaController::class, 'download'])->name('download')->middleware('can:media.view');
+        Route::delete('/{mediaFile}', [MediaController::class, 'destroy'])->name('destroy')->middleware('can:media.delete');
+    });
+
+    // Enterprise System Notifications Routes
+    Route::prefix('notifications')->name('admin.notifications.')->group(function () {
+        Route::get('/', [NotificationController::class, 'index'])->name('index')->middleware('can:notifications.view');
+        Route::get('/manage', [NotificationController::class, 'manage'])->name('manage')->middleware('can:notifications.manage');
+        Route::post('/send', [NotificationController::class, 'store'])->name('send')->middleware('can:notifications.manage');
+        Route::post('/{id}/read', [NotificationController::class, 'markAsRead'])->name('mark-read')->middleware('can:notifications.view');
+        Route::post('/mark-all-read', [NotificationController::class, 'markAllAsRead'])->name('mark-all-read')->middleware('can:notifications.view');
+        Route::delete('/{id}', [NotificationController::class, 'destroy'])->name('destroy')->middleware('can:notifications.view');
+    });
+
+    // Enterprise System Audit & Activity Logs Routes
+    Route::prefix('activity-logs')->name('admin.activity-logs.')->middleware('can:audit_logs.view')->group(function () {
+        Route::get('/', [ActivityLogController::class, 'index'])->name('index');
+        Route::get('/{activityLog}', [ActivityLogController::class, 'show'])->name('show');
+    });
+
+    // Field Staff GPS Tracking & Visit History Routes
+    Route::prefix('field-tracking')->name('admin.field-tracking.')->middleware('can:field_tracking.view')->group(function () {
+        Route::get('/', [FieldTrackingController::class, 'index'])->name('index');
+        Route::get('/route-history/{user}', [FieldTrackingController::class, 'routeHistory'])->name('route-history');
+    });
+
+    // Travel Allowance (TA) Claim Workflow Routes
+    Route::prefix('ta-claims')->name('admin.ta-claims.')->group(function () {
+        Route::get('/', [TravelAllowanceController::class, 'index'])->name('index')->middleware('can:ta_claims.view');
+        Route::get('/create', [TravelAllowanceController::class, 'create'])->name('create')->middleware('can:ta_claims.create');
+        Route::post('/', [TravelAllowanceController::class, 'store'])->name('store')->middleware('can:ta_claims.create');
+        Route::post('/{claim}/approve', [TravelAllowanceController::class, 'approve'])->name('approve')->middleware('can:ta_claims.approve');
+        Route::post('/{claim}/reject', [TravelAllowanceController::class, 'reject'])->name('reject')->middleware('can:ta_claims.approve');
+        Route::post('/{claim}/pay', [TravelAllowanceController::class, 'pay'])->name('pay')->middleware('can:ta_claims.pay');
     });
 
     // Website CMS Module

@@ -133,11 +133,11 @@
             <div class="card border-0 shadow-sm rounded-3 p-3 bg-white h-100">
                 <div class="d-flex align-items-center justify-content-between mb-2">
                     <span class="small text-muted fw-bold text-uppercase" style="font-size: 0.75rem;">{{ $kpi['label'] }}</span>
-                    <div class="rounded-circle p-2 bg-{{ $kpi['color'] }}-subtle text-{{ $kpi['color'] }} d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
+                    <div class="rounded-circle p-2 bg-{{ $kpi['color'] ?? 'primary' }}-subtle text-{{ $kpi['color'] ?? 'primary' }} d-flex align-items-center justify-content-center" style="width: 32px; height: 32px;">
                         <i class="bi {{ $kpi['icon'] ?? 'bi-graph-up' }} fs-6"></i>
                     </div>
                 </div>
-                <div class="fs-4 fw-bold text-{{ $kpi['color'] }} font-heading">{{ $kpi['value'] }}</div>
+                <div class="fs-4 fw-bold text-{{ $kpi['color'] ?? 'primary' }} font-heading">{{ $kpi['value'] }}</div>
             </div>
         </div>
     @endforeach
@@ -168,9 +168,9 @@
                 @forelse($reportData['rows'] ?? [] as $row)
                     <tr>
                         <td class="ps-3 text-muted font-monospace small">
-                            {{ $reportData['paginator'] ? (($reportData['paginator']->currentPage() - 1) * $reportData['paginator']->perPage() + $loop->iteration) : $loop->iteration }}
+                            {{ !empty($reportData['paginator']) ? (($reportData['paginator']->currentPage() - 1) * $reportData['paginator']->perPage() + $loop->iteration) : $loop->iteration }}
                         </td>
-                        @foreach($reportData['columns'] as $colKey => $colLabel)
+                        @foreach(($reportData['columns'] ?? []) as $colKey => $colLabel)
                             @php
                                 $val = $row[$colKey] ?? '';
                                 $isMonetary = str_contains(strtolower($colLabel), '(₹)') || str_contains(strtolower($colLabel), 'amount') || str_contains(strtolower($colLabel), 'principal') || str_contains(strtolower($colLabel), 'balance') || str_starts_with((string)$val, '₹');
@@ -186,7 +186,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="{{ count($reportData['columns']) + 1 }}" class="text-center py-5 text-muted">
+                        <td colspan="{{ count($reportData['columns'] ?? []) + 1 }}" class="text-center py-5 text-muted">
                             <i class="bi bi-inbox fs-2 text-muted d-block mb-2"></i>
                             <div class="fw-bold">No records found matching your filter criteria.</div>
                             <small>Try clearing or modifying the applied filters above.</small>
@@ -197,7 +197,7 @@
         </table>
     </div>
 
-    @if($reportData['paginator'] && $reportData['paginator']->hasPages())
+    @if(!empty($reportData['paginator']) && $reportData['paginator']->hasPages())
         <div class="p-3 border-top d-flex justify-content-between align-items-center">
             <div class="small text-muted">
                 Showing {{ $reportData['paginator']->firstItem() ?? 0 }} to {{ $reportData['paginator']->lastItem() ?? 0 }} of {{ $reportData['paginator']->total() }} entries

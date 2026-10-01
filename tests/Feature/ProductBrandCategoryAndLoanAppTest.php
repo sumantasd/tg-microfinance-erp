@@ -394,6 +394,7 @@ class ProductBrandCategoryAndLoanAppTest extends TestCase
             'purpose' => 'Solar electrification for home workshop',
             'products' => [
                 [
+                    'brand_id' => $brand->id,
                     'category_id' => $category->id,
                     'product_id' => $product->id,
                     'quantity' => 1,
@@ -405,7 +406,7 @@ class ProductBrandCategoryAndLoanAppTest extends TestCase
         $response->assertSessionHasNoErrors();
         $application = LoanApplication::with('products')->where('customer_id', $customer->id)->first();
         $this->assertNotNull($application);
-        $this->assertEquals(10000, (float) $application->requested_amount);
+        $this->assertEquals(12000, (float) $application->requested_amount);
         $this->assertEquals(6, $application->tenure_months);
         $this->assertEquals('bi_weekly', $application->repayment_frequency);
         $this->assertCount(1, $application->products);

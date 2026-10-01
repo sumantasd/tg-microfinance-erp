@@ -12,6 +12,11 @@ use App\Http\Controllers\Api\V1\GroupApiController;
 use App\Http\Controllers\Api\V1\InventoryApiController;
 use App\Http\Controllers\Api\V1\KycApiController;
 use App\Http\Controllers\Api\V1\LoanApiController;
+use App\Http\Controllers\Api\V1\HrmApiController;
+use App\Http\Controllers\Api\V1\InventoryTransferApiController;
+use App\Http\Controllers\Api\V1\NotificationApiController;
+use App\Http\Controllers\Api\V1\ProfileApiController;
+use App\Http\Controllers\Api\V1\ReportApiController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -22,11 +27,19 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('v1')->group(function () {
 
-    // Public Auth Endpoints
+    // Public Auth & App Config Endpoints
     Route::post('/auth/login', [AuthController::class, 'login'])->middleware('throttle:10,1');
+    Route::get('/app-config', [ProfileApiController::class, 'appConfig']);
 
     // Protected API Endpoints (Sanctum Auth)
     Route::middleware(['auth:sanctum'])->group(function () {
+
+        // Profile & Account Settings
+        Route::get('/profile', [ProfileApiController::class, 'profile']);
+        Route::put('/profile', [ProfileApiController::class, 'updateProfile']);
+        Route::put('/profile/password', [ProfileApiController::class, 'changePassword']);
+        Route::get('/audit-logs', [ProfileApiController::class, 'auditLogs']);
+        Route::get('/media', [ProfileApiController::class, 'media']);
 
         // Auth
         Route::post('/auth/logout', [AuthController::class, 'logout']);
@@ -92,6 +105,51 @@ Route::prefix('v1')->group(function () {
             Route::get('/inventory/stocks', [InventoryApiController::class, 'stocks']);
         });
 
+        // Inventory Transfers
+        Route::middleware(['can:inventory.view'])->group(function () {
+            Route::get('/inventory/transfers', [InventoryTransferApiController::class, 'index']);
+            Route::get('/inventory/transfers/{id}', [InventoryTransferApiController::class, 'show']);
+        });
+        Route::middleware(['can:inventory.transfer.create', 'idempotent'])->group(function () {
+            Route::post('/inventory/transfers', [InventoryTransferApiController::class, 'store']);
+        });
+        Route::middleware(['can:inventory.transfer.approve'])->group(function () {
+            Route::post('/inventory/transfers/{id}/approve', [InventoryTransferApiController::class, 'approve']);
+        });
+        Route::middleware(['can:inventory.transfer.reject'])->group(function () {
+            Route::post('/inventory/transfers/{id}/reject', [InventoryTransferApiController::class, 'reject']);
+        });
+        Route::middleware(['can:inventory.transfer.dispatch'])->group(function () {
+            Route::post('/inventory/transfers/{id}/dispatch', [InventoryTransferApiController::class, 'dispatchTransfer']);
+        });
+        Route::middleware(['can:inventory.transfer.receive'])->group(function () {
+            Route::post('/inventory/transfers/{id}/receive', [InventoryTransferApiController::class, 'receive']);
+        });
+
+        // HRM, Leave & Payroll
+        Route::get('/hrm/leave-types', [HrmApiController::class, 'leaveTypes']);
+        Route::get('/hrm/leaves', [HrmApiController::class, 'leaves']);
+        Route::get('/hrm/leaves/{id}', [HrmApiController::class, 'showLeave']);
+        Route::post('/hrm/leaves', [HrmApiController::class, 'storeLeave']);
+        Route::middleware(['can:hrm.leave.approve'])->group(function () {
+            Route::post('/hrm/leaves/{id}/approve', [HrmApiController::class, 'approveLeave']);
+            Route::post('/hrm/leaves/{id}/reject', [HrmApiController::class, 'rejectLeave']);
+        });
+        Route::get('/hrm/payslips', [HrmApiController::class, 'payslips']);
+        Route::get('/hrm/payslips/{id}', [HrmApiController::class, 'showPayslip']);
+
+        // Notifications
+        Route::get('/notifications', [NotificationApiController::class, 'index']);
+        Route::get('/notifications/unread-count', [NotificationApiController::class, 'unreadCount']);
+        Route::post('/notifications/{id}/read', [NotificationApiController::class, 'markAsRead']);
+        Route::post('/notifications/read-all', [NotificationApiController::class, 'markAllAsRead']);
+        Route::delete('/notifications/{id}', [NotificationApiController::class, 'destroy']);
+
+        // Reports
+        Route::get('/reports', [ReportApiController::class, 'index']);
+        Route::get('/reports/{category}/{type}', [ReportApiController::class, 'show']);
+        Route::get('/reports/{category}/{type}/export', [ReportApiController::class, 'export']);
+
         // Cash Book
         Route::middleware(['can:cashbook.view'])->group(function () {
             Route::get('/cash-book', [CashBookApiController::class, 'show']);
@@ -138,6 +196,22 @@ Route::prefix('v1')->group(function () {
         // Staff Attendance & GPS Location
         Route::post('/attendance/check-in', [AttendanceApiController::class, 'checkIn']);
         Route::post('/attendance/check-out', [AttendanceApiController::class, 'checkOut']);
+
+        // Location & GPS Field Tracking
+        Route::post('/location/ping-in', [\App\Http\Controllers\Api\V1\LocationApiController::class, 'pingIn']);
+        Route::post('/location/ping-out', [\App\Http\Controllers\Api\V1\LocationApiController::class, 'pingOut']);
+        Route::post('/location/ping', [\App\Http\Controllers\Api\V1\LocationApiController::class, 'ping']);
+        Route::post('/location/sync-pings', [\App\Http\Controllers\Api\V1\LocationApiController::class, 'syncBatchPings']);
+        Route::get('/location/status', [\App\Http\Controllers\Api\V1\LocationApiController::class, 'status']);
+
+        // Travel Allowance (TA) Claims
+        Route::middleware(['can:ta_claims.view'])->group(function () {
+            Route::get('/ta-claims', [\App\Http\Controllers\Api\V1\TravelAllowanceApiController::class, 'index']);
+            Route::get('/ta-claims/eligible-distance', [\App\Http\Controllers\Api\V1\TravelAllowanceApiController::class, 'eligibleDistance']);
+        });
+        Route::middleware(['can:ta_claims.create', 'idempotent'])->group(function () {
+            Route::post('/ta-claims', [\App\Http\Controllers\Api\V1\TravelAllowanceApiController::class, 'store']);
+        });
 
         // KYC & Document Uploads
         Route::middleware(['can:customer.kyc_upload'])->group(function () {

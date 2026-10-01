@@ -18,6 +18,12 @@ use App\Models\Product;
 use App\Models\ProductBrand;
 use App\Models\ProductCategory;
 use App\Models\User;
+use App\Models\Leave;
+use App\Models\LeaveType;
+use App\Models\SystemNotification;
+use App\Models\UserNotification;
+use App\Models\InventoryTransfer;
+
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Hash;
@@ -603,7 +609,7 @@ class MobileApiV1Test extends TestCase
 
         $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
 
-        // A & D: Partial payment (₹1,000) makes ONLY Installment #1 partial
+        // A & D: Partial payment (Γé╣1,000) makes ONLY Installment #1 partial
         $responsePartial = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/v1/collections/submit-emi', [
                 'loan_account_id' => $loanAccount->id,
@@ -624,7 +630,7 @@ class MobileApiV1Test extends TestCase
         $this->assertEquals('pending', $inst3->status);
         $this->assertEquals(0.00, (float) $inst3->total_paid);
 
-        // A & B: Completing exact EMI #1 (remaining ₹1,200) makes ONLY Installment #1 paid, EMI #2 stays pending
+        // A & B: Completing exact EMI #1 (remaining Γé╣1,200) makes ONLY Installment #1 paid, EMI #2 stays pending
         $responseFull1 = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/v1/collections/submit-emi', [
                 'loan_account_id' => $loanAccount->id,
@@ -645,7 +651,7 @@ class MobileApiV1Test extends TestCase
         $this->assertEquals(2200.00, (float) $inst2->installment_amount);
         $this->assertEquals('pending', $inst3->status);
 
-        // C & F: Paying EMI #2 (₹2,200) makes #2 paid without changing #3 onward or recalculating schedule
+        // C & F: Paying EMI #2 (Γé╣2,200) makes #2 paid without changing #3 onward or recalculating schedule
         $responseFull2 = $this->withHeader('Authorization', 'Bearer ' . $token)
             ->postJson('/api/v1/collections/submit-emi', [
                 'loan_account_id' => $loanAccount->id,
@@ -759,7 +765,7 @@ class MobileApiV1Test extends TestCase
         $app = $appService->submitApplication($app);
         $app = $appService->approveApplication($app, 30000.00);
 
-        // Sanction with down payment ₹3,000 (Sanctioned principal = ₹27,000)
+        // Sanction with down payment Γé╣3,000 (Sanctioned principal = Γé╣27,000)
         $loanAccount = $accService->sanctionLoanFromApplication($app, 3000.00);
         $this->assertEquals(27000.00, (float) $loanAccount->sanctioned_amount);
         $this->assertEquals(6, $loanAccount->installments->count());
@@ -1509,5 +1515,241 @@ class MobileApiV1Test extends TestCase
 
         $responseReconcile->assertStatus(200)
             ->assertJsonPath('success', true);
+    }
+
+    public function test_public_app_config_endpoint(): void
+    {
+        $response = $this->getJson('/api/v1/app-config');
+
+        $response->assertStatus(200)
+            ->assertJsonStructure([
+                'success',
+                'data' => [
+                    'app_name',
+                    'company_name',
+                    'currency_symbol',
+                    'currency_code',
+                ],
+            ]);
+    }
+
+    public function test_authenticated_profile_endpoint(): void
+    {
+        $response = $this->actingAs($this->superAdmin, 'sanctum')
+            ->getJson('/api/v1/profile');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.user.email', $this->superAdmin->email);
+    }
+
+    public function test_profile_update(): void
+    {
+        $response = $this->actingAs($this->branchManager, 'sanctum')
+            ->putJson('/api/v1/profile', [
+                'name' => 'Updated Manager Name',
+                'phone' => '9988776655',
+            ]);
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.name', 'Updated Manager Name');
+    }
+
+    public function test_leave_types_listing(): void
+    {
+        LeaveType::create(['company_id' => $this->company->id, 'name' => 'Casual Leave', 'code' => 'CL', 'days_allowed' => 12, 'is_active' => true]);
+
+        $response = $this->actingAs($this->branchManager, 'sanctum')
+            ->getJson('/api/v1/hrm/leave-types');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_leave_request_submission_and_listing(): void
+    {
+        $dept = Department::first();
+        $desig = Designation::first();
+
+        Employee::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'department_id' => $dept->id,
+            'designation_id' => $desig->id,
+            'user_id' => $this->branchManager->id,
+            'first_name' => 'BM',
+            'last_name' => 'User',
+            'employee_code' => 'EMP-BM-101',
+            'joining_date' => '2026-01-01',
+        ]);
+
+        $type = LeaveType::create(['company_id' => $this->company->id, 'name' => 'Medical Leave', 'code' => 'ML', 'days_allowed' => 10, 'is_active' => true]);
+
+        $response = $this->actingAs($this->branchManager, 'sanctum')
+            ->postJson('/api/v1/hrm/leaves', [
+                'leave_type_id' => $type->id,
+                'start_date' => now()->toDateString(),
+                'end_date' => now()->addDays(2)->toDateString(),
+                'reason' => 'Feeling unwell',
+            ]);
+
+        $response->assertStatus(201)
+            ->assertJsonPath('data.status', 'pending');
+
+        $listResponse = $this->actingAs($this->branchManager, 'sanctum')
+            ->getJson('/api/v1/hrm/leaves');
+
+        $listResponse->assertStatus(200);
+    }
+
+    public function test_notifications_listing_and_mark_all_read(): void
+    {
+        $sysNotif = SystemNotification::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'sender_id' => $this->superAdmin->id,
+            'title' => 'System Maintenance',
+            'message' => 'Scheduled maintenance at midnight.',
+            'type' => 'info',
+        ]);
+
+        UserNotification::create([
+            'system_notification_id' => $sysNotif->id,
+            'user_id' => $this->branchManager->id,
+            'is_read' => false,
+        ]);
+
+        $response = $this->actingAs($this->branchManager, 'sanctum')
+            ->getJson('/api/v1/notifications');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('data.unread_count', 1);
+
+        $markResponse = $this->actingAs($this->branchManager, 'sanctum')
+            ->postJson('/api/v1/notifications/read-all');
+
+        $markResponse->assertStatus(200);
+
+        $unreadResponse = $this->actingAs($this->branchManager, 'sanctum')
+            ->getJson('/api/v1/notifications/unread-count');
+
+        $unreadResponse->assertStatus(200)
+            ->assertJsonPath('data.unread_count', 0);
+    }
+
+    public function test_report_categories_and_generation(): void
+    {
+        $response = $this->actingAs($this->superAdmin, 'sanctum')
+            ->getJson('/api/v1/reports');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+
+        $showResponse = $this->actingAs($this->superAdmin, 'sanctum')
+            ->getJson('/api/v1/reports/loan/disbursement');
+
+        $showResponse->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_inventory_transfers_listing(): void
+    {
+        $response = $this->actingAs($this->superAdmin, 'sanctum')
+            ->getJson('/api/v1/inventory/transfers');
+
+        $response->assertStatus(200)
+            ->assertJsonPath('success', true);
+    }
+
+    public function test_inventory_transfer_mutation_permission_scoping(): void
+    {
+        // 1. Create a user with ONLY inventory.view permission (no transfer action permissions)
+        $readOnlyUser = User::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'name' => 'Read Only Inventory Auditor',
+            'email' => 'inventory.viewer@example.com',
+            'password' => Hash::make('Password123'),
+            'status' => 'active',
+        ]);
+        $readOnlyUser->givePermissionTo('inventory.view');
+
+        $category = ProductCategory::create(['company_id' => $this->company->id, 'name' => 'Office Electronics', 'code' => 'OE']);
+        $brand = ProductBrand::create(['company_id' => $this->company->id, 'name' => 'Dell', 'code' => 'DL']);
+        $product = Product::create([
+            'company_id' => $this->company->id,
+            'category_id' => $category->id,
+            'brand_id' => $brand->id,
+            'sku' => 'PROD-DELL-001',
+            'name' => 'Dell Latitude Laptop',
+            'unit_price' => 50000.00,
+            'cost_price' => 45000.00,
+            'is_active' => true,
+        ]);
+
+        InventoryStock::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'product_id' => $product->id,
+            'current_stock' => 10,
+            'available_stock' => 10,
+            'reserved_stock' => 0,
+        ]);
+
+        $transferService = app(\App\Services\InventoryTransferService::class);
+        $transfer = $transferService->createTransfer([
+            'source_branch_id' => $this->branch1->id,
+            'destination_branch_id' => $this->branch2->id,
+            'remarks' => 'RBAC Transfer Test',
+        ], [
+            ['product_id' => $product->id, 'quantity' => 2, 'unit_cost' => 45000.00]
+        ]);
+
+        // 2. Verify readOnlyUser CAN view transfers
+        $this->actingAs($readOnlyUser, 'sanctum')
+            ->getJson('/api/v1/inventory/transfers')
+            ->assertStatus(200);
+
+        $this->actingAs($readOnlyUser, 'sanctum')
+            ->getJson('/api/v1/inventory/transfers/' . $transfer->id)
+            ->assertStatus(200);
+
+        // 3. Verify readOnlyUser CANNOT create, approve, reject, dispatch, or receive transfers (all DENIED 403)
+        $this->actingAs($readOnlyUser, 'sanctum')
+            ->postJson('/api/v1/inventory/transfers', [
+                'source_branch_id' => $this->branch1->id,
+                'destination_branch_id' => $this->branch2->id,
+                'items' => [['product_id' => $product->id, 'quantity' => 1]],
+            ])
+            ->assertStatus(403);
+
+        $this->actingAs($readOnlyUser, 'sanctum')
+            ->postJson('/api/v1/inventory/transfers/' . $transfer->id . '/approve')
+            ->assertStatus(403);
+
+        $this->actingAs($readOnlyUser, 'sanctum')
+            ->postJson('/api/v1/inventory/transfers/' . $transfer->id . '/reject', ['rejection_reason' => 'Denied'])
+            ->assertStatus(403);
+
+        $this->actingAs($readOnlyUser, 'sanctum')
+            ->postJson('/api/v1/inventory/transfers/' . $transfer->id . '/dispatch')
+            ->assertStatus(403);
+
+        $this->actingAs($readOnlyUser, 'sanctum')
+            ->postJson('/api/v1/inventory/transfers/' . $transfer->id . '/receive')
+            ->assertStatus(403);
+
+        // 4. Verify Super Admin CAN approve, dispatch, and receive transfer cleanly
+        $this->actingAs($this->superAdmin, 'sanctum')
+            ->postJson('/api/v1/inventory/transfers/' . $transfer->id . '/approve')
+            ->assertStatus(200);
+
+        $this->actingAs($this->superAdmin, 'sanctum')
+            ->postJson('/api/v1/inventory/transfers/' . $transfer->id . '/dispatch')
+            ->assertStatus(200);
+
+        $this->actingAs($this->superAdmin, 'sanctum')
+            ->postJson('/api/v1/inventory/transfers/' . $transfer->id . '/receive')
+            ->assertStatus(200);
     }
 }

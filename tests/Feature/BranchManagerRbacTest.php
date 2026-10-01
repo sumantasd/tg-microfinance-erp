@@ -306,9 +306,9 @@ class BranchManagerRbacTest extends TestCase
         $responseAccounting = $this->actingAs($this->branchManager1)->get('/admin/accounting/dashboard');
         $responseAccounting->assertStatus(403);
 
-        // Reports denied -> 403
+        // Reports allowed (scoped to branch) -> 200
         $responseReports = $this->actingAs($this->branchManager1)->get('/admin/reports');
-        $responseReports->assertStatus(403);
+        $responseReports->assertStatus(200);
     }
 
     /** 9. HRM Branch Scoping and HR Letters / ID Cards isolation */
@@ -440,8 +440,8 @@ class BranchManagerRbacTest extends TestCase
         $this->assertTrue($role->hasPermissionTo('billing.view'));
         $this->assertTrue($role->hasPermissionTo('branch.view'));
 
-        // Verify exact count of 73 permissions
-        $this->assertCount(73, $role->permissions);
+        // Verify exact count of 85 permissions
+        $this->assertCount(85, $role->permissions);
 
         // Verify other roles were NOT modified
         $adminRole = \Spatie\Permission\Models\Role::findByName('Super Admin', 'web');

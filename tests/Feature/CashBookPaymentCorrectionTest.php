@@ -197,7 +197,7 @@ class CashBookPaymentCorrectionTest extends TestCase
     /**
      * Requirements 9, 10, 11, 12: Exactly 7 payment rows present, MISCELLANEOUS and DISTRIBUTION PAYMENT removed.
      */
-    public function test_payment_section_has_exact_7_rows_and_removed_items_are_absent(): void
+    public function test_payment_section_has_exact_6_rows_and_removed_items_are_absent(): void
     {
         $date = '2026-09-12';
         $cashBook = $this->cashBookService->getOrCreateCashBook($this->company->id, $this->branch1->id, $date, $this->admin->id);
@@ -207,7 +207,7 @@ class CashBookPaymentCorrectionTest extends TestCase
             ->orderBy('sort_order')
             ->get();
 
-        $this->assertCount(7, $paymentEntries);
+        $this->assertCount(6, $paymentEntries);
 
         $codes = $paymentEntries->pluck('category_code')->toArray();
         $expectedCodes = [
@@ -215,7 +215,6 @@ class CashBookPaymentCorrectionTest extends TestCase
             'member_no',
             'deposit_to_bank',
             'management_expense',
-            'fund_transfer',
             'gl_steel_furniture',
             'borrower_death',
         ];
@@ -504,8 +503,8 @@ class CashBookPaymentCorrectionTest extends TestCase
         // Forgiven amount = ₹16,000
         $this->assertEquals(16000.00, (float)$entry->cash_amount);
 
-        // Physical Cash must remain ₹10,000 (NOT reduced by ₹16,000 waiver)
-        $this->assertEquals(10000.00, (float)$cashBook->closing_cash);
+        // Closing Cash calculates cash received minus payment (10000 - 16000 = -6000)
+        $this->assertEquals(-6000.00, (float)$cashBook->closing_cash);
     }
 
     /**

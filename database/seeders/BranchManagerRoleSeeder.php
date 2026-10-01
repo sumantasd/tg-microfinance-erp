@@ -45,7 +45,11 @@ class BranchManagerRoleSeeder extends Seeder
             'loan.collection.receipt', 'loan.collection.history',
 
             // 8. Overdue, DPD & PAR
-            'overdue.view', 'dpd.view', 'overdue.branch_report',
+            'overdue.view', 'dpd.view', 'overdue.branch_report', 'reports.view',
+            'media.view', 'media.upload', 'media.delete',
+            'notifications.view', 'notifications.manage',
+            'audit_logs.view', 'field_tracking.view',
+            'ta_claims.view', 'ta_claims.create', 'ta_claims.approve', 'ta_claims.pay',
 
             // 9. Penalty Management & Waivers
             'penalty.view', 'penalty.waive', 'loans.waive_penalty', 'loan.waive_penalty',

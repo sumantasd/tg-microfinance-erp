@@ -482,7 +482,7 @@ class CustomerManagementTest extends TestCase
         // Unauthenticated access attempt
         \Illuminate\Support\Facades\Auth::logout();
         $guestResponse = $this->get(route('admin.customer.kyc.download', $kyc->id));
-        $guestResponse->assertRedirect(route('login'));
+        $guestResponse->assertRedirect(route('admin.login'));
     }
 
     public function test_guarantor_kyc_upload_and_download_stream(): void

@@ -226,7 +226,7 @@ class ReportsCenterTest extends TestCase
     public function test_unauthenticated_guest_is_redirected_to_login(): void
     {
         $response = $this->get('/admin/reports');
-        $response->assertRedirect(route('login'));
+        $response->assertRedirect(route('admin.login'));
     }
 
     /** 4. Report category visibility follows permissions */

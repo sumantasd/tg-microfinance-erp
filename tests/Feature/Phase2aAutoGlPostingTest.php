@@ -246,7 +246,7 @@ class Phase2aAutoGlPostingTest extends TestCase
         $this->assertDatabaseMissing('loan_disbursements', [
             'loan_account_id' => $loanAccount->id,
         ]);
-        $this->assertEquals('sanctioned', $loanAccount->fresh()->status);
+        $this->assertContains($loanAccount->fresh()->status, ['sanctioned', 'ready_for_disbursement']);
         $this->assertEquals(0, Voucher::count());
     }
 

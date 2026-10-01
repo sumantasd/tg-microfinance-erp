@@ -122,12 +122,10 @@ class InventoryTransferController extends Controller
     public function receive(InventoryTransfer $inventoryTransfer): RedirectResponse
     {
         $user = auth()->user();
-        if ($user && $user->hasRole('Branch Manager')) {
-            if (!$user->branch_id || (int)$user->branch_id !== (int)$inventoryTransfer->destination_branch_id) {
+        if (!$user->isSuperAdmin() && !$user->isCompanyAdmin()) {
+            if ($user->branch_id && (int)$user->branch_id !== (int)$inventoryTransfer->destination_branch_id) {
                 abort(403, 'Unauthorized. You can only accept stock transfers sent to your assigned branch.');
             }
-        } elseif ($user && $user->branch_id && (int)$user->branch_id !== (int)$inventoryTransfer->destination_branch_id) {
-            abort(403, 'Unauthorized. You can only accept stock transfers sent to your assigned branch.');
         }
 
         if ($inventoryTransfer->status !== 'in_transit') {

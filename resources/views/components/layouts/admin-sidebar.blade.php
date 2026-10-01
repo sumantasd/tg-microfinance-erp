@@ -8,7 +8,7 @@
 <aside id="admin-sidebar">
     <!-- Brand Header with Dynamic Logo -->
     <div class="sidebar-brand">
-        <a href="{{ url('/admin') }}" class="d-flex align-items-center text-decoration-none gap-2 text-dark">
+        <a href="{{ url('/admin') }}" class="d-flex align-items-center text-decoration-none gap-2 text-white">
             @if($companyLogo)
                 <img src="{{ $companyLogo }}" alt="{{ $companyName }}" class="img-fluid" style="max-height: 38px; max-width: 140px; object-fit: contain;">
             @else
@@ -16,8 +16,8 @@
                     <i class="bi bi-bank2 fs-6"></i>
                 </div>
                 <div>
-                    <span class="d-block fw-bold font-heading lh-sm text-dark">{{ $companyName }}</span>
-                    <small class="text-muted d-block font-monospace" style="font-size: 0.625rem; letter-spacing: 0.5px;">SAAS ERP DASHBOARD</small>
+                    <span class="d-block fw-bold font-heading lh-sm text-white">{{ $companyName }}</span>
+                    <small class="text-white-50 d-block font-monospace" style="font-size: 0.625rem; letter-spacing: 0.5px;">SAAS ERP DASHBOARD</small>
                 </div>
             @endif
         </a>

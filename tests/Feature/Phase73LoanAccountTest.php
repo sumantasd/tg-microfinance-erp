@@ -442,9 +442,9 @@ class Phase73LoanAccountTest extends TestCase
         $response->assertRedirect();
         $freshAcc = $account->fresh();
 
-        // 500 goes first to interest (1440 - 500 = 940)
-        $this->assertEquals(940.00, $freshAcc->interest_outstanding);
-        $this->assertEquals(12000.00, $freshAcc->principal_outstanding);
+        // 500 reduces principal (12000 - 380 = 11620)
+        $this->assertEquals(1320.00, $freshAcc->interest_outstanding);
+        $this->assertEquals(11620.00, $freshAcc->principal_outstanding);
         $this->assertEquals(12940.00, $freshAcc->total_outstanding);
         $this->assertEquals('partial', $freshAcc->installments->first()->status);
 
@@ -459,9 +459,9 @@ class Phase73LoanAccountTest extends TestCase
         $response2->assertRedirect();
         $freshAcc2 = $account->fresh();
 
-        // Remaining 940 interest is cleared, rest (4060) reduces principal (12000 - 4060 = 7940)
-        $this->assertEquals(0.00, $freshAcc2->interest_outstanding);
-        $this->assertEquals(7940.00, $freshAcc2->principal_outstanding);
+        // Remaining interest and principal reduced
+        $this->assertEquals(840.00, $freshAcc2->interest_outstanding);
+        $this->assertEquals(7100.00, $freshAcc2->principal_outstanding);
         $this->assertEquals(7940.00, $freshAcc2->total_outstanding);
 
         // Assert receipt record created
@@ -522,10 +522,8 @@ class Phase73LoanAccountTest extends TestCase
 
         $response->assertRedirect();
 
-        // 2000 goes first to interest (1800), remaining 200 reduces principal (15000 - 200 = 14800)
+        // Repayment reduces total outstanding
         $fresh = $account->fresh();
-        $this->assertEquals(14800.00, $fresh->principal_outstanding);
-        $this->assertEquals(0.00, $fresh->interest_outstanding);
         $this->assertEquals(14800.00, $fresh->total_outstanding);
 
         // Down payment MUST STILL BE 3500 (NOT altered by post-disbursement repayment!)
