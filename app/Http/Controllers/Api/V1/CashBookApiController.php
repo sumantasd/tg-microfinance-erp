@@ -45,11 +45,46 @@ class CashBookApiController extends Controller
     }
 
     /**
-     * Add particular entry to cash book (Disabled - automatic register).
+     * Add particular entry to cash book register.
      */
     public function addEntry(Request $request): JsonResponse
     {
-        return $this->errorResponse('Manual entry creation is disabled. Cash Book entries populate automatically from ERP transactions.', 422);
+        $user = $request->user();
+
+        $validated = $request->validate([
+            'branch_id' => 'required|exists:branches,id',
+            'entry_type' => 'required|in:received,payment',
+            'particulars' => 'required|string|max:255',
+            'cash_amount' => 'required|numeric|min:0.01',
+            'date' => 'nullable|date',
+            'remarks' => 'nullable|string|max:255',
+        ]);
+
+        if (!$user->canAccessBranch($validated['branch_id'])) {
+            return $this->forbiddenResponse('Unauthorized access to add cash book entry in another branch');
+        }
+
+        $companyId = $user->company_id ?? 1;
+        $date = $validated['date'] ?? now()->toDateString();
+        $cashBook = $this->cashBookService->getOrCreateCashBook($companyId, $validated['branch_id'], $date, $user->id);
+
+        $entry = \App\Models\CashBookEntry::create([
+            'cash_book_id' => $cashBook->id,
+            'entry_type' => $validated['entry_type'],
+            'category_code' => 'manual_entry',
+            'particulars' => $validated['particulars'],
+            'entry_date' => $date,
+            'cash_amount' => $validated['cash_amount'],
+            'product_amount' => 0.00,
+            'bank_amount' => 0.00,
+            'sort_order' => 99,
+            'remarks' => $validated['remarks'] ?? null,
+            'created_by' => $user->id,
+        ]);
+
+        $this->cashBookService->recalculateTotals($cashBook);
+
+        return $this->successResponse($entry->fresh(), 'Cash book entry created successfully', 201);
     }
 
     /**

@@ -61,15 +61,19 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['can:loan.view'])->group(function () {
             Route::get('/loans/schemes', [LoanApiController::class, 'schemes']);
             Route::get('/loans/applications', [LoanApiController::class, 'applications']);
-            Route::post('/loans/applications', [LoanApiController::class, 'storeApplication']);
-            Route::post('/loans/applications/{id}/review', [LoanApiController::class, 'reviewApplication']);
             Route::get('/loans/accounts', [LoanApiController::class, 'accounts']);
             Route::get('/loans/accounts/{id}', [LoanApiController::class, 'showAccount']);
             Route::get('/loans/accounts/{id}/schedule', [LoanApiController::class, 'schedule']);
             Route::get('/overdue', [LoanApiController::class, 'overdueList']);
             Route::get('/loans/accounts/{id}/settlement-quote', [LoanApiController::class, 'settlementQuote']);
-            Route::post('/loans/accounts/{id}/settlements', [LoanApiController::class, 'processSettlement']);
         });
+        Route::middleware(['can:loan.view', 'idempotent'])->group(function () {
+            Route::post('/loans/applications', [LoanApiController::class, 'storeApplication']);
+        });
+        Route::middleware(['can:loan_application.review'])->group(function () {
+            Route::post('/loans/applications/{id}/review', [LoanApiController::class, 'reviewApplication']);
+        });
+        Route::post('/loans/accounts/{id}/settlements', [LoanApiController::class, 'processSettlement']);
         Route::middleware(['can:loan.disburse'])->group(function () {
             Route::post('/loans/accounts/{id}/disburse', [LoanApiController::class, 'disburse']);
         });
@@ -92,7 +96,7 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['can:cashbook.view'])->group(function () {
             Route::get('/cash-book', [CashBookApiController::class, 'show']);
         });
-        Route::middleware(['can:cashbook.create_entry'])->group(function () {
+        Route::middleware(['can:cashbook.create_entry', 'idempotent'])->group(function () {
             Route::post('/cash-book/entries', [CashBookApiController::class, 'addEntry']);
             Route::post('/cash-book/reconcile', [CashBookApiController::class, 'saveDenomination']);
         });
@@ -119,7 +123,7 @@ Route::prefix('v1')->group(function () {
             Route::get('/expenses', [ExpenseApiController::class, 'index']);
             Route::get('/expenses/{id}', [ExpenseApiController::class, 'show']);
         });
-        Route::middleware(['can:expense.create'])->group(function () {
+        Route::middleware(['can:expense.create', 'idempotent'])->group(function () {
             Route::post('/expenses', [ExpenseApiController::class, 'store']);
             Route::post('/expenses/{id}/submit', [ExpenseApiController::class, 'submit']);
         });

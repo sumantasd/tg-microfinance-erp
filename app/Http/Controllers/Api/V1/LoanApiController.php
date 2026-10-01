@@ -233,6 +233,18 @@ class LoanApiController extends Controller
             'rejection_reason' => 'nullable|required_if:action,reject|string|max:255',
         ]);
 
+        if ($validated['action'] === 'approve' && !$user->can('loan_application.approve')) {
+            return $this->forbiddenResponse('Permission denied to approve loan application');
+        }
+
+        if ($validated['action'] === 'reject' && !$user->can('loan_application.reject')) {
+            return $this->forbiddenResponse('Permission denied to reject loan application');
+        }
+
+        if ($validated['action'] === 'start_review' && !($user->can('loan_application.review') || $user->can('loan_application.approve'))) {
+            return $this->forbiddenResponse('Permission denied to start loan application review');
+        }
+
         try {
             if ($validated['action'] === 'start_review') {
                 $updated = $this->loanApplicationService->startReview($application);
@@ -389,6 +401,18 @@ class LoanApiController extends Controller
             'remarks' => 'nullable|string|max:255',
             'execute_now' => 'nullable|boolean',
         ]);
+
+        if ($validated['request_type'] === 'foreclosure' && !$user->can('loan_foreclosure.process')) {
+            return $this->forbiddenResponse('Permission denied to process foreclosure');
+        }
+
+        if ($validated['request_type'] === 'settlement_ots' && !($user->can('loan_settlement.request') || $user->can('loan_settlement.approve'))) {
+            return $this->forbiddenResponse('Permission denied to request settlement');
+        }
+
+        if ($validated['request_type'] === 'write_off' && !($user->can('loan_write_off.request') || $user->can('loan_write_off.approve'))) {
+            return $this->forbiddenResponse('Permission denied to request write-off');
+        }
 
         try {
             if (!empty($validated['execute_now']) && $validated['request_type'] === 'foreclosure') {

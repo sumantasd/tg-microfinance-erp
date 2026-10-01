@@ -148,7 +148,7 @@
 <x-ui.card class="border-0 shadow-sm p-0 overflow-hidden bg-white mb-4">
     <div class="p-3 border-bottom d-flex justify-content-between align-items-center bg-light bg-opacity-50">
         <h6 class="fw-bold text-dark mb-0 font-heading">
-            <i class="bi bi-table me-1.5 text-primary"></i> Data Records ({{ is_array($reportData['rows']) ? count($reportData['rows']) : (is_object($reportData['rows']) ? $reportData['rows']->count() : 0) }} Items)
+            <i class="bi bi-table me-1.5 text-primary"></i> Data Records ({{ isset($reportData['rows']) && is_array($reportData['rows']) ? count($reportData['rows']) : (isset($reportData['rows']) && is_object($reportData['rows']) ? $reportData['rows']->count() : 0) }} Items)
         </h6>
     </div>
 
@@ -165,7 +165,7 @@
                 </tr>
             </thead>
             <tbody>
-                @forelse($reportData['rows'] as $row)
+                @forelse($reportData['rows'] ?? [] as $row)
                     <tr>
                         <td class="ps-3 text-muted font-monospace small">
                             {{ $reportData['paginator'] ? (($reportData['paginator']->currentPage() - 1) * $reportData['paginator']->perPage() + $loop->iteration) : $loop->iteration }}

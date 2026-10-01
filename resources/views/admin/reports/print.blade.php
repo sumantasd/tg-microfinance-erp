@@ -133,7 +133,7 @@
             </tr>
         </thead>
         <tbody>
-            @forelse($reportData['rows'] as $row)
+            @forelse($reportData['rows'] ?? [] as $row)
                 <tr>
                     <td class="text-muted text-center">{{ $loop->iteration }}</td>
                     @foreach($reportData['columns'] as $colKey => $colLabel)
