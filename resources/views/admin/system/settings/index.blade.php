@@ -346,6 +346,92 @@
             </form>
         </x-ui.card>
 
+        <!-- 3. TRAVEL ALLOWANCE / TA SETTINGS CARD -->
+        <x-ui.card class="p-4 shadow-sm border-0 bg-white mb-4" id="ta-settings">
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="bg-warning-subtle text-warning rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 38px; height: 38px;">
+                        <i class="bi bi-fuel-pump fs-5" style="color: #d97706;"></i>
+                    </div>
+                    <div>
+                        <h6 class="fw-bold text-dark mb-0 font-heading">Travel Allowance (TA) Rate Settings</h6>
+                        <small class="text-muted">Configure per-kilometer rates, vehicle mode multipliers, and daily limits for field staff claims</small>
+                    </div>
+                </div>
+                <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill" style="color: #b45309 !important;">Field Staff TA Policy</span>
+            </div>
+
+            <form action="{{ route('admin.system.settings.update-ta-settings') }}" method="POST">
+                @csrf
+                @method('PUT')
+
+                <div class="alert alert-light border rounded-3 small mb-4">
+                    <i class="bi bi-info-circle-fill me-1 text-primary"></i>
+                    These rates are automatically applied when calculating Travel Allowance claims based on GPS verified distances.
+                </div>
+
+                <div class="row g-4 mb-4">
+                    <!-- Bike Rate -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark small"><i class="bi bi-bicycle text-primary me-1"></i> Two-Wheeler / Bike Rate per KM (₹) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white fw-bold">₹</span>
+                            <input type="number" step="0.01" min="0" name="ta_rate_per_km_bike" value="{{ old('ta_rate_per_km_bike', number_format($settings->ta_rate_per_km_bike ?? 4.00, 2)) }}" class="form-control bg-white fw-bold font-monospace" placeholder="4.00" required>
+                            <span class="input-group-text bg-white small text-muted">/ KM</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">Reimbursement rate per kilometer for field officers using motorbikes.</small>
+                    </div>
+
+                    <!-- Car Rate -->
+                    <div class="col-md-6">
+                        <label class="form-label fw-bold text-dark small"><i class="bi bi-car-front text-info me-1"></i> Four-Wheeler / Car Rate per KM (₹) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white fw-bold">₹</span>
+                            <input type="number" step="0.01" min="0" name="ta_rate_per_km_car" value="{{ old('ta_rate_per_km_car', number_format($settings->ta_rate_per_km_car ?? 8.00, 2)) }}" class="form-control bg-white fw-bold font-monospace" placeholder="8.00" required>
+                            <span class="input-group-text bg-white small text-muted">/ KM</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">Reimbursement rate per kilometer for staff traveling by car or taxi.</small>
+                    </div>
+
+                    <!-- Default Rate -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-dark small">Default / Other Rate per KM (₹) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white fw-bold">₹</span>
+                            <input type="number" step="0.01" min="0" name="ta_rate_per_km" value="{{ old('ta_rate_per_km', number_format($settings->ta_rate_per_km ?? 4.00, 2)) }}" class="form-control bg-white fw-bold font-monospace" placeholder="4.00" required>
+                            <span class="input-group-text bg-white small text-muted">/ KM</span>
+                        </div>
+                    </div>
+
+                    <!-- Maximum Daily TA Limit -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-dark small"><i class="bi bi-shield-lock text-danger me-1"></i> Maximum Daily TA Limit (₹) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white fw-bold">₹</span>
+                            <input type="number" step="0.01" min="0" name="ta_max_daily_limit" value="{{ old('ta_max_daily_limit', number_format($settings->ta_max_daily_limit ?? 600.00, 2)) }}" class="form-control bg-white fw-bold font-monospace" placeholder="600.00" required>
+                        </div>
+                        <small class="text-muted d-block mt-1">Upper limit per employee per day.</small>
+                    </div>
+
+                    <!-- Minimum Distance KM -->
+                    <div class="col-md-4">
+                        <label class="form-label fw-bold text-dark small">Minimum Trip Distance (KM) <span class="text-danger">*</span></label>
+                        <div class="input-group">
+                            <input type="number" step="0.1" min="0" name="ta_min_distance_km" value="{{ old('ta_min_distance_km', number_format($settings->ta_min_distance_km ?? 2.00, 1)) }}" class="form-control bg-white fw-bold font-monospace" placeholder="2.0" required>
+                            <span class="input-group-text bg-white small text-muted">KM</span>
+                        </div>
+                        <small class="text-muted d-block mt-1">Minimum distance required for TA eligibility.</small>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-end">
+                    <button type="submit" class="btn btn-warning text-dark rounded-pill px-4 py-2 fw-bold shadow-sm" style="background-color: #f59e0b; border: none;">
+                        <i class="bi bi-check-circle me-1"></i> Save TA Rate Settings
+                    </button>
+                </div>
+            </form>
+        </x-ui.card>
+
         <!-- 4. THEME & APPEARANCE CUSTOMIZATION CARD -->
         <x-ui.card class="p-4 shadow-sm border-0 bg-white mb-4">
             <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">

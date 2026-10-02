@@ -50,7 +50,11 @@ class MobileApiV1Test extends TestCase
         parent::setUp();
 
         $permissions = [
-            'customer.view', 'customer.create', 'group.view', 'loan.view',
+            'customer.view', 'customer.create', 'customer.edit', 'customer.delete', 'customer.restore', 'customer.change_status', 'customer.verify_kyc', 'customer.kyc_upload', 'customer.kyc_view', 'customer.manage_guarantor', 'customer.manage_nominee',
+            'group.view', 'group.create', 'group.edit', 'group.delete', 'group.manage_members',
+            'loan_application.view', 'loan_application.create', 'loan_application.review', 'loan_application.approve', 'loan_application.reject',
+            'loan.view', 'loan.disburse', 'loan_settlement.request', 'loan_settlement.approve', 'loan_foreclosure.process',
+            'ta_claims.view', 'ta_claims.create', 'ta_claims.approve', 'ta_claims.pay',
             'loan.disburse', 'collection.collect', 'inventory.view',
             'cashbook.view', 'cashbook.create_entry', 'cashbook.close_register',
             'customer.kyc_upload', 'customer.kyc_view',
@@ -69,7 +73,7 @@ class MobileApiV1Test extends TestCase
 
         $this->loanOfficerRole = Role::firstOrCreate(['name' => 'Loan Officer', 'guard_name' => 'web']);
         $this->loanOfficerRole->givePermissionTo([
-            'customer.view', 'customer.create', 'group.view', 'loan.view',
+            'customer.view', 'customer.create', 'customer.edit', 'customer.manage_guarantor', 'customer.manage_nominee', 'group.view', 'group.create', 'group.manage_members', 'loan.view', 'loan_application.create', 'loan_settlement.request', 'ta_claims.view', 'ta_claims.create',
             'collection.collect', 'inventory.view', 'cashbook.view',
             'customer.kyc_upload', 'customer.kyc_view',
             'bank_deposit.view', 'bank_deposit.create',
@@ -1751,5 +1755,271 @@ class MobileApiV1Test extends TestCase
         $this->actingAs($this->superAdmin, 'sanctum')
             ->postJson('/api/v1/inventory/transfers/' . $transfer->id . '/receive')
             ->assertStatus(200);
+    }
+
+    public function test_group_create_requires_group_create_permission(): void
+    {
+        $restrictedRole = Role::firstOrCreate(['name' => 'Group Viewer', 'guard_name' => 'web']);
+        $restrictedRole->syncPermissions(['group.view']);
+
+        $user = User::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'name' => 'Group Viewer User',
+            'email' => 'groupviewer@test.com',
+            'password' => Hash::make('Secret123'),
+            'status' => 'active',
+        ]);
+        $user->assignRole($restrictedRole);
+
+        // Group view permission only -> SHOULD BE DENIED (403)
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/groups', [
+                'name' => 'Unauthorized Group',
+                'branch_id' => $this->branch1->id,
+            ])
+            ->assertStatus(403);
+
+        // User with group.create -> SUCCESS (201)
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->postJson('/api/v1/groups', [
+                'name' => 'Authorized Group',
+                'branch_id' => $this->branch1->id,
+            ])
+            ->assertStatus(201);
+    }
+
+    public function test_group_member_add_requires_group_manage_members_permission(): void
+    {
+        $restrictedRole = Role::firstOrCreate(['name' => 'Group Member Viewer', 'guard_name' => 'web']);
+        $restrictedRole->syncPermissions(['group.view']);
+
+        $user = User::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'name' => 'Member Viewer User',
+            'email' => 'memberviewer@test.com',
+            'password' => Hash::make('Secret123'),
+            'status' => 'active',
+        ]);
+        $user->assignRole($restrictedRole);
+
+        $group = CustomerGroup::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'name' => 'Test Group',
+            'group_code' => 'GRP-001',
+            'formation_date' => '2026-01-01',
+            'status' => 'active',
+        ]);
+
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-GRP-01',
+            'first_name' => 'Member',
+            'last_name' => 'One',
+            'name' => 'Member One',
+            'mobile_number' => '9800098000',
+            'gender' => 'female',
+            'address' => 'Address',
+            'registration_date' => '2026-01-01',
+        ]);
+
+        // group.view alone -> DENIED (403)
+        $this->actingAs($user, 'sanctum')
+            ->postJson("/api/v1/groups/{$group->id}/members", [
+                'customer_id' => $customer->id,
+            ])
+            ->assertStatus(403);
+
+        // User with group.manage_members -> SUCCESS (201)
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->postJson("/api/v1/groups/{$group->id}/members", [
+                'customer_id' => $customer->id,
+            ])
+            ->assertStatus(201);
+    }
+
+    public function test_loan_application_create_requires_loan_application_create_permission(): void
+    {
+        $restrictedRole = Role::firstOrCreate(['name' => 'Loan Viewer', 'guard_name' => 'web']);
+        $restrictedRole->syncPermissions(['loan.view']);
+
+        $user = User::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'name' => 'Loan Viewer User',
+            'email' => 'loanviewer@test.com',
+            'password' => Hash::make('Secret123'),
+            'status' => 'active',
+        ]);
+        $user->assignRole($restrictedRole);
+
+        $scheme = LoanScheme::create([
+            'company_id' => $this->company->id,
+            'name' => 'Personal Loan Scheme',
+            'code' => 'PLS01',
+            'loan_type' => 'cash',
+            'interest_rate_per_annum' => 12.00,
+            'min_amount' => 1000,
+            'max_amount' => 100000,
+            'min_tenure_months' => 6,
+            'max_tenure_months' => 24,
+            'is_active' => true,
+        ]);
+
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-LOAN-01',
+            'first_name' => 'Loan',
+            'last_name' => 'Applicant',
+            'name' => 'Loan Applicant',
+            'mobile_number' => '9811198111',
+            'gender' => 'male',
+            'address' => 'Address',
+            'registration_date' => '2026-01-01',
+        ]);
+
+        // loan.view alone -> DENIED (403)
+        $this->actingAs($user, 'sanctum')
+            ->postJson('/api/v1/loans/applications', [
+                'branch_id' => $this->branch1->id,
+                'loan_scheme_id' => $scheme->id,
+                'loan_type' => 'cash',
+                'borrower_type' => 'individual',
+                'customer_id' => $customer->id,
+                'requested_amount' => 50000,
+                'tenure_months' => 12,
+            ])
+            ->assertStatus(403);
+
+        // User with loan_application.create -> SUCCESS (201)
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->postJson('/api/v1/loans/applications', [
+                'branch_id' => $this->branch1->id,
+                'loan_scheme_id' => $scheme->id,
+                'loan_type' => 'cash',
+                'borrower_type' => 'individual',
+                'customer_id' => $customer->id,
+                'requested_amount' => 50000,
+                'tenure_months' => 12,
+            ])
+            ->assertStatus(201);
+    }
+
+    public function test_customer_update_requires_customer_edit_permission(): void
+    {
+        $restrictedRole = Role::firstOrCreate(['name' => 'Customer Creator Only', 'guard_name' => 'web']);
+        $restrictedRole->syncPermissions(['customer.create']);
+
+        $user = User::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'name' => 'Creator User',
+            'email' => 'creator@test.com',
+            'password' => Hash::make('Secret123'),
+            'status' => 'active',
+        ]);
+        $user->assignRole($restrictedRole);
+
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-EDIT-01',
+            'first_name' => 'Edit',
+            'last_name' => 'Me',
+            'name' => 'Edit Me',
+            'mobile_number' => '9822298222',
+            'gender' => 'female',
+            'address' => 'Address',
+            'registration_date' => '2026-01-01',
+        ]);
+
+        // customer.create alone on PUT /customers/{id} -> DENIED (403)
+        $this->actingAs($user, 'sanctum')
+            ->putJson("/api/v1/customers/{$customer->id}", [
+                'first_name' => 'Updated Name',
+            ])
+            ->assertStatus(403);
+
+        // User with customer.edit -> SUCCESS (200)
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->putJson("/api/v1/customers/{$customer->id}", [
+                'first_name' => 'Updated Name',
+            ])
+            ->assertStatus(200);
+    }
+
+    public function test_customer_toggle_status_destroy_and_restore(): void
+    {
+        $customer = Customer::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'customer_code' => 'CUST-TOGGLE-01',
+            'first_name' => 'Status',
+            'last_name' => 'Test',
+            'name' => 'Status Test',
+            'mobile_number' => '9833398333',
+            'gender' => 'male',
+            'address' => 'Address',
+            'status' => 'active',
+            'registration_date' => '2026-01-01',
+        ]);
+
+        // Toggle Status
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->patchJson("/api/v1/customers/{$customer->id}/toggle-status")
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'inactive');
+
+        // Delete Customer
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->deleteJson("/api/v1/customers/{$customer->id}")
+            ->assertStatus(200);
+
+        $this->assertSoftDeleted('customers', ['id' => $customer->id]);
+
+        // Restore Customer
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->postJson("/api/v1/customers/{$customer->id}/restore")
+            ->assertStatus(200);
+
+        $this->assertDatabaseHas('customers', ['id' => $customer->id, 'deleted_at' => null]);
+    }
+
+    public function test_ta_claims_approval_rejection_and_payment(): void
+    {
+        $claim = \App\Models\TravelAllowanceClaim::create([
+            'company_id' => $this->company->id,
+            'branch_id' => $this->branch1->id,
+            'user_id' => $this->loanOfficer->id,
+            'claim_number' => 'TA-2026-0001',
+            'travel_date' => now()->toDateString(),
+            'from_location' => 'Branch Kolkata',
+            'to_location' => 'Field Site',
+            'transport_mode' => 'bike',
+            'distance_km' => 25.5,
+            'rate_per_km' => 5.0,
+            'amount' => 127.50,
+            'purpose' => 'Field Verification',
+            'status' => 'pending',
+        ]);
+
+        // Approve claim
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->postJson("/api/v1/ta-claims/{$claim->id}/approve")
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'approved');
+
+        // Pay claim
+        $this->actingAs($this->branchManager, 'sanctum')
+            ->postJson("/api/v1/ta-claims/{$claim->id}/pay", [
+                'payment_method' => 'cash',
+                'remarks' => 'Paid in cash',
+            ])
+            ->assertStatus(200)
+            ->assertJsonPath('data.status', 'paid');
     }
 }

@@ -5,7 +5,7 @@
 @section('content')
 <div class="d-flex justify-content-between align-items-center mb-4">
     <div>
-        <h4 class="fw-bold text-dark mb-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>Payroll Batch: {{ date('F', mktime(0,0,0,$payroll->month,1)) }} {{ $payroll->year }}</h4>
+        <h4 class="fw-bold text-dark mb-1"><i class="bi bi-file-earmark-text text-primary me-2"></i>Payroll Batch: {{ is_numeric($payroll->month) ? date('F', mktime(0,0,0,(int)$payroll->month,1)) : $payroll->month }} {{ $payroll->year }}</h4>
         <p class="text-muted small mb-0">Branch: <span class="fw-bold text-dark">{{ $payroll->branch->name ?? 'N/A' }}</span> | UUID: <span class="font-monospace text-muted small">{{ $payroll->uuid }}</span></p>
     </div>
     <div class="d-flex gap-2">
@@ -19,7 +19,7 @@
                 </form>
             @endcan
         @else
-            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fs-6"><i class="bi bi-check-circle me-1"></i>Disbursed on {{ $payroll->updated_at->format('M d, Y') }}</span>
+            <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-2 fs-6"><i class="bi bi-check-circle me-1"></i>Disbursed on {{ $payroll->updated_at?->format('M d, Y') ?? 'N/A' }}</span>
         @endif
         <a href="{{ route('admin.hrm.payroll.index') }}" class="btn btn-outline-secondary rounded-pill px-3.5 py-2 fw-semibold">
             <i class="bi bi-arrow-left me-1"></i> Back to Payrolls
@@ -60,10 +60,10 @@
         @foreach($payroll->salarySlips as $slip)
             <tr>
                 <td>
-                    <div class="fw-bold text-dark">{{ $slip->employee->full_name }}</div>
-                    <div class="font-monospace small text-primary">{{ $slip->employee->employee_code }}</div>
+                    <div class="fw-bold text-dark">{{ $slip->employee?->full_name ?? ('Employee #' . $slip->employee_id) }}</div>
+                    <div class="font-monospace small text-primary">{{ $slip->employee?->employee_code ?? 'EMP-N/A' }}</div>
                 </td>
-                <td><span class="small fw-semibold text-secondary">{{ $slip->employee->designation->title ?? 'Staff' }}</span></td>
+                <td><span class="small fw-semibold text-secondary">{{ $slip->employee?->designation?->title ?? 'Staff' }}</span></td>
                 <td><span class="font-monospace small text-dark">₹{{ number_format($slip->basic_salary, 2) }}</span></td>
                 <td><span class="font-monospace small text-dark">₹{{ number_format($slip->gross_salary, 2) }}</span></td>
                 <td><span class="font-monospace small text-danger">₹{{ number_format($slip->total_deductions, 2) }}</span></td>

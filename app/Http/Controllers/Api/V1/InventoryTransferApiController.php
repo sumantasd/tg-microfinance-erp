@@ -97,13 +97,16 @@ class InventoryTransferApiController extends Controller
     public function approve(Request $request, int $id): JsonResponse
     {
         $user = $request->user();
-        if ($user->hasRole('Branch Manager') || !$user->can('inventory.transfer.approve')) {
-            return $this->errorResponse('Unauthorized to approve stock transfers.', 403);
-        }
 
         $transfer = InventoryTransfer::find($id);
         if (!$transfer) {
             return $this->errorResponse('Inventory transfer not found', 404);
+        }
+
+        if (!$user->isSuperAdmin() && !$user->isCompanyAdmin()) {
+            if ($user->branch_id && (int)$user->branch_id !== (int)$transfer->destination_branch_id) {
+                return $this->errorResponse('Unauthorized. You can only approve stock transfers sent to your assigned branch.', 403);
+            }
         }
 
         try {

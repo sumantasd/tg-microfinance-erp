@@ -92,4 +92,89 @@ class TravelAllowanceApiController extends Controller
             ],
         ], 'Verified GPS distance and suggested TA calculation retrieved');
     }
+
+    /**
+     * Approve TA Claim.
+     */
+    public function approve(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $claim = TravelAllowanceClaim::find($id);
+
+        if (!$claim) {
+            return $this->notFoundResponse('TA claim not found');
+        }
+
+        if (!$user->canAccessCompany($claim->company_id) || !$user->canAccessBranch($claim->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to approve claim in another branch');
+        }
+
+        try {
+            $approved = $this->taService->approveClaim($claim, $user);
+
+            return $this->successResponse($approved, 'Travel allowance claim approved successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * Reject TA Claim.
+     */
+    public function reject(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $claim = TravelAllowanceClaim::find($id);
+
+        if (!$claim) {
+            return $this->notFoundResponse('TA claim not found');
+        }
+
+        if (!$user->canAccessCompany($claim->company_id) || !$user->canAccessBranch($claim->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to reject claim in another branch');
+        }
+
+        $validated = $request->validate([
+            'rejection_reason' => 'required|string|max:500',
+        ]);
+
+        try {
+            $rejected = $this->taService->rejectClaim($claim, $user, $validated['rejection_reason']);
+
+            return $this->successResponse($rejected, 'Travel allowance claim rejected successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * Pay approved TA Claim.
+     */
+    public function pay(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $claim = TravelAllowanceClaim::find($id);
+
+        if (!$claim) {
+            return $this->notFoundResponse('TA claim not found');
+        }
+
+        if (!$user->canAccessCompany($claim->company_id) || !$user->canAccessBranch($claim->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to pay claim in another branch');
+        }
+
+        $validated = $request->validate([
+            'payment_method' => 'required|string|in:cash,bank,online',
+            'remarks' => 'nullable|string|max:255',
+        ]);
+
+        try {
+            $paid = $this->taService->payClaim($claim, $user, $validated['payment_method'], $validated['remarks'] ?? null);
+
+            return $this->successResponse($paid, 'Travel allowance claim paid successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        }
+    }
 }
+

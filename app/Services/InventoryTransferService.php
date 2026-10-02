@@ -124,11 +124,109 @@ class InventoryTransferService
 
     public function approveTransfer(InventoryTransfer $transfer): InventoryTransfer
     {
-        if (!in_array($transfer->status, ['requested', 'draft'])) {
-            throw ValidationException::withMessages(['status' => 'Transfer must be requested or draft to approve.']);
+        if (!in_array($transfer->status, ['requested', 'draft', 'pending'])) {
+            throw ValidationException::withMessages(['status' => 'Transfer has already been approved or processed.']);
         }
 
+        $transfer->load('items');
+
         return DB::transaction(function () use ($transfer) {
+            // Lock and update source and destination stocks atomically
+            foreach ($transfer->items as $item) {
+                // 1. Source stock deduction
+                $sourceStock = DB::table('inventory_stocks')
+                    ->where('branch_id', $transfer->source_branch_id)
+                    ->where('product_id', $item->product_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $sourceCurrent = $sourceStock ? $sourceStock->current_stock : 0;
+                if ($sourceCurrent < $item->quantity) {
+                    $product = Product::find($item->product_id);
+                    throw ValidationException::withMessages([
+                        'stock' => "Insufficient stock at source branch for product '{$product->name}'. Available: {$sourceCurrent}, Required: {$item->quantity}.",
+                    ]);
+                }
+
+                $sourceAfter = $sourceCurrent - $item->quantity;
+                DB::table('inventory_stocks')
+                    ->where('id', $sourceStock->id)
+                    ->update([
+                        'current_stock' => $sourceAfter,
+                        'updated_at' => now(),
+                    ]);
+
+                // Record TRANSFER_OUT movement for Source Branch
+                $movementCodeOut = $this->inventoryRepository->generateMovementCode($transfer->source_branch_id);
+                $this->inventoryRepository->recordStockMovement([
+                    'company_id' => $transfer->source_company_id,
+                    'branch_id' => $transfer->source_branch_id,
+                    'product_id' => $item->product_id,
+                    'movement_code' => $movementCodeOut,
+                    'movement_type' => 'transfer_out',
+                    'quantity' => -$item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'total_value' => $item->total_value,
+                    'stock_before' => $sourceCurrent,
+                    'stock_after' => $sourceAfter,
+                    'reference_type' => 'inventory_transfer',
+                    'reference_id' => $transfer->id,
+                    'remarks' => "Stock transferred out for transfer {$transfer->transfer_number}.",
+                    'created_by' => Auth::id(),
+                ]);
+
+                // 2. Destination stock addition
+                $destStock = DB::table('inventory_stocks')
+                    ->where('branch_id', $transfer->destination_branch_id)
+                    ->where('product_id', $item->product_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                $destBefore = $destStock ? $destStock->current_stock : 0;
+                $destAfter = $destBefore + $item->quantity;
+
+                if ($destStock) {
+                    DB::table('inventory_stocks')
+                        ->where('id', $destStock->id)
+                        ->update([
+                            'current_stock' => $destAfter,
+                            'last_restocked_at' => now(),
+                            'updated_at' => now(),
+                        ]);
+                } else {
+                    DB::table('inventory_stocks')->insert([
+                        'company_id' => $transfer->destination_company_id,
+                        'branch_id' => $transfer->destination_branch_id,
+                        'product_id' => $item->product_id,
+                        'current_stock' => $destAfter,
+                        'reserved_stock' => 0,
+                        'reorder_level' => 5,
+                        'last_restocked_at' => now(),
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ]);
+                }
+
+                // Record TRANSFER_IN movement for Destination Branch
+                $movementCodeIn = $this->inventoryRepository->generateMovementCode($transfer->destination_branch_id);
+                $this->inventoryRepository->recordStockMovement([
+                    'company_id' => $transfer->destination_company_id,
+                    'branch_id' => $transfer->destination_branch_id,
+                    'product_id' => $item->product_id,
+                    'movement_code' => $movementCodeIn,
+                    'movement_type' => 'transfer_in',
+                    'quantity' => $item->quantity,
+                    'unit_price' => $item->unit_price,
+                    'total_value' => $item->total_value,
+                    'stock_before' => $destBefore,
+                    'stock_after' => $destAfter,
+                    'reference_type' => 'inventory_transfer',
+                    'reference_id' => $transfer->id,
+                    'remarks' => "Stock received on transfer approval {$transfer->transfer_number}.",
+                    'created_by' => Auth::id(),
+                ]);
+            }
+
             $updated = $this->transferRepository->updateTransferStatus($transfer, 'approved', [
                 'approved_by' => Auth::id(),
                 'approved_at' => now(),
@@ -170,51 +268,59 @@ class InventoryTransferService
         $transfer->load('items');
 
         return DB::transaction(function () use ($transfer) {
-            // Lock and deduct stock at Source Branch for each transfer item
-            foreach ($transfer->items as $item) {
-                $stock = DB::table('inventory_stocks')
-                    ->where('branch_id', $transfer->source_branch_id)
-                    ->where('product_id', $item->product_id)
-                    ->lockForUpdate()
-                    ->first();
+            $alreadyDeducted = DB::table('inventory_stock_movements')
+                ->where('reference_type', 'inventory_transfer')
+                ->where('reference_id', $transfer->id)
+                ->where('movement_type', 'transfer_out')
+                ->exists();
 
-                $currentStock = $stock ? $stock->current_stock : 0;
+            if (!$alreadyDeducted) {
+                // Lock and deduct stock at Source Branch for each transfer item
+                foreach ($transfer->items as $item) {
+                    $stock = DB::table('inventory_stocks')
+                        ->where('branch_id', $transfer->source_branch_id)
+                        ->where('product_id', $item->product_id)
+                        ->lockForUpdate()
+                        ->first();
 
-                if ($currentStock < $item->quantity) {
-                    $product = Product::find($item->product_id);
-                    throw ValidationException::withMessages([
-                        'stock' => "Insufficient stock at source branch for product '{$product->name}'. Available: {$currentStock}, Required: {$item->quantity}.",
+                    $currentStock = $stock ? $stock->current_stock : 0;
+
+                    if ($currentStock < $item->quantity) {
+                        $product = Product::find($item->product_id);
+                        throw ValidationException::withMessages([
+                            'stock' => "Insufficient stock at source branch for product '{$product->name}'. Available: {$currentStock}, Required: {$item->quantity}.",
+                        ]);
+                    }
+
+                    $stockBefore = $currentStock;
+                    $stockAfter = $currentStock - $item->quantity;
+
+                    DB::table('inventory_stocks')
+                        ->where('id', $stock->id)
+                        ->update([
+                            'current_stock' => $stockAfter,
+                            'updated_at' => now(),
+                        ]);
+
+                    // Create TRANSFER_OUT movement for Source Branch
+                    $movementCode = $this->inventoryRepository->generateMovementCode($transfer->source_branch_id);
+                    $this->inventoryRepository->recordStockMovement([
+                        'company_id' => $transfer->source_company_id,
+                        'branch_id' => $transfer->source_branch_id,
+                        'product_id' => $item->product_id,
+                        'movement_code' => $movementCode,
+                        'movement_type' => 'transfer_out',
+                        'quantity' => -$item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'total_value' => $item->total_value,
+                        'stock_before' => $stockBefore,
+                        'stock_after' => $stockAfter,
+                        'reference_type' => 'inventory_transfer',
+                        'reference_id' => $transfer->id,
+                        'remarks' => "Dispatched transfer {$transfer->transfer_number} to Destination Branch.",
+                        'created_by' => Auth::id(),
                     ]);
                 }
-
-                $stockBefore = $currentStock;
-                $stockAfter = $currentStock - $item->quantity;
-
-                DB::table('inventory_stocks')
-                    ->where('id', $stock->id)
-                    ->update([
-                        'current_stock' => $stockAfter,
-                        'updated_at' => now(),
-                    ]);
-
-                // Create TRANSFER_OUT movement for Source Branch
-                $movementCode = $this->inventoryRepository->generateMovementCode($transfer->source_branch_id);
-                $this->inventoryRepository->recordStockMovement([
-                    'company_id' => $transfer->source_company_id,
-                    'branch_id' => $transfer->source_branch_id,
-                    'product_id' => $item->product_id,
-                    'movement_code' => $movementCode,
-                    'movement_type' => 'transfer_out',
-                    'quantity' => -$item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'total_value' => $item->total_value,
-                    'stock_before' => $stockBefore,
-                    'stock_after' => $stockAfter,
-                    'reference_type' => 'inventory_transfer',
-                    'reference_id' => $transfer->id,
-                    'remarks' => "Dispatched transfer {$transfer->transfer_number} to Destination Branch.",
-                    'created_by' => Auth::id(),
-                ]);
             }
 
             $updated = $this->transferRepository->updateTransferStatus($transfer, 'in_transit', [
@@ -241,56 +347,64 @@ class InventoryTransferService
         $transfer->load('items');
 
         return DB::transaction(function () use ($transfer) {
-            foreach ($transfer->items as $item) {
-                $stock = DB::table('inventory_stocks')
-                    ->where('branch_id', $transfer->destination_branch_id)
-                    ->where('product_id', $item->product_id)
-                    ->lockForUpdate()
-                    ->first();
+            $alreadyReceived = DB::table('inventory_stock_movements')
+                ->where('reference_type', 'inventory_transfer')
+                ->where('reference_id', $transfer->id)
+                ->where('movement_type', 'transfer_in')
+                ->exists();
 
-                $stockBefore = $stock ? $stock->current_stock : 0;
-                $stockAfter = $stockBefore + $item->quantity;
+            if (!$alreadyReceived) {
+                foreach ($transfer->items as $item) {
+                    $stock = DB::table('inventory_stocks')
+                        ->where('branch_id', $transfer->destination_branch_id)
+                        ->where('product_id', $item->product_id)
+                        ->lockForUpdate()
+                        ->first();
 
-                if ($stock) {
-                    DB::table('inventory_stocks')
-                        ->where('id', $stock->id)
-                        ->update([
+                    $stockBefore = $stock ? $stock->current_stock : 0;
+                    $stockAfter = $stockBefore + $item->quantity;
+
+                    if ($stock) {
+                        DB::table('inventory_stocks')
+                            ->where('id', $stock->id)
+                            ->update([
+                                'current_stock' => $stockAfter,
+                                'last_restocked_at' => now(),
+                                'updated_at' => now(),
+                            ]);
+                    } else {
+                        DB::table('inventory_stocks')->insert([
+                            'company_id' => $transfer->destination_company_id,
+                            'branch_id' => $transfer->destination_branch_id,
+                            'product_id' => $item->product_id,
                             'current_stock' => $stockAfter,
+                            'reserved_stock' => 0,
+                            'reorder_level' => 5,
                             'last_restocked_at' => now(),
+                            'created_at' => now(),
                             'updated_at' => now(),
                         ]);
-                } else {
-                    DB::table('inventory_stocks')->insert([
+                    }
+
+                    // Create TRANSFER_IN movement for Destination Branch
+                    $movementCode = $this->inventoryRepository->generateMovementCode($transfer->destination_branch_id);
+                    $this->inventoryRepository->recordStockMovement([
                         'company_id' => $transfer->destination_company_id,
                         'branch_id' => $transfer->destination_branch_id,
                         'product_id' => $item->product_id,
-                        'current_stock' => $stockAfter,
-                        'reserved_stock' => 0,
-                        'reorder_level' => 5,
-                        'last_restocked_at' => now(),
-                        'created_at' => now(),
-                        'updated_at' => now(),
+                        'movement_code' => $movementCode,
+                        'movement_type' => 'transfer_in',
+                        'quantity' => $item->quantity,
+                        'unit_price' => $item->unit_price,
+                        'total_value' => $item->total_value,
+                        'stock_before' => $stockBefore,
+                        'stock_after' => $stockAfter,
+                        'reference_type' => 'inventory_transfer',
+                        'reference_id' => $transfer->id,
+                        'remarks' => "Received transfer {$transfer->transfer_number} from Source Branch.",
+                        'created_by' => Auth::id(),
                     ]);
                 }
-
-                // Create TRANSFER_IN movement for Destination Branch
-                $movementCode = $this->inventoryRepository->generateMovementCode($transfer->destination_branch_id);
-                $this->inventoryRepository->recordStockMovement([
-                    'company_id' => $transfer->destination_company_id,
-                    'branch_id' => $transfer->destination_branch_id,
-                    'product_id' => $item->product_id,
-                    'movement_code' => $movementCode,
-                    'movement_type' => 'transfer_in',
-                    'quantity' => $item->quantity,
-                    'unit_price' => $item->unit_price,
-                    'total_value' => $item->total_value,
-                    'stock_before' => $stockBefore,
-                    'stock_after' => $stockAfter,
-                    'reference_type' => 'inventory_transfer',
-                    'reference_id' => $transfer->id,
-                    'remarks' => "Received transfer {$transfer->transfer_number} from Source Branch.",
-                    'created_by' => Auth::id(),
-                ]);
             }
 
             $updated = $this->transferRepository->updateTransferStatus($transfer, 'received', [

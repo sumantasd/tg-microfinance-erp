@@ -90,12 +90,19 @@ class InventoryTransferController extends Controller
 
     public function approve(InventoryTransfer $inventoryTransfer): RedirectResponse
     {
-        if (auth()->user()->hasRole('Branch Manager')) {
-            abort(403, 'Branch Managers cannot approve stock transfers.');
+        $user = auth()->user();
+        if (!$user->isSuperAdmin() && !$user->isCompanyAdmin()) {
+            if ($user->branch_id && (int)$user->branch_id !== (int)$inventoryTransfer->destination_branch_id) {
+                abort(403, 'Unauthorized. You can only approve stock transfers sent to your assigned branch.');
+            }
         }
 
-        $this->transferService->approveTransfer($inventoryTransfer);
-        return redirect()->back()->with('success', "Transfer '{$inventoryTransfer->transfer_number}' approved successfully.");
+        try {
+            $this->transferService->approveTransfer($inventoryTransfer);
+            return redirect()->back()->with('success', "Transfer '{$inventoryTransfer->transfer_number}' approved successfully.");
+        } catch (\Throwable $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
     }
 
     public function reject(Request $request, InventoryTransfer $inventoryTransfer): RedirectResponse

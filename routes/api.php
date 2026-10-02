@@ -57,17 +57,39 @@ Route::prefix('v1')->group(function () {
         });
         Route::middleware(['can:customer.create'])->group(function () {
             Route::post('/customers', [CustomerApiController::class, 'store']);
+        });
+        Route::middleware(['can:customer.edit'])->group(function () {
             Route::put('/customers/{id}', [CustomerApiController::class, 'update']);
+        });
+        Route::middleware(['can:customer.change_status'])->group(function () {
+            Route::patch('/customers/{id}/toggle-status', [CustomerApiController::class, 'toggleStatus']);
+        });
+        Route::middleware(['can:customer.delete'])->group(function () {
+            Route::delete('/customers/{id}', [CustomerApiController::class, 'destroy']);
+        });
+        Route::middleware(['can:customer.restore'])->group(function () {
+            Route::post('/customers/{id}/restore', [CustomerApiController::class, 'restore']);
+        });
+        Route::middleware(['can:customer.manage_guarantor'])->group(function () {
             Route::post('/customers/{id}/guarantors', [CustomerApiController::class, 'storeGuarantor']);
+            Route::delete('/customers/{id}/guarantors/{guarantorId}', [CustomerApiController::class, 'destroyGuarantor']);
+        });
+        Route::middleware(['can:customer.manage_nominee'])->group(function () {
             Route::post('/customers/{id}/nominees', [CustomerApiController::class, 'storeNominee']);
+            Route::delete('/customers/{id}/nominees/{nomineeId}', [CustomerApiController::class, 'destroyNominee']);
         });
 
         // Customer Groups
         Route::middleware(['can:group.view'])->group(function () {
             Route::get('/groups', [GroupApiController::class, 'index']);
             Route::get('/groups/{id}', [GroupApiController::class, 'show']);
+        });
+        Route::middleware(['can:group.create'])->group(function () {
             Route::post('/groups', [GroupApiController::class, 'store']);
+        });
+        Route::middleware(['can:group.manage_members'])->group(function () {
             Route::post('/groups/{id}/members', [GroupApiController::class, 'addMember']);
+            Route::delete('/groups/{id}/members/{customerId}', [GroupApiController::class, 'removeMember']);
         });
 
         // Loans
@@ -80,13 +102,15 @@ Route::prefix('v1')->group(function () {
             Route::get('/overdue', [LoanApiController::class, 'overdueList']);
             Route::get('/loans/accounts/{id}/settlement-quote', [LoanApiController::class, 'settlementQuote']);
         });
-        Route::middleware(['can:loan.view', 'idempotent'])->group(function () {
+        Route::middleware(['can:loan_application.create', 'idempotent'])->group(function () {
             Route::post('/loans/applications', [LoanApiController::class, 'storeApplication']);
         });
         Route::middleware(['can:loan_application.review'])->group(function () {
             Route::post('/loans/applications/{id}/review', [LoanApiController::class, 'reviewApplication']);
         });
-        Route::post('/loans/accounts/{id}/settlements', [LoanApiController::class, 'processSettlement']);
+        Route::middleware(['can:loan_settlement.request'])->group(function () {
+            Route::post('/loans/accounts/{id}/settlements', [LoanApiController::class, 'processSettlement']);
+        });
         Route::middleware(['can:loan.disburse'])->group(function () {
             Route::post('/loans/accounts/{id}/disburse', [LoanApiController::class, 'disburse']);
         });
@@ -212,6 +236,13 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['can:ta_claims.create', 'idempotent'])->group(function () {
             Route::post('/ta-claims', [\App\Http\Controllers\Api\V1\TravelAllowanceApiController::class, 'store']);
         });
+        Route::middleware(['can:ta_claims.approve'])->group(function () {
+            Route::post('/ta-claims/{id}/approve', [\App\Http\Controllers\Api\V1\TravelAllowanceApiController::class, 'approve']);
+            Route::post('/ta-claims/{id}/reject', [\App\Http\Controllers\Api\V1\TravelAllowanceApiController::class, 'reject']);
+        });
+        Route::middleware(['can:ta_claims.pay'])->group(function () {
+            Route::post('/ta-claims/{id}/pay', [\App\Http\Controllers\Api\V1\TravelAllowanceApiController::class, 'pay']);
+        });
 
         // KYC & Document Uploads
         Route::middleware(['can:customer.kyc_upload'])->group(function () {
@@ -220,5 +251,10 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['can:customer.kyc_view'])->group(function () {
             Route::get('/kyc/documents/{id}', [KycApiController::class, 'download']);
         });
+        Route::middleware(['can:customer.verify_kyc'])->group(function () {
+            Route::post('/kyc/documents/{id}/verify', [KycApiController::class, 'verify']);
+            Route::delete('/kyc/documents/{id}', [KycApiController::class, 'destroy']);
+        });
     });
 });
+

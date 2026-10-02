@@ -136,4 +136,30 @@ class GroupApiController extends Controller
             return $this->errorResponse($e->getMessage(), 400);
         }
     }
+
+    /**
+     * Remove member from customer group.
+     */
+    public function removeMember(Request $request, int $id, int $customerId): JsonResponse
+    {
+        $user = $request->user();
+        $group = CustomerGroup::find($id);
+
+        if (!$group) {
+            return $this->notFoundResponse('Customer group not found');
+        }
+
+        if (!$user->canAccessCompany($group->company_id) || !$user->canAccessBranch($group->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to remove member from another branch group');
+        }
+
+        try {
+            $this->groupService->removeMemberFromGroup($group, $customerId);
+
+            return $this->successResponse(null, 'Member removed from group successfully');
+        } catch (\Exception $e) {
+            return $this->errorResponse($e->getMessage(), 400);
+        }
+    }
 }
+

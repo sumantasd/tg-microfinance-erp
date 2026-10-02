@@ -36,19 +36,19 @@
     <div class="row g-3 small mb-4 bg-light p-3 rounded-3 border">
         <div class="col-6">
             <span class="text-muted d-block">Employee Name:</span>
-            <strong class="text-dark fs-6">{{ $slip->employee->full_name }}</strong>
+            <strong class="text-dark fs-6">{{ $slip->employee?->full_name ?? ('Employee #' . $slip->employee_id) }}</strong>
         </div>
         <div class="col-6">
             <span class="text-muted d-block">Employee Code:</span>
-            <strong class="font-monospace text-primary fs-6">{{ $slip->employee->employee_code }}</strong>
+            <strong class="font-monospace text-primary fs-6">{{ $slip->employee?->employee_code ?? 'EMP-N/A' }}</strong>
         </div>
         <div class="col-6">
             <span class="text-muted d-block">Designation & Dept:</span>
-            <span class="fw-semibold text-dark">{{ $slip->employee->designation->title ?? 'N/A' }} ({{ $slip->employee->department->name ?? 'N/A' }})</span>
+            <span class="fw-semibold text-dark">{{ $slip->employee?->designation?->title ?? 'N/A' }} ({{ $slip->employee?->department?->name ?? 'N/A' }})</span>
         </div>
         <div class="col-6">
             <span class="text-muted d-block">Bank Account:</span>
-            <span class="font-monospace fw-bold text-dark">{{ $slip->employee->bank_name ?? 'SBI' }} - {{ $slip->employee->bank_account_number ?? 'N/A' }}</span>
+            <span class="font-monospace fw-bold text-dark">{{ $slip->employee?->bank_name ?? 'N/A' }} - {{ $slip->employee?->bank_account_number ?? 'N/A' }}</span>
         </div>
     </div>
 

@@ -105,6 +105,31 @@ class SystemSettingController extends Controller
         return redirect()->route('admin.system.settings.index')->with('success', 'Loan charges and fee settings updated successfully.');
     }
 
+    public function updateTaSettings(Request $request)
+    {
+        $this->authorize('settings.view');
+
+        $validated = $request->validate([
+            'ta_rate_per_km' => 'required|numeric|min:0',
+            'ta_rate_per_km_bike' => 'required|numeric|min:0',
+            'ta_rate_per_km_car' => 'required|numeric|min:0',
+            'ta_max_daily_limit' => 'required|numeric|min:0',
+            'ta_min_distance_km' => 'required|numeric|min:0',
+        ]);
+
+        $settings = WebsiteSetting::firstOrCreate(['id' => 1]);
+
+        $settings->update([
+            'ta_rate_per_km' => (float) $validated['ta_rate_per_km'],
+            'ta_rate_per_km_bike' => (float) $validated['ta_rate_per_km_bike'],
+            'ta_rate_per_km_car' => (float) $validated['ta_rate_per_km_car'],
+            'ta_max_daily_limit' => (float) $validated['ta_max_daily_limit'],
+            'ta_min_distance_km' => (float) $validated['ta_min_distance_km'],
+        ]);
+
+        return redirect()->route('admin.system.settings.index')->with('success', 'Travel allowance rate settings updated successfully.');
+    }
+
     public function updateCompanyProfile(Request $request)
     {
         $this->authorize('settings.view');

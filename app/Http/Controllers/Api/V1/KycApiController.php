@@ -84,4 +84,63 @@ class KycApiController extends Controller
 
         return Storage::disk('local')->download($kycDoc->file_path, $kycDoc->file_name);
     }
+
+    /**
+     * Verify or reject customer KYC document.
+     */
+    public function verify(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $kycDoc = CustomerKycDocument::with('customer')->find($id);
+
+        if (!$kycDoc) {
+            return $this->notFoundResponse('KYC document not found');
+        }
+
+        if (!$user->canAccessCompany($kycDoc->customer?->company_id) || !$user->canAccessBranch($kycDoc->customer?->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to verify document for another branch');
+        }
+
+        $validated = $request->validate([
+            'status' => 'required|in:verified,rejected',
+            'rejection_reason' => 'nullable|required_if:status,rejected|string|max:255',
+            'remarks' => 'nullable|string|max:255',
+        ]);
+
+        $kycDoc->update([
+            'verification_status' => $validated['status'],
+            'verified_by' => $user->id,
+            'verified_at' => now(),
+            'rejection_reason' => $validated['rejection_reason'] ?? null,
+            'remarks' => $validated['remarks'] ?? $kycDoc->remarks,
+        ]);
+
+        return $this->successResponse($kycDoc->fresh(), 'KYC document verification status updated');
+    }
+
+    /**
+     * Delete customer KYC document.
+     */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $kycDoc = CustomerKycDocument::with('customer')->find($id);
+
+        if (!$kycDoc) {
+            return $this->notFoundResponse('KYC document not found');
+        }
+
+        if (!$user->canAccessCompany($kycDoc->customer?->company_id) || !$user->canAccessBranch($kycDoc->customer?->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to delete document for another branch');
+        }
+
+        if ($kycDoc->file_path && Storage::disk('local')->exists($kycDoc->file_path)) {
+            Storage::disk('local')->delete($kycDoc->file_path);
+        }
+
+        $kycDoc->delete();
+
+        return $this->successResponse(null, 'KYC document deleted successfully');
+    }
 }
+

@@ -65,6 +65,13 @@ class WebsiteSetting extends Model
         'loan_insurance_percentage',
         'loan_insurance_enabled',
 
+        // Travel Allowance Settings
+        'ta_rate_per_km',
+        'ta_rate_per_km_bike',
+        'ta_rate_per_km_car',
+        'ta_max_daily_limit',
+        'ta_min_distance_km',
+
         // System Theme Customization Settings
         'theme_preset',
         'primary_color',

@@ -213,6 +213,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
             Route::put('/settings/branding', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateBranding'])->name('admin.system.settings.update-branding');
             Route::put('/settings/company-profile', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateCompanyProfile'])->name('admin.system.settings.update-company-profile');
             Route::put('/settings/loan-charges', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateLoanCharges'])->name('admin.system.settings.update-loan-charges');
+            Route::put('/settings/ta-rates', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateTaSettings'])->name('admin.system.settings.update-ta-settings');
             Route::put('/settings/theme', [\App\Http\Controllers\Admin\SystemSettingController::class, 'updateTheme'])->name('admin.system.settings.update-theme');
             Route::post('/settings/theme/reset', [\App\Http\Controllers\Admin\SystemSettingController::class, 'resetTheme'])->name('admin.system.settings.reset-theme');
             Route::get('/media', function () { return view('admin.placeholders.module', ['moduleTitle' => 'Media Library', 'moduleSlug' => 'system/media']); });
@@ -319,9 +320,9 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     Route::middleware('can:payroll.view')->group(function () {
         Route::get('/hrm/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'index'])->name('admin.hrm.payroll.index');
         Route::post('/hrm/payroll', [\App\Http\Controllers\Admin\PayrollController::class, 'store'])->name('admin.hrm.payroll.store')->middleware('can:payroll.process');
+        Route::get('/hrm/payroll/slip/{uuid}', [\App\Http\Controllers\Admin\PayrollController::class, 'salarySlip'])->name('admin.hrm.payroll.slip');
         Route::get('/hrm/payroll/{id}', [\App\Http\Controllers\Admin\PayrollController::class, 'show'])->name('admin.hrm.payroll.show');
         Route::post('/hrm/payroll/{id}/disburse', [\App\Http\Controllers\Admin\PayrollController::class, 'disburse'])->name('admin.hrm.payroll.disburse')->middleware('can:payroll.disburse');
-        Route::get('/hrm/payroll/slip/{uuid}', [\App\Http\Controllers\Admin\PayrollController::class, 'salarySlip'])->name('admin.hrm.payroll.slip');
     });
 
     Route::middleware('can:hr_letter.view')->group(function () {

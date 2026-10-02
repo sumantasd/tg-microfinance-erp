@@ -473,18 +473,33 @@
             <span>Notifications</span>
         </a>
         @endcan
-        @can('field_tracking.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/field-tracking*') ? 'active' : '' }}" href="{{ route('admin.field-tracking.index') }}">
-            <i class="bi bi-geo-alt nav-icon text-danger"></i>
+        @canany(['field_tracking.view', 'ta_claims.view'])
+        @php
+            $isFieldTrackingGroupActive = request()->is('admin/field-tracking*') || request()->is('admin/ta-claims*');
+            $ftTarget = '#' . $p . 'sidebarFieldTrackingCollapse';
+            $ftId = $p . 'sidebarFieldTrackingCollapse';
+        @endphp
+        <a class="sidebar-nav-link {{ $isFieldTrackingGroupActive ? '' : 'collapsed' }}" data-bs-toggle="collapse" href="{{ $ftTarget }}" role="button" aria-expanded="{{ $isFieldTrackingGroupActive ? 'true' : 'false' }}" aria-controls="{{ $ftId }}">
+            <i class="bi bi-geo-alt-fill nav-icon text-danger"></i>
             <span>Field Tracking</span>
+            <i class="bi bi-chevron-right accordion-arrow"></i>
         </a>
-        @endcan
-        @can('ta_claims.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/ta-claims*') ? 'active' : '' }}" href="{{ route('admin.ta-claims.index') }}">
-            <i class="bi bi-car-front nav-icon text-success"></i>
-            <span>TA Claims</span>
-        </a>
-        @endcan
+
+        <div class="collapse sidebar-submenu {{ $isFieldTrackingGroupActive ? 'show' : '' }}" id="{{ $ftId }}">
+            @can('field_tracking.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/field-tracking*') ? 'active' : '' }}" href="{{ route('admin.field-tracking.index') }}">
+                <i class="bi bi-pin-map nav-icon text-danger"></i>
+                <span>Live Staff Location</span>
+            </a>
+            @endcan
+            @can('ta_claims.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/ta-claims*') ? 'active' : '' }}" href="{{ route('admin.ta-claims.index') }}">
+                <i class="bi bi-car-front nav-icon text-success"></i>
+                <span>TA Claims</span>
+            </a>
+            @endcan
+        </div>
+        @endcanany
         @can('audit_logs.view')
         <a class="sidebar-nav-link {{ request()->is('admin/activity-logs*') ? 'active' : '' }}" href="{{ route('admin.activity-logs.index') }}">
             <i class="bi bi-shield-check nav-icon text-info"></i>
@@ -499,6 +514,10 @@
         <a class="sidebar-nav-link {{ request()->is('admin/system/settings*') ? 'active' : '' }}" href="{{ url('/admin/system/settings') }}">
             <i class="bi bi-sliders nav-icon text-secondary"></i>
             <span>Global Settings</span>
+        </a>
+        <a class="sidebar-nav-link" href="{{ url('/admin/system/settings#ta-settings') }}">
+            <i class="bi bi-fuel-pump nav-icon text-warning"></i>
+            <span>Travel Allowance / TA Settings</span>
         </a>
         @endcan
     </div>

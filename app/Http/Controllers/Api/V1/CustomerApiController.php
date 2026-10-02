@@ -83,6 +83,13 @@ class CustomerApiController extends Controller
     {
         $user = $request->user();
 
+        if ($request->has('mobile') && !$request->has('mobile_number')) {
+            $request->merge(['mobile_number' => $request->input('mobile')]);
+        }
+        if ($request->has('gender')) {
+            $request->merge(['gender' => strtolower((string) $request->input('gender'))]);
+        }
+
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
             'first_name' => 'nullable|string|max:100',
@@ -164,6 +171,13 @@ class CustomerApiController extends Controller
             return $this->forbiddenResponse('You are not authorized to update customer from another branch or company');
         }
 
+        if ($request->has('mobile') && !$request->has('mobile_number')) {
+            $request->merge(['mobile_number' => $request->input('mobile')]);
+        }
+        if ($request->has('gender')) {
+            $request->merge(['gender' => strtolower((string) $request->input('gender'))]);
+        }
+
         $validated = $request->validate([
             'name' => 'nullable|string|max:255',
             'first_name' => 'nullable|string|max:100',
@@ -216,6 +230,70 @@ class CustomerApiController extends Controller
         $updatedCustomer = $this->customerService->updateCustomer($customer, array_filter($validated, fn($v) => !is_null($v)), $photo, $addresses);
 
         return $this->successResponse($updatedCustomer, 'Customer profile updated successfully');
+    }
+
+    /**
+     * Toggle customer active/inactive status.
+     */
+    public function toggleStatus(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $customer = Customer::find($id);
+
+        if (!$customer) {
+            return $this->notFoundResponse('Customer not found');
+        }
+
+        if (!$user->canAccessCompany($customer->company_id) || !$user->canAccessBranch($customer->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to change customer status');
+        }
+
+        $newStatus = $customer->status === 'active' ? 'inactive' : 'active';
+        $customer->update(['status' => $newStatus]);
+
+        return $this->successResponse($customer->fresh(), 'Customer status updated successfully');
+    }
+
+    /**
+     * Soft delete customer record.
+     */
+    public function destroy(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $customer = Customer::find($id);
+
+        if (!$customer) {
+            return $this->notFoundResponse('Customer not found');
+        }
+
+        if (!$user->canAccessCompany($customer->company_id) || !$user->canAccessBranch($customer->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to delete customer');
+        }
+
+        $customer->delete();
+
+        return $this->successResponse(null, 'Customer deleted successfully');
+    }
+
+    /**
+     * Restore soft-deleted customer record.
+     */
+    public function restore(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+        $customer = Customer::withTrashed()->find($id);
+
+        if (!$customer) {
+            return $this->notFoundResponse('Customer not found');
+        }
+
+        if (!$user->canAccessCompany($customer->company_id) || !$user->canAccessBranch($customer->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to restore customer');
+        }
+
+        $customer->restore();
+
+        return $this->successResponse($customer->fresh(), 'Customer restored successfully');
     }
 
     /**
@@ -276,6 +354,32 @@ class CustomerApiController extends Controller
     }
 
     /**
+     * Delete customer guarantor.
+     */
+    public function destroyGuarantor(Request $request, int $id, int $guarantorId): JsonResponse
+    {
+        $user = $request->user();
+        $customer = Customer::find($id);
+
+        if (!$customer) {
+            return $this->notFoundResponse('Customer not found');
+        }
+
+        if (!$user->canAccessCompany($customer->company_id) || !$user->canAccessBranch($customer->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to remove guarantor');
+        }
+
+        $guarantor = \App\Models\CustomerGuarantor::where('customer_id', $customer->id)->find($guarantorId);
+        if (!$guarantor) {
+            return $this->notFoundResponse('Guarantor record not found');
+        }
+
+        $guarantor->delete();
+
+        return $this->successResponse(null, 'Guarantor deleted successfully');
+    }
+
+    /**
      * Get customer nominees.
      */
     public function nominees(Request $request, int $id): JsonResponse
@@ -330,4 +434,31 @@ class CustomerApiController extends Controller
 
         return $this->successResponse($nominee, 'Nominee saved successfully', 201);
     }
+
+    /**
+     * Delete customer nominee.
+     */
+    public function destroyNominee(Request $request, int $id, int $nomineeId): JsonResponse
+    {
+        $user = $request->user();
+        $customer = Customer::find($id);
+
+        if (!$customer) {
+            return $this->notFoundResponse('Customer not found');
+        }
+
+        if (!$user->canAccessCompany($customer->company_id) || !$user->canAccessBranch($customer->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to remove nominee');
+        }
+
+        $nominee = \App\Models\CustomerNominee::where('customer_id', $customer->id)->find($nomineeId);
+        if (!$nominee) {
+            return $this->notFoundResponse('Nominee record not found');
+        }
+
+        $nominee->delete();
+
+        return $this->successResponse(null, 'Nominee deleted successfully');
+    }
 }
+

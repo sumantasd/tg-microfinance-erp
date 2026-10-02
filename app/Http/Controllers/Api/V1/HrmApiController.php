@@ -194,7 +194,7 @@ class HrmApiController extends Controller
 
         $query = SalarySlip::with(['payroll', 'employee']);
 
-        if (!$user->isSuperAdmin() && !$user->hasPermissionTo('hrm.payroll.view')) {
+        if (!$user->isSuperAdmin() && !$user->hasPermissionTo('payroll.view')) {
             if ($employee) {
                 $query->where('employee_id', $employee->id);
             } else {
@@ -225,7 +225,7 @@ class HrmApiController extends Controller
 
         $employee = Employee::where('user_id', $user->id)->first();
 
-        if (!$user->isSuperAdmin() && !$user->hasPermissionTo('hrm.payroll.view')) {
+        if (!$user->isSuperAdmin() && !$user->hasPermissionTo('payroll.view')) {
             if (!$employee || $slip->employee_id !== $employee->id) {
                 return $this->errorResponse('Unauthorized access to salary slip', 403);
             }
