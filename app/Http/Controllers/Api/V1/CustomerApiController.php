@@ -28,7 +28,7 @@ class CustomerApiController extends Controller
         $user = $request->user();
         $scopedBranchId = $user->resolveScopedBranchId($request->query('branch_id'));
 
-        $query = Customer::with(['branch', 'company', 'kycDocuments', 'groupMemberships.group']);
+        $query = Customer::with(['branch', 'company', 'addresses', 'presentAddress', 'permanentAddress', 'kycDocuments', 'groupMemberships.group']);
 
         if ($scopedBranchId) {
             $query->where('branch_id', $scopedBranchId);
@@ -58,6 +58,9 @@ class CustomerApiController extends Controller
         $customer = Customer::with([
             'branch',
             'company',
+            'addresses',
+            'presentAddress',
+            'permanentAddress',
             'kycDocuments',
             'guarantors',
             'nominees',
@@ -101,10 +104,26 @@ class CustomerApiController extends Controller
             'dob' => 'nullable|date',
             'gender' => 'required|in:male,female,other',
             'marital_status' => 'nullable|in:single,married,widowed,divorced',
-            'address' => 'required|string',
+            'address' => 'nullable|string',
+            'address_line' => 'nullable|string',
+            'present_address' => 'nullable|string',
+            'village' => 'nullable|string',
+            'village_area' => 'nullable|string',
+            'post_office' => 'nullable|string',
+            'police_station' => 'nullable|string',
+            'district' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:20',
+            'pin_code' => 'nullable|string|max:20',
+            'permanent_address' => 'nullable|string',
+            'permanent_address_line' => 'nullable|string',
+            'permanent_village' => 'nullable|string',
+            'permanent_post_office' => 'nullable|string',
+            'permanent_police_station' => 'nullable|string',
+            'permanent_district' => 'nullable|string|max:100',
+            'permanent_state' => 'nullable|string|max:100',
+            'permanent_pincode' => 'nullable|string|max:20',
             'branch_id' => 'required|exists:branches,id',
             'aadhaar_number' => 'nullable|string|max:20',
             'pan_number' => 'nullable|string|max:20',
@@ -141,18 +160,15 @@ class CustomerApiController extends Controller
         $validated['registration_date'] = now()->toDateString();
         $validated['customer_type'] = $validated['customer_type'] ?? 'individual';
 
-        $addresses = [
-            'present' => [
-                'address_line' => $validated['address'],
-                'district' => $validated['city'] ?? '',
-                'state' => $validated['state'] ?? '',
-                'pin_code' => $validated['pincode'] ?? '',
-            ],
-        ];
+        $addresses = $this->parseAddressesFromRequest($request);
 
         $customer = $this->customerService->createCustomer($validated, null, $addresses);
 
-        return $this->successResponse($customer, 'Customer created successfully', 201);
+        return $this->successResponse(
+            $customer->load(['branch', 'company', 'addresses', 'presentAddress', 'permanentAddress', 'kycDocuments', 'guarantors', 'nominees', 'groupMemberships.group', 'loanAccounts']),
+            'Customer created successfully',
+            201
+        );
     }
 
     /**
@@ -190,9 +206,25 @@ class CustomerApiController extends Controller
             'gender' => 'nullable|in:male,female,other',
             'marital_status' => 'nullable|in:single,married,widowed,divorced',
             'address' => 'nullable|string',
+            'address_line' => 'nullable|string',
+            'present_address' => 'nullable|string',
+            'village' => 'nullable|string',
+            'village_area' => 'nullable|string',
+            'post_office' => 'nullable|string',
+            'police_station' => 'nullable|string',
+            'district' => 'nullable|string|max:100',
             'city' => 'nullable|string|max:100',
             'state' => 'nullable|string|max:100',
             'pincode' => 'nullable|string|max:20',
+            'pin_code' => 'nullable|string|max:20',
+            'permanent_address' => 'nullable|string',
+            'permanent_address_line' => 'nullable|string',
+            'permanent_village' => 'nullable|string',
+            'permanent_post_office' => 'nullable|string',
+            'permanent_police_station' => 'nullable|string',
+            'permanent_district' => 'nullable|string|max:100',
+            'permanent_state' => 'nullable|string|max:100',
+            'permanent_pincode' => 'nullable|string|max:20',
             'branch_id' => 'nullable|exists:branches,id',
             'aadhaar_number' => 'nullable|string|max:20',
             'pan_number' => 'nullable|string|max:20',
@@ -217,19 +249,75 @@ class CustomerApiController extends Controller
         }
 
         $photo = $request->hasFile('photo') ? $request->file('photo') : null;
-        $addresses = [];
-        if (!empty($validated['address'])) {
-            $addresses['present'] = [
-                'address_line' => $validated['address'],
-                'district' => $validated['city'] ?? '',
-                'state' => $validated['state'] ?? '',
-                'pin_code' => $validated['pincode'] ?? '',
-            ];
-        }
+
+        $addresses = $this->parseAddressesFromRequest($request);
 
         $updatedCustomer = $this->customerService->updateCustomer($customer, array_filter($validated, fn($v) => !is_null($v)), $photo, $addresses);
 
-        return $this->successResponse($updatedCustomer, 'Customer profile updated successfully');
+        return $this->successResponse(
+            $updatedCustomer->load(['branch', 'company', 'addresses', 'presentAddress', 'permanentAddress', 'kycDocuments', 'guarantors', 'nominees', 'groupMemberships.group', 'loanAccounts']),
+            'Customer profile updated successfully'
+        );
+    }
+
+    /**
+     * Parse present and permanent address structures from incoming API request.
+     */
+    private function parseAddressesFromRequest(Request $request): array
+    {
+        $rawAddresses = $request->input('addresses');
+        $addresses = [];
+
+        if (is_array($rawAddresses)) {
+            foreach ($rawAddresses as $key => $val) {
+                if (is_array($val)) {
+                    $type = $val['address_type'] ?? (is_string($key) ? $key : null);
+                    if ($type && !empty($val['address_line'] ?? $val['address'] ?? null)) {
+                        $addresses[$type] = [
+                            'address_line' => $val['address_line'] ?? $val['address'] ?? '',
+                            'village_area' => $val['village_area'] ?? $val['village'] ?? null,
+                            'post_office' => $val['post_office'] ?? null,
+                            'police_station' => $val['police_station'] ?? null,
+                            'district' => $val['district'] ?? $val['city'] ?? '',
+                            'state' => $val['state'] ?? '',
+                            'pin_code' => $val['pin_code'] ?? $val['pincode'] ?? '',
+                        ];
+                    }
+                }
+            }
+        }
+
+        if (!isset($addresses['present'])) {
+            $presentLine = $request->input('present_address') ?? $request->input('address') ?? $request->input('address_line');
+            if (!empty($presentLine)) {
+                $addresses['present'] = [
+                    'address_line' => $presentLine,
+                    'village_area' => $request->input('village_area') ?? $request->input('village'),
+                    'post_office' => $request->input('post_office'),
+                    'police_station' => $request->input('police_station'),
+                    'district' => $request->input('district') ?? $request->input('city') ?? '',
+                    'state' => $request->input('state') ?? '',
+                    'pin_code' => $request->input('pin_code') ?? $request->input('pincode') ?? '',
+                ];
+            }
+        }
+
+        if (!isset($addresses['permanent'])) {
+            $permLine = $request->input('permanent_address') ?? $request->input('permanent_address_line');
+            if (!empty($permLine)) {
+                $addresses['permanent'] = [
+                    'address_line' => $permLine,
+                    'village_area' => $request->input('permanent_village_area') ?? $request->input('permanent_village'),
+                    'post_office' => $request->input('permanent_post_office'),
+                    'police_station' => $request->input('permanent_police_station'),
+                    'district' => $request->input('permanent_district') ?? $request->input('permanent_city') ?? '',
+                    'state' => $request->input('permanent_state') ?? '',
+                    'pin_code' => $request->input('permanent_pin_code') ?? $request->input('permanent_pincode') ?? '',
+                ];
+            }
+        }
+
+        return $addresses;
     }
 
     /**
@@ -461,4 +549,3 @@ class CustomerApiController extends Controller
         return $this->successResponse(null, 'Nominee deleted successfully');
     }
 }
-

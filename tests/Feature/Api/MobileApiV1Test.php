@@ -299,6 +299,102 @@ class MobileApiV1Test extends TestCase
         ]);
     }
 
+    public function test_customer_api_eager_loads_addresses_and_handles_store_and_update(): void
+    {
+        $token = $this->loanOfficer->createToken('TestDevice')->plainTextToken;
+
+        // 1. Create customer with present & permanent address via API
+        $createPayload = [
+            'name' => 'Rahul Banerjee',
+            'father_husband_name' => 'Sunil Banerjee',
+            'mobile_number' => '9899988877',
+            'gender' => 'male',
+            'branch_id' => $this->branch1->id,
+            'address' => '12 Park Lane',
+            'village_area' => 'Park Street',
+            'post_office' => 'Kolkata GPO',
+            'police_station' => 'Park Street PS',
+            'district' => 'Kolkata',
+            'state' => 'West Bengal',
+            'pin_code' => '700016',
+            'permanent_address' => '45 Station Road',
+            'permanent_village' => 'Village Green',
+            'permanent_post_office' => 'Howrah PO',
+            'permanent_police_station' => 'Howrah PS',
+            'permanent_district' => 'Howrah',
+            'permanent_state' => 'West Bengal',
+            'permanent_pin_code' => '711101',
+        ];
+
+        $responseCreate = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->postJson('/api/v1/customers', $createPayload);
+
+        $responseCreate->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.present_address.address_line', '12 Park Lane')
+            ->assertJsonPath('data.present_address.pin_code', '700016')
+            ->assertJsonPath('data.permanent_address.address_line', '45 Station Road')
+            ->assertJsonPath('data.permanent_address.pin_code', '711101');
+
+        $customerId = $responseCreate->json('data.id');
+
+        // 2. Database assertion for customer_addresses
+        $this->assertDatabaseHas('customer_addresses', [
+            'customer_id' => $customerId,
+            'address_type' => 'present',
+            'address_line' => '12 Park Lane',
+            'post_office' => 'Kolkata GPO',
+            'pin_code' => '700016',
+        ]);
+
+        $this->assertDatabaseHas('customer_addresses', [
+            'customer_id' => $customerId,
+            'address_type' => 'permanent',
+            'address_line' => '45 Station Road',
+            'post_office' => 'Howrah PO',
+            'pin_code' => '711101',
+        ]);
+
+        // 3. GET /api/v1/customers (index) eager loads addresses, present_address, permanent_address
+        $responseIndex = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/customers');
+
+        $responseIndex->assertStatus(200);
+        $customerInList = collect($responseIndex->json('data.data'))->firstWhere('id', $customerId);
+        $this->assertNotNull($customerInList);
+        $this->assertNotEmpty($customerInList['addresses']);
+        $this->assertEquals('12 Park Lane', $customerInList['present_address']['address_line']);
+        $this->assertEquals('45 Station Road', $customerInList['permanent_address']['address_line']);
+
+        // 4. GET /api/v1/customers/{id} (show) eager loads addresses, present_address, permanent_address
+        $responseShow = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->getJson('/api/v1/customers/' . $customerId);
+
+        $responseShow->assertStatus(200)
+            ->assertJsonPath('data.present_address.address_line', '12 Park Lane')
+            ->assertJsonPath('data.permanent_address.address_line', '45 Station Road');
+
+        // 5. PUT /api/v1/customers/{id} updates address in customer_addresses table
+        $updatePayload = [
+            'address' => '99 Modified Street',
+            'pin_code' => '700099',
+        ];
+
+        $responseUpdate = $this->withHeader('Authorization', 'Bearer ' . $token)
+            ->putJson('/api/v1/customers/' . $customerId, $updatePayload);
+
+        $responseUpdate->assertStatus(200)
+            ->assertJsonPath('data.present_address.address_line', '99 Modified Street')
+            ->assertJsonPath('data.present_address.pin_code', '700099');
+
+        $this->assertDatabaseHas('customer_addresses', [
+            'customer_id' => $customerId,
+            'address_type' => 'present',
+            'address_line' => '99 Modified Street',
+            'pin_code' => '700099',
+        ]);
+    }
+
     public function test_mobile_emi_collection_with_gps_and_duplicate_sync_id_protection(): void
     {
         $customer = Customer::create([
