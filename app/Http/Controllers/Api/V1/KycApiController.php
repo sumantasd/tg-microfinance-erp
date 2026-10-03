@@ -63,7 +63,39 @@ class KycApiController extends Controller
     }
 
     /**
-     * Download or stream KYC document file.
+     * Preview/stream KYC document file inline.
+     */
+    public function preview(Request $request, int $id)
+    {
+        $user = $request->user();
+        $kycDoc = CustomerKycDocument::with('customer')->find($id);
+
+        if (!$kycDoc) {
+            return $this->notFoundResponse('KYC document not found');
+        }
+
+        if (!$user->canAccessCompany($kycDoc->customer?->company_id) || !$user->canAccessBranch($kycDoc->customer?->branch_id)) {
+            return $this->forbiddenResponse('Unauthorized access to document file');
+        }
+
+        $disk = null;
+        if ($kycDoc->file_path && Storage::disk('private')->exists($kycDoc->file_path)) {
+            $disk = Storage::disk('private');
+        } elseif ($kycDoc->file_path && Storage::disk('local')->exists($kycDoc->file_path)) {
+            $disk = Storage::disk('local');
+        }
+
+        if (!$disk) {
+            return $this->notFoundResponse('File not found on server storage');
+        }
+
+        return $disk->response($kycDoc->file_path, $kycDoc->file_name, [
+            'Content-Disposition' => 'inline; filename="' . addslashes($kycDoc->file_name) . '"',
+        ]);
+    }
+
+    /**
+     * Download KYC document file attachment.
      */
     public function download(Request $request, int $id)
     {
@@ -78,11 +110,18 @@ class KycApiController extends Controller
             return $this->forbiddenResponse('Unauthorized access to document file');
         }
 
-        if (!Storage::disk('local')->exists($kycDoc->file_path)) {
+        $disk = null;
+        if ($kycDoc->file_path && Storage::disk('private')->exists($kycDoc->file_path)) {
+            $disk = Storage::disk('private');
+        } elseif ($kycDoc->file_path && Storage::disk('local')->exists($kycDoc->file_path)) {
+            $disk = Storage::disk('local');
+        }
+
+        if (!$disk) {
             return $this->notFoundResponse('File not found on server storage');
         }
 
-        return Storage::disk('local')->download($kycDoc->file_path, $kycDoc->file_name);
+        return $disk->download($kycDoc->file_path, $kycDoc->file_name);
     }
 
     /**

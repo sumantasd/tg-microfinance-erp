@@ -35,13 +35,38 @@ class CustomerKycController extends Controller
         return redirect()->back()->with('success', 'KYC Document uploaded successfully.');
     }
 
-    public function download(CustomerKycDocument $kyc): StreamedResponse|RedirectResponse
+    public function preview(CustomerKycDocument $kyc)
     {
-        if (!Storage::disk('private')->exists($kyc->file_path)) {
+        $disk = null;
+        if ($kyc->file_path && Storage::disk('private')->exists($kyc->file_path)) {
+            $disk = Storage::disk('private');
+        } elseif ($kyc->file_path && Storage::disk('local')->exists($kyc->file_path)) {
+            $disk = Storage::disk('local');
+        }
+
+        if (!$disk) {
             return redirect()->back()->with('error', 'File not found on storage server.');
         }
 
-        return Storage::disk('private')->download($kyc->file_path, $kyc->file_name);
+        return $disk->response($kyc->file_path, $kyc->file_name, [
+            'Content-Disposition' => 'inline; filename="' . addslashes($kyc->file_name) . '"',
+        ]);
+    }
+
+    public function download(CustomerKycDocument $kyc)
+    {
+        $disk = null;
+        if ($kyc->file_path && Storage::disk('private')->exists($kyc->file_path)) {
+            $disk = Storage::disk('private');
+        } elseif ($kyc->file_path && Storage::disk('local')->exists($kyc->file_path)) {
+            $disk = Storage::disk('local');
+        }
+
+        if (!$disk) {
+            return redirect()->back()->with('error', 'File not found on storage server.');
+        }
+
+        return $disk->download($kyc->file_path, $kyc->file_name);
     }
 
     public function verify(VerifyKycRequest $request, CustomerKycDocument $kyc): RedirectResponse

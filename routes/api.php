@@ -250,6 +250,9 @@ Route::prefix('v1')->group(function () {
         });
         Route::middleware(['can:customer.kyc_view'])->group(function () {
             Route::get('/kyc/documents/{id}', [KycApiController::class, 'download']);
+            Route::get('/kyc/documents/{id}/download', [KycApiController::class, 'download']);
+            Route::get('/kyc/documents/{id}/preview', [KycApiController::class, 'preview']);
+            Route::get('/kyc/{id}/preview', [KycApiController::class, 'preview']);
         });
         Route::middleware(['can:customer.verify_kyc'])->group(function () {
             Route::post('/kyc/documents/{id}/verify', [KycApiController::class, 'verify']);

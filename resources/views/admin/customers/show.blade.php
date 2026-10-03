@@ -256,6 +256,9 @@
                         </td>
                         <td>
                             <div class="d-flex gap-1">
+                                <a href="{{ route('admin.customer.kyc.preview', $doc->id) }}" target="_blank" class="btn btn-sm btn-outline-info" title="Preview Document">
+                                    <i class="bi bi-eye"></i>
+                                </a>
                                 <a href="{{ route('admin.customer.kyc.download', $doc->id) }}" class="btn btn-sm btn-outline-primary" title="Download Document">
                                     <i class="bi bi-download"></i>
                                 </a>

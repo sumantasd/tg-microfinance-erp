@@ -347,6 +347,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
 
         // Customer KYC Routes
         Route::post('/customer/{customer}/kyc', [CustomerKycController::class, 'store'])->name('admin.customer.kyc.store')->middleware('can:customer.verify_kyc');
+        Route::get('/customer/kyc/{kyc}/preview', [CustomerKycController::class, 'preview'])->name('admin.customer.kyc.preview');
         Route::get('/customer/kyc/{kyc}/download', [CustomerKycController::class, 'download'])->name('admin.customer.kyc.download');
         Route::post('/customer/kyc/{kyc}/verify', [CustomerKycController::class, 'verify'])->name('admin.customer.kyc.verify')->middleware('can:customer.verify_kyc');
         Route::delete('/customer/kyc/{kyc}', [CustomerKycController::class, 'destroy'])->name('admin.customer.kyc.destroy')->middleware('can:customer.verify_kyc');
