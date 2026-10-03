@@ -254,10 +254,17 @@ Route::prefix('v1')->group(function () {
             Route::get('/kyc/documents/{id}/preview', [KycApiController::class, 'preview']);
             Route::get('/kyc/{id}/preview', [KycApiController::class, 'preview']);
         });
+                // Billing & Invoices
+        Route::get('/invoices', [\App\Http\Controllers\Api\V1\InvoiceApiController::class, 'index']);
+        Route::post('/invoices', [\App\Http\Controllers\Api\V1\InvoiceApiController::class, 'store']);
+        Route::get('/invoices/{id}', [\App\Http\Controllers\Api\V1\InvoiceApiController::class, 'show']);
+
         Route::middleware(['can:customer.verify_kyc'])->group(function () {
             Route::post('/kyc/documents/{id}/verify', [KycApiController::class, 'verify']);
             Route::delete('/kyc/documents/{id}', [KycApiController::class, 'destroy']);
         });
     });
 });
+
+
 

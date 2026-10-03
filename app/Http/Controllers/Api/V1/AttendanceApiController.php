@@ -35,9 +35,16 @@ class AttendanceApiController extends Controller
             'remarks' => 'nullable|string|max:255',
         ]);
 
-        $employee = Employee::where('user_id', $user->id)->first();
+        $employee = $user->resolveEmployeeProfile();
         if (!$employee) {
             return $this->errorResponse('Authenticated user is not linked to an employee profile', 422);
+        }
+
+        $branchId = $employee->branch_id ?? $user->branch_id;
+        $companyId = $employee->company_id ?? $user->company_id;
+
+        if (!$branchId) {
+            return $this->errorResponse('No assigned branch found for attendance check-in', 422);
         }
 
         $date = now()->toDateString();
@@ -52,8 +59,8 @@ class AttendanceApiController extends Controller
         $attendance = Attendance::firstOrCreate(
             ['employee_id' => $employee->id, 'attendance_date' => $date],
             [
-                'company_id' => $user->company_id,
-                'branch_id' => $user->branch_id,
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
                 'clock_in' => $time,
                 'status' => 'present',
                 'remarks' => $remarks,
@@ -63,6 +70,8 @@ class AttendanceApiController extends Controller
 
         if (!$attendance->wasRecentlyCreated) {
             $attendance->update([
+                'company_id' => $companyId,
+                'branch_id' => $branchId,
                 'clock_in' => $time,
                 'status' => 'present',
                 'remarks' => $remarks,
@@ -72,14 +81,18 @@ class AttendanceApiController extends Controller
 
         return $this->successResponse([
             'attendance_id' => $attendance->id,
-            'employee_name' => $user->name,
+            'employee_id' => $employee->id,
+            'employee_code' => $employee->employee_code,
+            'employee_name' => $employee->full_name ?? $user->name,
+            'branch_id' => $attendance->branch_id,
+            'company_id' => $attendance->company_id,
             'date' => $date,
             'clock_in' => $time,
             'status' => $attendance->status,
             'gps_location' => [
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
-                'accuracy' => $validated['accuracy'] ?? null,
+                'latitude' => (float) $validated['latitude'],
+                'longitude' => (float) $validated['longitude'],
+                'accuracy' => isset($validated['accuracy']) ? (float) $validated['accuracy'] : null,
             ],
         ], 'Staff check-in recorded successfully');
     }
@@ -98,7 +111,7 @@ class AttendanceApiController extends Controller
             'remarks' => 'nullable|string|max:255',
         ]);
 
-        $employee = Employee::where('user_id', $user->id)->first();
+        $employee = $user->resolveEmployeeProfile();
         if (!$employee) {
             return $this->errorResponse('Authenticated user is not linked to an employee profile', 422);
         }
@@ -123,15 +136,19 @@ class AttendanceApiController extends Controller
 
         return $this->successResponse([
             'attendance_id' => $attendance->id,
-            'employee_name' => $user->name,
+            'employee_id' => $employee->id,
+            'employee_code' => $employee->employee_code,
+            'employee_name' => $employee->full_name ?? $user->name,
+            'branch_id' => $attendance->branch_id,
+            'company_id' => $attendance->company_id,
             'date' => $date,
             'clock_in' => $attendance->clock_in,
             'clock_out' => $time,
             'status' => $attendance->status,
             'gps_location' => [
-                'latitude' => $validated['latitude'],
-                'longitude' => $validated['longitude'],
-                'accuracy' => $validated['accuracy'] ?? null,
+                'latitude' => (float) $validated['latitude'],
+                'longitude' => (float) $validated['longitude'],
+                'accuracy' => isset($validated['accuracy']) ? (float) $validated['accuracy'] : null,
             ],
         ], 'Staff check-out recorded successfully');
     }

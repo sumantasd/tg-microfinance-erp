@@ -110,6 +110,47 @@ class User extends Authenticatable
     }
 
     /**
+     * Resolve associated Employee profile using Admin Panel user/employee relationships.
+     */
+    public function resolveEmployeeProfile(): ?Employee
+    {
+        // 1. Direct relationship via employees.user_id
+        if ($this->employee) {
+            return $this->employee;
+        }
+
+        // 2. Lookup via users.employee_id (code or integer ID)
+        if (!empty($this->employee_id)) {
+            $employee = Employee::where('employee_code', $this->employee_id)
+                ->orWhere('id', $this->employee_id)
+                ->first();
+
+            if ($employee) {
+                if (empty($employee->user_id)) {
+                    $employee->update(['user_id' => $this->id]);
+                }
+                return $employee;
+            }
+        }
+
+        // 3. Lookup via matching email address in Admin Panel staff directory
+        if (!empty($this->email)) {
+            $employee = Employee::where('email', $this->email)->first();
+            if ($employee) {
+                if (empty($employee->user_id)) {
+                    $employee->update(['user_id' => $this->id]);
+                }
+                if (empty($this->employee_id)) {
+                    $this->update(['employee_id' => $employee->employee_code ?? (string) $employee->id]);
+                }
+                return $employee;
+            }
+        }
+
+        return null;
+    }
+
+    /**
      * Relationship to creator user.
      */
     public function creator()
