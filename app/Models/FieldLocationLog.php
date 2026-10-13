@@ -36,6 +36,27 @@ class FieldLocationLog extends Model
         'recorded_at' => 'datetime',
     ];
 
+    /**
+     * Get recorded_at converted to business display timezone (IST).
+     */
+    public function getRecordedAtIstAttribute(): ?\Carbon\Carbon
+    {
+        if (!$this->recorded_at) {
+            return null;
+        }
+
+        $tz = config('app.business_timezone', 'Asia/Kolkata');
+        return \Carbon\Carbon::parse($this->recorded_at, 'UTC')->setTimezone($tz);
+    }
+
+    /**
+     * Authoritative formatted time in IST (e.g. '07:07 PM').
+     */
+    public function getFormattedTimeAttribute(): ?string
+    {
+        return $this->recorded_at_ist?->format('h:i A');
+    }
+
     public function company(): BelongsTo
     {
         return $this->belongsTo(Company::class);

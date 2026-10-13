@@ -65,7 +65,19 @@ return [
     |
     */
 
-    'timezone' => 'UTC',
+    'timezone' => env('APP_TIMEZONE', 'UTC'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Business Display Timezone
+    |--------------------------------------------------------------------------
+    |
+    | Authoritative display timezone for all Indian operational metrics,
+    | attendance sessions, live GPS tracking logs, and field reporting.
+    |
+    */
+
+    'business_timezone' => env('APP_BUSINESS_TIMEZONE', 'Asia/Kolkata'),
 
     /*
     |--------------------------------------------------------------------------

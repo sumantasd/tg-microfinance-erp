@@ -297,7 +297,7 @@ class LocationTrackingService
                 'lng' => (float) $log->longitude,
                 'accuracy' => $log->accuracy,
                 'battery' => $log->battery_level,
-                'time' => Carbon::parse($log->recorded_at)->format('h:i:s A'),
+                'time' => Carbon::parse($log->recorded_at, 'UTC')->setTimezone(config('app.business_timezone', 'Asia/Kolkata'))->format('h:i:s A'),
                 'timestamp' => $log->recorded_at->toISOString(),
                 'address' => $log->location_address,
                 'notes' => $log->notes,

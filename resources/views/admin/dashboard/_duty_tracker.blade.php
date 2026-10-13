@@ -106,8 +106,10 @@
                 <div class="p-2.5 p-sm-3 bg-light rounded-3 text-center border h-100">
                     <small class="text-muted fw-bold d-block text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">LAST GPS PING</small>
                     <div class="fs-5 fs-sm-5 fw-bold text-dark font-monospace mt-1 text-truncate" id="metricGpsTime">
-                        @if(!empty($dutyInfo['last_ping']))
-                            {{ \Carbon\Carbon::parse($dutyInfo['last_ping']->recorded_at)->format('h:i A') }}
+                        @if(!empty($dutyInfo['last_ping_time_formatted']))
+                            {{ $dutyInfo['last_ping_time_formatted'] }}
+                        @elseif(!empty($dutyInfo['last_ping']))
+                            {{ \Carbon\Carbon::parse($dutyInfo['last_ping']->recorded_at, 'UTC')->setTimezone(config('app.business_timezone', 'Asia/Kolkata'))->format('h:i A') }}
                         @else
                             --:--
                         @endif
@@ -233,7 +235,7 @@
         clockOutFormatted: "{{ $dutyInfo['clock_out_formatted'] ?? '' }}",
         elapsedSeconds: parseInt("{{ $dutyInfo['elapsed_seconds'] ?? 0 }}", 10),
         workingDuration: "{{ $dutyInfo['working_duration'] ?? '' }}",
-        lastPingTime: null
+        lastPingTime: "{{ $dutyInfo['last_ping_time_formatted'] ?? '' }}"
     };
 
     let timerInterval = null;
@@ -462,8 +464,7 @@
                 .then(res => res.json())
                 .then(data => {
                     if (data.success && data.is_active) {
-                        const now = new Date();
-                        const timeStr = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                        const timeStr = data.recorded_at_formatted || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                         document.getElementById('metricGpsTime').textContent = timeStr;
                         document.getElementById('subGpsAccuracy').textContent = `Acc: ±${Math.round(pos.coords.accuracy)}m`;
                         document.getElementById('gpsLiveText').textContent = 'Tracking Active';

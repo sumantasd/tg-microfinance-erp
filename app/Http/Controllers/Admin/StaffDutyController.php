@@ -148,11 +148,14 @@ class StaffDutyController extends Controller
             notes: $validated['notes'] ?? 'Web dashboard active duty ping'
         );
 
+        $timeFormatted = $this->attendanceService->formatToBusinessTime($log->recorded_at);
+
         return response()->json([
             'success' => true,
             'is_active' => true,
             'log_id' => $log->id,
             'recorded_at' => $log->recorded_at->toDateTimeString(),
+            'recorded_at_formatted' => $timeFormatted,
         ]);
     }
 }

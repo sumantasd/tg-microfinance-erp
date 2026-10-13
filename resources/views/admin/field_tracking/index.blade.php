@@ -100,7 +100,7 @@
         <h4 class="fw-bold text-dark font-heading mb-1">
             <i class="bi bi-geo-alt-fill me-2 text-primary"></i>Live Staff Location Tracking Dashboard
         </h4>
-        <p class="text-muted small mb-0">Map-first real-time staff GPS location, duty status, and daily route history.</p>
+        <p class="text-muted small mb-0">Field Staff Tracking: Map-first real-time staff GPS location, duty status, and daily route history.</p>
     </div>
     <div class="d-flex align-items-center gap-2">
         <div class="form-check form-switch bg-white border px-3 py-1.5 rounded-pill shadow-sm mb-0">

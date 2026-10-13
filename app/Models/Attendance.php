@@ -51,7 +51,40 @@ class Attendance extends Model
     }
 
     /**
-     * Formatted working duration (e.g., '8 hrs 24 mins').
+     * Convert a stored UTC clock time string to Indian Standard Time (IST) formatted string.
+     */
+    public function formatTimeIst(?string $timeString, string $format = 'h:i A'): ?string
+    {
+        if (empty($timeString)) {
+            return null;
+        }
+
+        $date = $this->attendance_date?->format('Y-m-d') ?? now()->toDateString();
+        $tz = config('app.business_timezone', 'Asia/Kolkata');
+
+        return \Carbon\Carbon::parse("{$date} {$timeString}", 'UTC')
+            ->setTimezone($tz)
+            ->format($format);
+    }
+
+    /**
+     * Authoritative IST formatted Check-In time.
+     */
+    public function getClockInFormattedAttribute(): ?string
+    {
+        return $this->formatTimeIst($this->clock_in);
+    }
+
+    /**
+     * Authoritative IST formatted Check-Out time.
+     */
+    public function getClockOutFormattedAttribute(): ?string
+    {
+        return $this->formatTimeIst($this->clock_out);
+    }
+
+    /**
+     * Formatted working duration (e.g., '8 hrs 24 mins') using actual elapsed timestamps.
      */
     public function getFormattedDurationAttribute(): ?string
     {
@@ -63,8 +96,11 @@ class Attendance extends Model
 
         if (!empty($this->clock_in) && !empty($this->clock_out)) {
             $date = $this->attendance_date?->format('Y-m-d') ?? now()->toDateString();
-            $in = \Carbon\Carbon::parse("{$date} {$this->clock_in}");
-            $out = \Carbon\Carbon::parse("{$date} {$this->clock_out}");
+            $in = \Carbon\Carbon::parse("{$date} {$this->clock_in}", 'UTC');
+            $out = \Carbon\Carbon::parse("{$date} {$this->clock_out}", 'UTC');
+            if ($out->lt($in)) {
+                $out = $out->copy()->addDay();
+            }
             $diffMins = max(0, $in->diffInMinutes($out));
             $hours = intdiv($diffMins, 60);
             $mins = $diffMins % 60;

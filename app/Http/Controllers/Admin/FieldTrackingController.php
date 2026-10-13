@@ -65,7 +65,7 @@ class FieldTrackingController extends Controller
                     'latitude' => (float) $lastPing->latitude,
                     'longitude' => (float) $lastPing->longitude,
                     'recorded_at' => $lastPing->recorded_at->format('Y-m-d H:i:s'),
-                    'time_formatted' => $lastPing->recorded_at->format('h:i A'),
+                    'time_formatted' => \Carbon\Carbon::parse($lastPing->recorded_at, 'UTC')->setTimezone(config('app.business_timezone', 'Asia/Kolkata'))->format('h:i A'),
                     'diff_human' => $lastPing->recorded_at->diffForHumans(),
                     'location_address' => $lastPing->location_address ?: 'GPS Location Available',
                     'battery_level' => $lastPing->battery_level,

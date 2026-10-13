@@ -59,8 +59,8 @@
                 </td>
                 <td><span class="small fw-semibold text-secondary">{{ $att->branch->name ?? 'N/A' }}</span></td>
                 <td><span class="fw-semibold text-dark">{{ $att->attendance_date->format('M d, Y') }}</span></td>
-                <td><span class="font-monospace small text-success">{{ $att->clock_in ?? '--:--' }}</span></td>
-                <td><span class="font-monospace small text-danger">{{ $att->clock_out ?? '--:--' }}</span></td>
+                <td><span class="font-monospace small text-success">{{ $att->clock_in_formatted ?? $att->clock_in ?? '--:--' }}</span></td>
+                <td><span class="font-monospace small text-danger">{{ $att->clock_out_formatted ?? $att->clock_out ?? '--:--' }}</span></td>
                 <td>
                     @if($att->status === 'present')
                         <span class="badge bg-success-subtle text-success border rounded-pill">Present</span>

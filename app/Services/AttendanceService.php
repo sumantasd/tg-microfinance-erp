@@ -44,6 +44,30 @@ class AttendanceService
     }
 
     /**
+     * Format a UTC date/time or Carbon instance to the business display timezone (IST).
+     */
+    public function formatToBusinessTime(\Carbon\Carbon|string|null $datetime, ?string $dateContext = null, string $format = 'h:i A'): ?string
+    {
+        if (empty($datetime)) {
+            return null;
+        }
+
+        $tz = config('app.business_timezone', 'Asia/Kolkata');
+
+        if ($datetime instanceof \Carbon\Carbon) {
+            return $datetime->copy()->setTimezone($tz)->format($format);
+        }
+
+        // If only a time string is provided, attach date context
+        if (preg_match('/^\d{1,2}:\d{2}(:\d{2})?$/', $datetime)) {
+            $date = $dateContext ?? now()->toDateString();
+            return \Carbon\Carbon::parse("{$date} {$datetime}", 'UTC')->setTimezone($tz)->format($format);
+        }
+
+        return \Carbon\Carbon::parse($datetime, 'UTC')->setTimezone($tz)->format($format);
+    }
+
+    /**
      * Get real-time duty state for an authenticated user for today (or specified date).
      */
     public function getDutyStatusForUser(User $user, ?string $date = null): array
@@ -66,6 +90,7 @@ class AttendanceService
                 'working_duration' => null,
                 'working_duration_minutes' => null,
                 'last_ping' => null,
+                'last_ping_time_formatted' => null,
                 'employee' => null,
             ];
         }
@@ -80,6 +105,8 @@ class AttendanceService
             ->whereDate('recorded_at', $targetDate)
             ->latest('recorded_at')
             ->first();
+
+        $lastPingFormattedTime = $this->formatToBusinessTime($lastPing?->recorded_at);
 
         if (!$attendance || empty($attendance->clock_in)) {
             return [
@@ -96,14 +123,16 @@ class AttendanceService
                 'working_duration' => null,
                 'working_duration_minutes' => null,
                 'last_ping' => $lastPing,
+                'last_ping_time_formatted' => $lastPingFormattedTime,
                 'employee' => $employee,
             ];
         }
 
         if (empty($attendance->clock_out)) {
-            // Active shift
-            $clockInDateTime = Carbon::parse("{$targetDate} {$attendance->clock_in}");
-            $elapsedSeconds = max(0, $clockInDateTime->diffInSeconds(now()));
+            // Active shift: calculate elapsed duration using authoritative UTC timestamps
+            $clockInUtc = \Carbon\Carbon::parse("{$targetDate} {$attendance->clock_in}", 'UTC');
+            $clockInFormatted = $this->formatToBusinessTime($attendance->clock_in, $targetDate);
+            $elapsedSeconds = max(0, $clockInUtc->diffInSeconds(now()));
             $elapsedMinutes = intdiv($elapsedSeconds, 60);
             $hours = intdiv($elapsedMinutes, 60);
             $mins = $elapsedMinutes % 60;
@@ -116,20 +145,21 @@ class AttendanceService
                 'badge_class' => 'bg-success text-white',
                 'attendance' => $attendance,
                 'clock_in' => $attendance->clock_in,
-                'clock_in_formatted' => $clockInDateTime->format('h:i A'),
+                'clock_in_formatted' => $clockInFormatted,
                 'clock_out' => null,
                 'clock_out_formatted' => null,
                 'elapsed_seconds' => $elapsedSeconds,
                 'working_duration' => $durationFormatted,
                 'working_duration_minutes' => $elapsedMinutes,
                 'last_ping' => $lastPing,
+                'last_ping_time_formatted' => $lastPingFormattedTime,
                 'employee' => $employee,
             ];
         }
 
-        // Completed shift
-        $clockInDateTime = Carbon::parse("{$targetDate} {$attendance->clock_in}");
-        $clockOutDateTime = Carbon::parse("{$targetDate} {$attendance->clock_out}");
+        // Completed shift: format timestamps authoritative in IST
+        $clockInFormatted = $this->formatToBusinessTime($attendance->clock_in, $targetDate);
+        $clockOutFormatted = $this->formatToBusinessTime($attendance->clock_out, $targetDate);
 
         return [
             'has_profile' => true,
@@ -138,13 +168,14 @@ class AttendanceService
             'badge_class' => 'bg-primary text-white',
             'attendance' => $attendance,
             'clock_in' => $attendance->clock_in,
-            'clock_in_formatted' => $clockInDateTime->format('h:i A'),
+            'clock_in_formatted' => $clockInFormatted,
             'clock_out' => $attendance->clock_out,
-            'clock_out_formatted' => $clockOutDateTime->format('h:i A'),
+            'clock_out_formatted' => $clockOutFormatted,
             'elapsed_seconds' => 0,
             'working_duration' => $attendance->formatted_duration,
             'working_duration_minutes' => $attendance->working_duration_minutes,
             'last_ping' => $lastPing,
+            'last_ping_time_formatted' => $lastPingFormattedTime,
             'employee' => $employee,
         ];
     }
@@ -171,6 +202,7 @@ class AttendanceService
 
         $date = now()->toDateString();
         $time = now()->toTimeString();
+        $clockInFormatted = $this->formatToBusinessTime($time, $date);
 
         // Check for duplicate active sessions or already completed shifts
         $existing = Attendance::where('employee_id', $employee->id)
@@ -178,13 +210,15 @@ class AttendanceService
             ->first();
 
         if ($existing && !empty($existing->clock_in)) {
+            $existingInFormatted = $this->formatToBusinessTime($existing->clock_in, $date);
             if (empty($existing->clock_out)) {
                 throw ValidationException::withMessages([
-                    'attendance' => ["You already have an active duty session started at {$existing->clock_in}. Duplicate check-in is not permitted."],
+                    'attendance' => ["You already have an active duty session started at {$existingInFormatted}. Duplicate check-in is not permitted."],
                 ]);
             } else {
+                $existingOutFormatted = $this->formatToBusinessTime($existing->clock_out, $date);
                 throw ValidationException::withMessages([
-                    'attendance' => ["Duty shift has already been completed for today ({$existing->clock_in} - {$existing->clock_out})."],
+                    'attendance' => ["Duty shift has already been completed for today ({$existingInFormatted} - {$existingOutFormatted})."],
                 ]);
             }
         }
@@ -240,7 +274,7 @@ class AttendanceService
             'company_id' => $attendance->company_id,
             'date' => $date,
             'clock_in' => $time,
-            'clock_in_formatted' => Carbon::parse($time)->format('h:i A'),
+            'clock_in_formatted' => $clockInFormatted,
             'status' => $attendance->status,
             'gps_location' => [
                 'latitude' => $latitude,
@@ -287,14 +321,20 @@ class AttendanceService
             ]);
         }
 
-        // Calculate server-side working duration
-        $clockInDateTime = Carbon::parse("{$date} {$attendance->clock_in}");
-        $clockOutDateTime = Carbon::parse("{$date} {$time}");
-        $durationMinutes = max(1, $clockInDateTime->diffInMinutes($clockOutDateTime));
+        // Calculate server-side working duration using authoritative timestamps
+        $clockInUtc = \Carbon\Carbon::parse("{$date} {$attendance->clock_in}", 'UTC');
+        $clockOutUtc = \Carbon\Carbon::parse("{$date} {$time}", 'UTC');
+        if ($clockOutUtc->lt($clockInUtc)) {
+            $clockOutUtc = $clockOutUtc->copy()->addDay();
+        }
+        $durationMinutes = max(1, $clockInUtc->diffInMinutes($clockOutUtc));
         $durationHours = round($durationMinutes / 60, 2);
         $hours = intdiv($durationMinutes, 60);
         $mins = $durationMinutes % 60;
         $durationFormatted = "{$hours} hrs {$mins} mins";
+
+        $clockInFormatted = $this->formatToBusinessTime($attendance->clock_in, $date);
+        $clockOutFormatted = $this->formatToBusinessTime($time, $date);
 
         $gpsInfo = "GPS Checkout: {$latitude},{$longitude}";
         if ($accuracy !== null) {
@@ -342,9 +382,9 @@ class AttendanceService
             'company_id' => $attendance->company_id,
             'date' => $date,
             'clock_in' => $attendance->clock_in,
-            'clock_in_formatted' => Carbon::parse($attendance->clock_in)->format('h:i A'),
+            'clock_in_formatted' => $clockInFormatted,
             'clock_out' => $time,
-            'clock_out_formatted' => Carbon::parse($time)->format('h:i A'),
+            'clock_out_formatted' => $clockOutFormatted,
             'working_duration' => $durationFormatted,
             'working_duration_minutes' => $durationMinutes,
             'working_duration_hours' => $durationHours,
