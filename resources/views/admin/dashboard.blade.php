@@ -55,6 +55,11 @@
     </div>
 </div>
 
+<!-- 1.1 EMPLOYEE DUTY & REAL-TIME ATTENDANCE TRACKER -->
+@if(!empty($dutyInfo))
+    @include('admin.dashboard._duty_tracker')
+@endif
+
 <!-- 2. ERP QUICK ACTIONS RIBBON -->
 <div class="mb-4">
     <div class="d-flex justify-content-between align-items-center mb-2 px-1">

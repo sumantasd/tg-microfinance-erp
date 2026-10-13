@@ -15,7 +15,11 @@ class UpdateUserRequest extends FormRequest
 
     public function rules(): array
     {
-        $userId = $this->route('user') ? $this->route('user')->id : $this->route('id');
+        $targetUser = $this->route('user') instanceof \App\Models\User
+            ? $this->route('user')
+            : \App\Models\User::find($this->route('user') ?? $this->route('id'));
+        $userId = $targetUser?->id;
+        $branchId = $this->input('branch_id') ?? $targetUser?->branch_id;
         $isBranchManager = $this->input('role') === 'Branch Manager';
 
         return [
@@ -32,6 +36,24 @@ class UpdateUserRequest extends FormRequest
                 'integer',
                 Rule::exists('branches', 'id')->where('is_active', true),
             ],
+            'employee_record_id' => [
+                'nullable',
+                'integer',
+                'exists:employees,id',
+                function ($attribute, $value, $fail) use ($userId, $branchId) {
+                    if ($value) {
+                        $employee = \App\Models\Employee::find($value);
+                        if ($employee && !empty($employee->user_id) && (int) $employee->user_id !== (int) $userId) {
+                            $fail('The selected employee profile is already linked to another user account.');
+                        }
+                        if ($employee && $branchId && (int) $employee->branch_id !== (int) $branchId) {
+                            $fail('The selected employee profile belongs to a different branch than the user.');
+                        }
+                    }
+                },
+            ],
+            'unlink_employee' => ['nullable', 'boolean'],
+            'auto_create_employee' => ['nullable', 'boolean'],
         ];
     }
 

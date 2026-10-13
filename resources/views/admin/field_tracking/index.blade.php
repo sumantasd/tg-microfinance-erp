@@ -40,7 +40,7 @@
     .status-dot-online { background-color: #16a34a; box-shadow: 0 0 6px #16a34a; }
     .status-dot-stale { background-color: #d97706; box-shadow: 0 0 6px #d97706; }
     .status-dot-offline { background-color: #dc2626; }
-    
+
     .map-floating-controls {
         position: absolute;
         top: 12px;
@@ -61,7 +61,37 @@
     .summary-card:hover {
         transform: translateY(-2px);
     }
+    .leaflet-popup-content-wrapper {
+        border-radius: 0.75rem !important;
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1) !important;
+    }
+    .leaflet-popup-content {
+        margin: 12px 14px !important;
+        line-height: 1.4 !important;
+    }
+    .staff-map-marker {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+    }
+    .marker-pin-inner {
+        width: 24px;
+        height: 24px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 11px;
+        font-weight: bold;
+        border: 2px solid #ffffff;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+    }
+    .marker-pin-online { background-color: #16a34a; }
+    .marker-pin-stale { background-color: #d97706; }
+    .marker-pin-offline { background-color: #dc2626; }
 </style>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
 @endpush
 
 @section('content')
@@ -207,7 +237,7 @@
                             default => 'status-dot-offline',
                         };
                     @endphp
-                    <div class="staff-card-item card p-2 mb-2 border rounded-3" 
+                    <div class="staff-card-item card p-2 mb-2 border rounded-3"
                          data-user-id="{{ $item['user_id'] }}"
                          data-staff-name="{{ $item['staff_name'] }}"
                          data-branch="{{ $item['branch_name'] }}"
@@ -378,7 +408,7 @@ window.initLiveTrackingDashboard = function() {
 
     // Default center: India / Kolkata region or average of staff markers
     const defaultCenter = { lat: 22.5726, lng: 88.3639 };
-    
+
     gMap = new google.maps.Map(mapElement, {
         zoom: 12,
         center: defaultCenter,
@@ -449,7 +479,7 @@ function renderStaffMarkers(staffList) {
 
         // Visual pin styling according to status
         const pinColor = staff.status === 'online' ? '#16a34a' : (staff.status === 'stale' ? '#d97706' : '#dc2626');
-        
+
         const svgIcon = {
             path: "M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z",
             fillColor: pinColor,
@@ -559,7 +589,7 @@ function setupEventListeners() {
 
     // Fit All Staff Button
     document.getElementById('btnFitAllStaff')?.addEventListener('click', fitAllStaffOnMap);
-    
+
     // Reset Map Button
     document.getElementById('btnResetMap')?.addEventListener('click', function() {
         fitAllStaffOnMap();
@@ -607,7 +637,7 @@ function fitAllStaffOnMap() {
 
 function loadStaffRoute(userId, staffName) {
     const filterDate = document.getElementById('filterDate')?.value || '{{ $selectedDate }}';
-    
+
     fetch(`{{ url('/admin/field-tracking/route-history') }}/${userId}?date=${filterDate}`)
         .then(res => res.json())
         .then(data => {
@@ -775,7 +805,7 @@ function updateStaffListHtml(staffList) {
         const km = parseFloat(item.verified_distance_km).toFixed(2);
 
         html += `
-            <div class="staff-card-item card p-2 mb-2 border rounded-3" 
+            <div class="staff-card-item card p-2 mb-2 border rounded-3"
                  data-user-id="${item.user_id}"
                  data-staff-name="${item.staff_name}"
                  data-branch="${item.branch_name}"
@@ -813,26 +843,215 @@ function updateStaffListHtml(staffList) {
 }
 </script>
 
-<!-- 3. Google Maps JavaScript API with Key (Loaded AFTER callback is globally attached) -->
+<!-- 3. Maps Loader: Uses Google Maps if configured, or seamless OpenStreetMap Leaflet Engine -->
 @php
     $googleApiKey = config('services.google.maps_api_key');
 @endphp
 @if($googleApiKey)
     <script src="https://maps.googleapis.com/maps/api/js?key={{ $googleApiKey }}&libraries=places,geometry&callback=initLiveTrackingDashboard" async defer></script>
 @else
+    <!-- Leaflet OpenStreetMap Engine (Free, Zero API Key Required) -->
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
     <script>
+        let leafletMapInstance = null;
+        let leafletStaffMarkers = {};
+        let leafletPolyline = null;
+        let leafletRoutePoints = [];
+
         document.addEventListener('DOMContentLoaded', function() {
+            initLeafletTrackingMap();
+        });
+
+        function initLeafletTrackingMap() {
             const mapEl = document.getElementById('googleLiveMap');
-            if (mapEl) {
-                mapEl.innerHTML = `
-                    <div class="d-flex flex-column align-items-center justify-content-center h-100 p-4 text-center bg-light text-muted">
-                        <i class="bi bi-exclamation-triangle-fill text-warning fs-1 mb-2"></i>
-                        <h6 class="fw-bold text-dark mb-1">Google Maps API Key Not Configured</h6>
-                        <p class="small text-muted mb-0">Please set <code>GOOGLE_MAPS_API_KEY</code> in your <code>.env</code> file to render the interactive live tracking dashboard map.</p>
+            if (!mapEl) return;
+
+            leafletMapInstance = L.map('googleLiveMap', {
+                zoomControl: true
+            }).setView([22.5726, 88.3639], 12);
+
+            L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+                maxZoom: 19,
+                attribution: '&copy; OpenStreetMap contributors'
+            }).addTo(leafletMapInstance);
+
+            const staffList = @json($staffTrackingSummary);
+            renderLeafletMarkers(staffList);
+            setupLeafletControls();
+        }
+
+        function renderLeafletMarkers(staffList) {
+            Object.values(leafletStaffMarkers).forEach(m => leafletMapInstance.removeLayer(m));
+            leafletStaffMarkers = {};
+
+            const markerGroup = [];
+
+            staffList.forEach(staff => {
+                if (!staff.has_location || !staff.last_ping_formatted) return;
+
+                const lat = parseFloat(staff.last_ping_formatted.latitude);
+                const lng = parseFloat(staff.last_ping_formatted.longitude);
+                if (isNaN(lat) || isNaN(lng)) return;
+
+                const pinClass = staff.status === 'online' ? 'marker-pin-online' : (staff.status === 'stale' ? 'marker-pin-stale' : 'marker-pin-offline');
+                const icon = L.divIcon({
+                    className: 'staff-map-marker',
+                    html: `<div class="marker-pin-inner ${pinClass}"><i class="bi bi-person-fill" style="font-size: 11px;"></i></div>`,
+                    iconSize: [26, 26],
+                    iconAnchor: [13, 13],
+                    popupAnchor: [0, -14]
+                });
+
+                const m = L.marker([lat, lng], { icon: icon }).addTo(leafletMapInstance);
+
+                const batteryBadge = staff.battery_level !== null ?
+                    `<span class="badge bg-light text-dark border"><i class="bi bi-battery-charging text-success me-1"></i>${staff.battery_level}%</span>` : '';
+
+                const popupHtml = `
+                    <div style="min-width: 220px; font-family: inherit;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge ${staff.badge_class} rounded-pill text-uppercase px-2" style="font-size: 0.65rem;">
+                                ${staff.status_label}
+                            </span>
+                            ${batteryBadge}
+                        </div>
+                        <h6 class="fw-bold text-dark mb-0">${staff.staff_name}</h6>
+                        <div class="small text-muted mb-2 font-monospace">${staff.employee_code} &bull; ${staff.branch_name}</div>
+                        <div class="border-top pt-1 small text-secondary">
+                            <div><i class="bi bi-clock me-1 text-primary"></i> ${staff.last_ping_formatted.time_formatted} (${staff.last_ping_formatted.diff_human})</div>
+                            <div><i class="bi bi-signpost me-1 text-success"></i> ${staff.verified_distance_km.toFixed(2)} km traveled</div>
+                        </div>
+                        <button type="button" class="btn btn-primary btn-sm rounded-pill w-100 mt-2 py-1 fw-bold" onclick="loadLeafletStaffRoute(${staff.user_id}, '${staff.staff_name}')">
+                            <i class="bi bi-bezier2 me-1"></i> View Route History
+                        </button>
                     </div>
                 `;
+                m.bindPopup(popupHtml);
+
+                leafletStaffMarkers[staff.user_id] = m;
+                markerGroup.push(m);
+            });
+
+            if (markerGroup.length > 0 && leafletMapInstance) {
+                const group = L.featureGroup(markerGroup);
+                leafletMapInstance.fitBounds(group.getBounds(), { padding: [40, 40], maxZoom: 15 });
             }
-        });
+        }
+
+        function setupLeafletControls() {
+            document.getElementById('btnFitAllStaff')?.addEventListener('click', function() {
+                const markers = Object.values(leafletStaffMarkers);
+                if (markers.length > 0 && leafletMapInstance) {
+                    leafletMapInstance.fitBounds(L.featureGroup(markers).getBounds(), { padding: [40, 40], maxZoom: 15 });
+                }
+            });
+
+            document.getElementById('btnResetMap')?.addEventListener('click', function() {
+                clearLeafletRoute();
+                const markers = Object.values(leafletStaffMarkers);
+                if (markers.length > 0 && leafletMapInstance) {
+                    leafletMapInstance.fitBounds(L.featureGroup(markers).getBounds(), { padding: [40, 40], maxZoom: 15 });
+                }
+            });
+
+            document.getElementById('btnCloseRouteBanner')?.addEventListener('click', clearLeafletRoute);
+
+            document.addEventListener('click', function(e) {
+                const item = e.target.closest('.staff-card-item');
+                if (item) {
+                    const userId = item.dataset.userId;
+                    const lat = parseFloat(item.dataset.lat);
+                    const lng = parseFloat(item.dataset.lng);
+                    const staffName = item.dataset.staffName;
+
+                    if (!isNaN(lat) && !isNaN(lng) && leafletMapInstance) {
+                        leafletMapInstance.flyTo([lat, lng], 16);
+                        if (leafletStaffMarkers[userId]) {
+                            leafletStaffMarkers[userId].openPopup();
+                        }
+                    } else {
+                        alert(`${staffName} has not recorded any GPS pings today. GPS tracking starts once the employee checks in.`);
+                    }
+                }
+            });
+        }
+
+        function loadLeafletStaffRoute(userId, staffName) {
+            const filterDate = document.getElementById('filterDate')?.value || '{{ $selectedDate }}';
+
+            fetch(`{{ url('/admin/field-tracking/route-history') }}/${userId}?date=${filterDate}`)
+                .then(res => {
+                    if (!res.ok) throw new Error('Status: ' + res.status);
+                    return res.json();
+                })
+                .then(data => {
+                    if (!data.points || data.points.length === 0) {
+                        alert(`No route pings found for ${staffName} on ${filterDate}.`);
+                        return;
+                    }
+                    drawLeafletRoute(data, staffName);
+                })
+                .catch(err => {
+                    console.error('Error fetching route history:', err);
+                    alert('Unable to load route history: Branch access restrictions enforced.');
+                });
+        }
+
+        function drawLeafletRoute(routeData, staffName) {
+            clearLeafletRoute();
+
+            const latLngs = routeData.points.map(p => [p.lat, p.lng]);
+            leafletPolyline = L.polyline(latLngs, {
+                color: '#2563eb',
+                weight: 5,
+                opacity: 0.85
+            }).addTo(leafletMapInstance);
+
+            const startPt = routeData.points[0];
+            const endPt = routeData.points[routeData.points.length - 1];
+
+            const startIcon = L.divIcon({
+                className: 'route-marker-icon',
+                html: '<div style="background:#16a34a;color:#fff;font-weight:bold;font-size:10px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">S</div>',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+
+            const endIcon = L.divIcon({
+                className: 'route-marker-icon',
+                html: '<div style="background:#dc2626;color:#fff;font-weight:bold;font-size:10px;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:2px solid #fff;box-shadow:0 2px 4px rgba(0,0,0,0.3);">E</div>',
+                iconSize: [22, 22],
+                iconAnchor: [11, 11]
+            });
+
+            const sm = L.marker([startPt.lat, startPt.lng], { icon: startIcon }).bindPopup(`<b>Start Point</b><br>${startPt.time}`).addTo(leafletMapInstance);
+            const em = L.marker([endPt.lat, endPt.lng], { icon: endIcon }).bindPopup(`<b>Latest Point</b><br>${endPt.time}`).addTo(leafletMapInstance);
+            leafletRoutePoints.push(sm, em);
+
+            leafletMapInstance.fitBounds(leafletPolyline.getBounds(), { padding: [60, 60], maxZoom: 16 });
+
+            const banner = document.getElementById('mapRouteBanner');
+            if (banner) {
+                document.getElementById('routeBannerStaffName').textContent = `${staffName} (${routeData.date})`;
+                document.getElementById('routeBannerKm').textContent = `${routeData.verified_distance_km.toFixed(2)} km`;
+                document.getElementById('routeBannerPings').textContent = routeData.total_points;
+                banner.classList.remove('d-none');
+            }
+        }
+
+        function clearLeafletRoute() {
+            if (leafletPolyline && leafletMapInstance) {
+                leafletMapInstance.removeLayer(leafletPolyline);
+                leafletPolyline = null;
+            }
+            leafletRoutePoints.forEach(p => {
+                if (leafletMapInstance && p) leafletMapInstance.removeLayer(p);
+            });
+            leafletRoutePoints = [];
+
+            const banner = document.getElementById('mapRouteBanner');
+            if (banner) banner.classList.add('d-none');
+        }
     </script>
 @endif
 @endpush

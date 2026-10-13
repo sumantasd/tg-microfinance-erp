@@ -1,7 +1,7 @@
-// TG Microfinance ERP - Admin JS Interactions
+// Grihalaxmi Finance ERP - Mobile-First Admin Interactions & Polish
 
 document.addEventListener('DOMContentLoaded', () => {
-    // Sidebar Mobile Toggle
+    // 1. Sidebar Mobile Toggle (Desktop fallback)
     const sidebarToggler = document.getElementById('sidebar-toggler');
     const adminSidebar = document.getElementById('admin-sidebar');
 
@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Fullscreen Toggle Button
+    // 2. Fullscreen Toggle Button
     const fullscreenBtn = document.getElementById('btn-fullscreen-toggle');
     if (fullscreenBtn) {
         fullscreenBtn.addEventListener('click', (e) => {
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // Global Search Shortcut Focus (Ctrl + K)
+    // 3. Global Search Shortcut Focus (Ctrl + K)
     const globalSearchInput = document.getElementById('global-search-input');
     if (globalSearchInput) {
         document.addEventListener('keydown', (e) => {
@@ -39,4 +39,53 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         });
     }
+
+    // 4. Smooth Anchor Scrolling for Duty Tracker Card (#employeeDutyTrackerCard)
+    const dutyLinks = document.querySelectorAll('a[href*="#employeeDutyTrackerCard"], .mobile-nav-duty-trigger');
+    dutyLinks.forEach(link => {
+        link.addEventListener('click', (e) => {
+            const dutyCard = document.getElementById('employeeDutyTrackerCard');
+            if (dutyCard) {
+                // If we're already on the dashboard page, smooth scroll directly to it
+                if (window.location.pathname === '/admin' || window.location.pathname === '/admin/dashboard') {
+                    e.preventDefault();
+                    dutyCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                    // Visual pulse feedback
+                    dutyCard.classList.add('shadow-lg', 'border', 'border-primary');
+                    setTimeout(() => {
+                        dutyCard.classList.remove('shadow-lg', 'border', 'border-primary');
+                    }, 1800);
+                }
+            }
+        });
+    });
+
+    // Check if initial load has #employeeDutyTrackerCard hash
+    if (window.location.hash === '#employeeDutyTrackerCard') {
+        const dutyCard = document.getElementById('employeeDutyTrackerCard');
+        if (dutyCard) {
+            setTimeout(() => {
+                dutyCard.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                dutyCard.classList.add('shadow-lg', 'border', 'border-primary');
+                setTimeout(() => dutyCard.classList.remove('shadow-lg', 'border', 'border-primary'), 1800);
+            }, 300);
+        }
+    }
+
+    // 5. Mobile Data Table Scroll Shadow Indicator Hint
+    const responsiveTables = document.querySelectorAll('.table-responsive');
+    responsiveTables.forEach(wrapper => {
+        const checkScroll = () => {
+            const maxScrollLeft = wrapper.scrollWidth - wrapper.clientWidth;
+            if (maxScrollLeft > 10) {
+                if (wrapper.scrollLeft < maxScrollLeft - 5) {
+                    wrapper.style.boxShadow = 'inset -10px 0 8px -8px rgba(10, 30, 54, 0.15)';
+                } else {
+                    wrapper.style.boxShadow = 'none';
+                }
+            }
+        };
+        wrapper.addEventListener('scroll', checkScroll, { passive: true });
+        checkScroll();
+    });
 });

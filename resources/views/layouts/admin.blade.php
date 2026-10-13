@@ -2,8 +2,14 @@
 <html lang="{{ str_replace('_', '-', app()->getLocale()) }}">
 <head>
     <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
     <meta name="csrf-token" content="{{ csrf_token() }}">
+    <meta name="theme-color" content="#0a1e36">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Grihalaxmi ERP">
+    <meta name="format-detection" content="telephone=no">
+    <meta name="mobile-web-app-capable" content="yes">
     <title>@yield('title', 'Admin Panel - TG Microfinance ERP')</title>
 
     <!-- Fonts -->
@@ -49,18 +55,21 @@
     }
     </style>
 
-    <!-- Critical Fixed Mobile Header & Bottom Nav CSS (Guarantees zero-underlines and fixed positioning across all viewports) -->
+    <!-- Critical Mobile App-Like Header, Bottom Nav & Zero-Overflow CSS -->
     <style id="mobile-fixed-nav-critical-css">
     @media (max-width: 767.98px) {
         html, body {
             max-width: 100vw !important;
-            overflow-x: hidden !important;
+            overflow-x: clip !important;
+            -webkit-tap-highlight-color: transparent !important;
+            touch-action: manipulation;
         }
 
         body.admin-body {
-            padding-top: 60px !important;
-            padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)) !important;
+            padding-top: calc(58px + env(safe-area-inset-top, 0px)) !important;
+            padding-bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
             position: relative !important;
+            background-color: #f8fafc !important;
         }
 
         #mobile-app-fixed-header {
@@ -69,15 +78,20 @@
             left: 0 !important;
             right: 0 !important;
             width: 100vw !important;
-            height: 60px !important;
+            height: calc(58px + env(safe-area-inset-top, 0px)) !important;
+            padding-top: env(safe-area-inset-top, 0px) !important;
             z-index: 1040 !important;
-            background-color: #ffffff !important;
-            border-bottom: 1px solid #e2e8f0 !important;
-            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04) !important;
-            padding: 0 12px !important;
+            background: rgba(255, 255, 255, 0.96) !important;
+            -webkit-backdrop-filter: blur(16px) !important;
+            backdrop-filter: blur(16px) !important;
+            border-bottom: 1px solid rgba(226, 232, 240, 0.9) !important;
+            box-shadow: 0 2px 10px rgba(10, 30, 54, 0.05) !important;
+            padding-left: 12px !important;
+            padding-right: 12px !important;
             display: flex !important;
             align-items: center !important;
             justify-content: space-between !important;
+            transition: all 0.2s ease !important;
         }
 
         #admin-topbar {
@@ -88,7 +102,7 @@
             margin-left: 0 !important;
             width: 100% !important;
             max-width: 100vw !important;
-            overflow-x: hidden !important;
+            overflow-x: clip !important;
             padding-top: 0 !important;
         }
 
@@ -99,9 +113,11 @@
             bottom: 0 !important;
             width: 100vw !important;
             z-index: 1045 !important;
-            background-color: #ffffff !important;
-            border-top: 1px solid #e2e8f0 !important;
-            box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.06) !important;
+            background: rgba(255, 255, 255, 0.96) !important;
+            -webkit-backdrop-filter: blur(20px) !important;
+            backdrop-filter: blur(20px) !important;
+            border-top: 1px solid rgba(226, 232, 240, 0.95) !important;
+            box-shadow: 0 -4px 20px rgba(10, 30, 54, 0.08) !important;
             height: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
             padding-bottom: env(safe-area-inset-bottom, 0px) !important;
             display: flex !important;
@@ -125,10 +141,20 @@
             flex: 1 1 0% !important;
             min-width: 0 !important;
             height: 100% !important;
-            padding: 4px 0 !important;
+            min-height: 48px !important;
+            padding: 3px 0 !important;
             margin: 0 !important;
             font-family: inherit !important;
             white-space: nowrap !important;
+            transition: color 0.15s ease, transform 0.12s ease !important;
+            user-select: none !important;
+            -webkit-user-select: none !important;
+            -webkit-tap-highlight-color: transparent !important;
+            touch-action: manipulation !important;
+        }
+
+        .mobile-bottom-nav .mobile-nav-item:active {
+            transform: scale(0.92) !important;
         }
 
         .mobile-bottom-nav a:hover,
@@ -140,28 +166,80 @@
             color: #64748b !important;
         }
 
+        .mobile-bottom-nav .nav-icon-pill {
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            width: 44px !important;
+            height: 28px !important;
+            border-radius: 14px !important;
+            margin-bottom: 2px !important;
+            transition: background-color 0.2s ease, transform 0.15s ease !important;
+        }
+
+        .mobile-bottom-nav .nav-icon-svg {
+            width: 22px !important;
+            height: 22px !important;
+            stroke: #64748b !important;
+            transition: all 0.2s ease !important;
+            display: block !important;
+        }
+
         .mobile-bottom-nav .mobile-nav-item i {
             font-size: 20px !important;
             margin-bottom: 2px !important;
             line-height: 1 !important;
             color: #64748b !important;
+            transition: all 0.2s ease !important;
         }
 
         .mobile-bottom-nav .mobile-nav-item span {
-            font-size: 11px !important;
+            font-size: 10.5px !important;
             font-weight: 600 !important;
-            line-height: 1 !important;
+            line-height: 1.1 !important;
             color: #64748b !important;
+            letter-spacing: -0.2px !important;
+            white-space: nowrap !important;
+            overflow: hidden !important;
+            text-overflow: ellipsis !important;
+            max-width: 100% !important;
+            padding: 0 2px !important;
+            transition: color 0.15s ease, font-weight 0.15s ease !important;
         }
 
         .mobile-bottom-nav .mobile-nav-item.active {
             color: #2563eb !important;
         }
 
+        .mobile-bottom-nav .mobile-nav-item.active .nav-icon-pill {
+            background-color: #eff6ff !important;
+            color: #2563eb !important;
+        }
+
+        .mobile-bottom-nav .mobile-nav-item.active .nav-icon-svg {
+            stroke: #2563eb !important;
+            transform: scale(1.05) !important;
+        }
+
         .mobile-bottom-nav .mobile-nav-item.active i,
         .mobile-bottom-nav .mobile-nav-item.active span {
             color: #2563eb !important;
             font-weight: 700 !important;
+        }
+
+        @media (max-width: 360px) {
+            .mobile-bottom-nav .nav-icon-pill {
+                width: 38px !important;
+                height: 26px !important;
+            }
+            .mobile-bottom-nav .nav-icon-svg {
+                width: 20px !important;
+                height: 20px !important;
+            }
+            .mobile-bottom-nav .mobile-nav-item span {
+                font-size: 9.5px !important;
+                letter-spacing: -0.3px !important;
+            }
         }
     }
 

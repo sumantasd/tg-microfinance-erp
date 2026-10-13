@@ -115,17 +115,35 @@ class User extends Authenticatable
     public function resolveEmployeeProfile(): ?Employee
     {
         // 1. Direct relationship via employees.user_id
-        if ($this->employee) {
-            return $this->employee;
+        if ($this->relationLoaded('employee')) {
+            if ($this->employee && (int) $this->employee->user_id === (int) $this->id) {
+                return $this->employee;
+            }
+        } else {
+            $directEmployee = $this->employee()->first();
+            if ($directEmployee) {
+                return $directEmployee;
+            }
         }
 
         // 2. Lookup via users.employee_id (code or integer ID)
         if (!empty($this->employee_id)) {
-            $employee = Employee::where('employee_code', $this->employee_id)
-                ->orWhere('id', $this->employee_id)
-                ->first();
+            $employee = Employee::where(function ($q) {
+                $q->where('employee_code', $this->employee_id)
+                  ->orWhere('id', $this->employee_id);
+            })->first();
 
             if ($employee) {
+                // Prevent hijacking another user's employee profile
+                if (!empty($employee->user_id) && (int) $employee->user_id !== (int) $this->id) {
+                    return null;
+                }
+
+                // Verify branch match if user has branch assignment
+                if (!empty($this->branch_id) && !empty($employee->branch_id) && (int) $this->branch_id !== (int) $employee->branch_id) {
+                    return null;
+                }
+
                 if (empty($employee->user_id)) {
                     $employee->update(['user_id' => $this->id]);
                 }
@@ -137,6 +155,16 @@ class User extends Authenticatable
         if (!empty($this->email)) {
             $employee = Employee::where('email', $this->email)->first();
             if ($employee) {
+                // Prevent hijacking another user's employee profile
+                if (!empty($employee->user_id) && (int) $employee->user_id !== (int) $this->id) {
+                    return null;
+                }
+
+                // Verify branch match if user has branch assignment
+                if (!empty($this->branch_id) && !empty($employee->branch_id) && (int) $this->branch_id !== (int) $employee->branch_id) {
+                    return null;
+                }
+
                 if (empty($employee->user_id)) {
                     $employee->update(['user_id' => $this->id]);
                 }
@@ -148,6 +176,14 @@ class User extends Authenticatable
         }
 
         return null;
+    }
+
+    /**
+     * Check if user has an associated Employee profile.
+     */
+    public function hasEmployeeProfile(): bool
+    {
+        return $this->resolveEmployeeProfile() !== null;
     }
 
     /**

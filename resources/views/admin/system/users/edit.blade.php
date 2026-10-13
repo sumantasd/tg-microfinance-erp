@@ -91,6 +91,81 @@
                 <input type="password" name="password" class="form-control bg-light" placeholder="••••••••">
             </div>
 
+            <div class="col-12 mt-4 pt-3 border-top">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-person-badge text-primary me-1"></i> Employee Profile Mapping
+                    </h6>
+                    @if($linkedEmployee)
+                        <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-3 py-1.5 font-monospace">
+                            <i class="bi bi-check-circle-fill me-1"></i>Linked: {{ $linkedEmployee->employee_code }}
+                        </span>
+                    @else
+                        <span class="badge bg-warning-subtle text-warning border border-warning-subtle rounded-pill px-3 py-1.5 font-monospace">
+                            <i class="bi bi-exclamation-triangle-fill me-1"></i>No Linked Employee Profile
+                        </span>
+                    @endif
+                </div>
+                <p class="text-muted small mb-3">Ensure this user account is linked to an active Employee profile to enable the Employee Duty & Live Attendance tracker.</p>
+
+                @if($linkedEmployee)
+                    <div class="card bg-light border p-3 rounded-3 mb-3">
+                        <div class="row g-2 align-items-center">
+                            <div class="col-md-4">
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">EMPLOYEE NAME & CODE</small>
+                                <strong class="text-dark">{{ $linkedEmployee->full_name }}</strong>
+                                <span class="badge bg-secondary font-monospace ms-1">{{ $linkedEmployee->employee_code }}</span>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">DESIGNATION</small>
+                                <span>{{ $linkedEmployee->designation?->title ?? 'N/A' }}</span>
+                            </div>
+                            <div class="col-md-3">
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">ASSIGNED BRANCH</small>
+                                <span>{{ $linkedEmployee->branch?->name ?? 'N/A' }}</span>
+                            </div>
+                            <div class="col-md-2 text-md-end">
+                                <div class="form-check form-check-inline mb-0">
+                                    <input class="form-check-input" type="checkbox" name="unlink_employee" value="1" id="unlinkEmployeeCheckbox">
+                                    <label class="form-check-label text-danger small fw-bold" for="unlinkEmployeeCheckbox">
+                                        Unlink Profile
+                                    </label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                @endif
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-secondary">
+                    {{ $linkedEmployee ? 'Reassign to Different Employee' : 'Link to Existing Employee' }}
+                </label>
+                <select name="employee_record_id" id="employeeRecordSelect" class="form-select bg-light">
+                    <option value="">-- {{ $linkedEmployee ? 'Keep Current Profile' : 'Select Employee Profile...' }} --</option>
+                    @foreach($availableEmployees as $emp)
+                        <option value="{{ $emp->id }}" data-branch="{{ $emp->branch_id }}" {{ old('employee_record_id') == $emp->id || ($linkedEmployee && $linkedEmployee->id == $emp->id && !old('employee_record_id')) ? 'selected' : '' }}>
+                            {{ $emp->full_name }} ({{ $emp->employee_code }}) - {{ $emp->branch?->name ?? 'No Branch' }}
+                        </option>
+                    @endforeach
+                </select>
+                <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Only active unlinked employees are available for reassignment.</small>
+            </div>
+
+            @if(!$linkedEmployee)
+                <div class="col-md-6 d-flex align-items-center">
+                    <div class="form-check form-switch mt-3">
+                        <input class="form-check-input" type="checkbox" name="auto_create_employee" value="1" id="autoCreateEmployeeCheckbox" {{ old('auto_create_employee', true) ? 'checked' : '' }}>
+                        <label class="form-check-label small fw-bold text-dark" for="autoCreateEmployeeCheckbox">
+                            Auto-create and link Employee profile
+                        </label>
+                        <small class="text-muted d-block" style="font-size: 0.75rem;">
+                            Provisions an Employee record with this user's details and assigns default designation.
+                        </small>
+                    </div>
+                </div>
+            @endif
+
             <div class="col-12 pt-3 border-top d-flex gap-2">
                 <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
                     <i class="bi bi-check-circle me-1"></i> Update User Account

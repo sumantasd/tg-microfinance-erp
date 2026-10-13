@@ -51,7 +51,7 @@ class EmployeeController extends Controller
         $departments = Department::where('is_active', true)->get();
         $designations = Designation::where('is_active', true)->get();
         $managers = Employee::where('status', 'active')->get();
-        $users = User::where('status', 'active')->get();
+        $users = User::whereDoesntHave('employee')->where('status', 'active')->orderBy('name')->get();
         $roles = \Spatie\Permission\Models\Role::all();
 
         return view('admin.employees.create', compact('companies', 'branches', 'departments', 'designations', 'managers', 'users', 'roles'));
@@ -91,8 +91,12 @@ class EmployeeController extends Controller
         $branches = Branch::where('is_active', true)->get();
         $departments = Department::where('is_active', true)->get();
         $designations = Designation::where('is_active', true)->get();
-        $managers = Employee::where('status', 'active')->where('id', '!=', $employee->id)->get();
-        $users = User::where('status', 'active')->get();
+        $users = User::where(function ($q) use ($employee) {
+            $q->whereDoesntHave('employee');
+            if ($employee->user_id) {
+                $q->orWhere('id', $employee->user_id);
+            }
+        })->where('status', 'active')->orderBy('name')->get();
         $roles = \Spatie\Permission\Models\Role::all();
 
         return view('admin.employees.edit', compact('employee', 'companies', 'branches', 'departments', 'designations', 'managers', 'users', 'roles'));

@@ -31,6 +31,23 @@ class StoreUserRequest extends FormRequest
                 'integer',
                 Rule::exists('branches', 'id')->where('is_active', true),
             ],
+            'employee_record_id' => [
+                'nullable',
+                'integer',
+                'exists:employees,id',
+                function ($attribute, $value, $fail) {
+                    if ($value) {
+                        $employee = \App\Models\Employee::find($value);
+                        if ($employee && !empty($employee->user_id)) {
+                            $fail('The selected employee profile is already linked to another user account.');
+                        }
+                        if ($employee && $this->input('branch_id') && (int) $employee->branch_id !== (int) $this->input('branch_id')) {
+                            $fail('The selected employee profile belongs to a different branch than the user.');
+                        }
+                    }
+                },
+            ],
+            'auto_create_employee' => ['nullable', 'boolean'],
         ];
     }
 

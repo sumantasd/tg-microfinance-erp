@@ -147,6 +147,14 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     Route::get('/dashboard', [DashboardController::class, 'index']);
     Route::get('/search', [GlobalSearchController::class, 'search'])->name('admin.search');
 
+    // Staff Daily Duty, Attendance & GPS Tracking Routes
+    Route::prefix('duty')->name('admin.duty.')->group(function () {
+        Route::get('/status', [\App\Http\Controllers\Admin\StaffDutyController::class, 'status'])->name('status');
+        Route::post('/check-in', [\App\Http\Controllers\Admin\StaffDutyController::class, 'checkIn'])->name('check-in');
+        Route::post('/check-out', [\App\Http\Controllers\Admin\StaffDutyController::class, 'checkOut'])->name('check-out');
+        Route::post('/ping', [\App\Http\Controllers\Admin\StaffDutyController::class, 'ping'])->name('ping');
+    });
+
     // Profile Management Routes
     Route::get('/profile', [ProfileController::class, 'show'])->name('admin.profile.show');
     Route::put('/profile', [ProfileController::class, 'updateProfile'])->name('admin.profile.update');
@@ -186,6 +194,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
             Route::post('/users', [UserController::class, 'store'])->name('admin.system.users.store')->middleware('can:users.create');
             Route::get('/users/{user}/edit', [UserController::class, 'edit'])->name('admin.system.users.edit')->middleware('can:users.edit');
             Route::put('/users/{user}', [UserController::class, 'update'])->name('admin.system.users.update')->middleware('can:users.edit');
+            Route::post('/users/{user}/link-employee', [UserController::class, 'linkEmployeeProfile'])->name('admin.system.users.link-employee')->middleware('can:users.edit');
             Route::patch('/users/{user}/toggle-status', [UserController::class, 'toggleStatus'])->name('admin.system.users.toggle-status')->middleware('can:users.toggle_status');
             Route::delete('/users/{user}', [UserController::class, 'destroy'])->name('admin.system.users.destroy')->middleware('can:users.delete');
         });

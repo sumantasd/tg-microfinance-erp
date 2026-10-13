@@ -50,11 +50,14 @@ class EmployeeService
 
         $employee = $this->employeeRepository->create($data);
 
-        // Assign role to linked User if selected
-        if (!empty($data['user_id']) && !empty($data['role'])) {
+        // Synchronize linked User account
+        if (!empty($data['user_id'])) {
             $linkedUser = User::find($data['user_id']);
             if ($linkedUser) {
-                $linkedUser->syncRoles([$data['role']]);
+                if (!empty($data['role'])) {
+                    $linkedUser->syncRoles([$data['role']]);
+                }
+                $linkedUser->update(['employee_id' => $employee->employee_code]);
             }
         }
 
@@ -102,11 +105,23 @@ class EmployeeService
 
         $updatedEmployee = $this->employeeRepository->update($employee, $data);
 
-        // Update role on linked user
-        if (!empty($data['user_id']) && !empty($data['role'])) {
-            $linkedUser = User::find($data['user_id']);
-            if ($linkedUser) {
-                $linkedUser->syncRoles([$data['role']]);
+        // Synchronize user linkage
+        if (array_key_exists('user_id', $data)) {
+            $oldUserId = $employee->user_id;
+            $newUserId = !empty($data['user_id']) ? (int) $data['user_id'] : null;
+
+            if ($oldUserId && $oldUserId !== $newUserId) {
+                User::where('id', $oldUserId)->where('employee_id', $employee->employee_code)->update(['employee_id' => null]);
+            }
+
+            if ($newUserId) {
+                $linkedUser = User::find($newUserId);
+                if ($linkedUser) {
+                    $linkedUser->update(['employee_id' => $updatedEmployee->employee_code]);
+                    if (!empty($data['role'])) {
+                        $linkedUser->syncRoles([$data['role']]);
+                    }
+                }
             }
         }
 

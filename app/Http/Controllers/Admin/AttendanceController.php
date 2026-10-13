@@ -25,9 +25,10 @@ class AttendanceController extends Controller
 
         $filters = $request->only(['company_id', 'branch_id', 'date', 'status', 'search']);
         if (auth()->user()?->hasRole('Branch Manager')) {
-            $empId = auth()->user()->employee?->id;
+            $emp = auth()->user()->resolveEmployeeProfile();
+            $empId = $emp?->id;
             $filters['employee_id'] = $empId;
-            $employees = Employee::where('id', $empId)->get();
+            $employees = $emp ? Employee::where('id', $empId)->get() : collect();
         } else {
             $employees = Employee::where('status', 'active')->get();
         }

@@ -64,22 +64,244 @@
     </div>
 </div>
 
+@push('styles')
+<style>
+/* Responsive Quick Customer & Loan Search */
+.collection-search-card {
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.collection-search-form {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.collection-search-header {
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.collection-scan-btn {
+    font-size: 0.8125rem;
+    min-height: 38px;
+    touch-action: manipulation;
+    white-space: nowrap;
+}
+
+.collection-search-container {
+    display: flex;
+    width: 100%;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.collection-search-input-wrap {
+    position: relative;
+    box-sizing: border-box;
+    min-width: 0;
+}
+
+.collection-search-input {
+    width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box !important;
+    height: 48px !important;
+    padding-left: 2.75rem !important;
+    padding-right: 1rem !important;
+    border: 1.5px solid #cbd5e1 !important;
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out !important;
+}
+
+.collection-search-input:focus {
+    border-color: #2563eb !important;
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15) !important;
+    outline: none !important;
+    width: 100% !important;
+    min-width: 0 !important;
+}
+
+.collection-search-submit-btn {
+    min-height: 48px !important;
+    font-size: 0.95rem !important;
+    font-weight: 600 !important;
+    touch-action: manipulation !important;
+    white-space: nowrap !important;
+    box-sizing: border-box !important;
+}
+
+.collection-search-hint {
+    font-size: 0.75rem !important;
+    line-height: 1.4 !important;
+    color: #64748b !important;
+}
+
+/* Mobile screens (< 576px): Clean 100% stacked rows */
+@media (max-width: 575.98px) {
+    .collection-search-header {
+        flex-direction: column !important;
+        align-items: stretch !important;
+        gap: 8px !important;
+    }
+
+    .collection-scan-btn {
+        width: 100% !important;
+        min-height: 40px !important;
+    }
+
+    .collection-search-container {
+        flex-direction: column !important;
+        gap: 10px !important;
+    }
+
+    .collection-search-input-wrap {
+        width: 100% !important;
+        flex: 1 1 100% !important;
+    }
+
+    .collection-search-input {
+        width: 100% !important;
+        border-radius: 10px !important;
+        font-size: 16px !important; /* Critical to prevent iOS mobile browser auto-zoom */
+    }
+
+    .collection-search-submit-btn {
+        width: 100% !important;
+        border-radius: 10px !important;
+        min-height: 48px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+    }
+}
+
+/* Desktop screens (>= 576px): Joined horizontal row */
+@media (min-width: 576px) {
+    .collection-search-header {
+        flex-direction: row !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+    }
+
+    .collection-scan-btn {
+        width: auto !important;
+    }
+
+    .collection-search-container {
+        flex-direction: row !important;
+        align-items: stretch !important;
+        gap: 0 !important;
+    }
+
+    .collection-search-input-wrap {
+        flex: 1 1 auto !important;
+    }
+
+    .collection-search-input {
+        border-top-right-radius: 0 !important;
+        border-bottom-right-radius: 0 !important;
+        border-top-left-radius: 10px !important;
+        border-bottom-left-radius: 10px !important;
+        font-size: 0.9375rem !important;
+    }
+
+    .collection-search-submit-btn {
+        width: auto !important;
+        border-top-left-radius: 0 !important;
+        border-bottom-left-radius: 0 !important;
+        border-top-right-radius: 10px !important;
+        border-bottom-right-radius: 10px !important;
+        padding-left: 1.5rem !important;
+        padding-right: 1.5rem !important;
+    }
+}
+</style>
+@endpush
+
 <!-- Prominent Customer & Loan Search Card -->
-<x-ui.card class="p-4 shadow-sm border-0 mb-4 bg-white">
-    <form method="GET" action="{{ route('admin.emi-collection.index') }}">
-        <label class="form-label fw-bold text-dark fs-6 mb-2">
-            <i class="bi bi-search text-primary me-1"></i> Quick Customer & Loan Search
-        </label>
-        <div class="input-group input-group-lg">
-            <span class="input-group-text bg-white border-end-0"><i class="bi bi-person-bounding-box text-muted"></i></span>
-            <input type="text" name="search" class="form-control border-start-0 font-monospace" placeholder="Enter Mobile Number (e.g. 7029737769), Customer Code, Loan #, Group..." value="{{ $searchTerm }}" autofocus required>
-            <button type="submit" class="btn btn-primary px-4 fw-bold"><i class="bi bi-search me-1"></i> Search Customer</button>
+<x-ui.card class="p-3 p-sm-4 shadow-sm border-0 mb-4 bg-white collection-search-card">
+    <form method="GET" action="{{ route('admin.emi-collection.index') }}" class="collection-search-form m-0">
+        <!-- Heading & Compact Scan Action Row -->
+        <div class="collection-search-header d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 mb-2.5">
+            <label for="collectionSearchInput" class="form-label fw-bold text-dark fs-6 mb-0 d-flex align-items-center gap-1.5">
+                <i class="bi bi-search text-primary"></i> Quick Customer &amp; Loan Search
+            </label>
+            <button type="button"
+                    class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 fw-semibold d-inline-flex align-items-center justify-content-center gap-1.5 shadow-2xs collection-scan-btn"
+                    id="btnScanCustomerQr"
+                    data-bs-toggle="modal"
+                    data-bs-target="#scanCustomerQrModal">
+                <i class="bi bi-qr-code-scan"></i> Scan QR / Card
+            </button>
         </div>
-        <div class="form-text mt-2 small text-muted">
+
+        <!-- Responsive Search Controls: Horizontal on Desktop (>=576px), Stacked 100% on Mobile (<576px) -->
+        <div class="collection-search-container">
+            <div class="collection-search-input-wrap position-relative">
+                <span class="position-absolute top-50 start-0 translate-middle-y ps-3 text-muted" style="pointer-events: none; z-index: 5;">
+                    <i class="bi bi-person-bounding-box text-primary fs-6"></i>
+                </span>
+                <input type="text"
+                       id="collectionSearchInput"
+                       name="search"
+                       class="form-control font-monospace collection-search-input"
+                       placeholder="Enter mobile, customer name, loan or member ID"
+                       value="{{ $searchTerm }}"
+                       autocomplete="off"
+                       autofocus
+                       required>
+            </div>
+            <button type="submit" class="btn btn-primary fw-bold collection-search-submit-btn">
+                <i class="bi bi-search me-1"></i> Search Customer
+            </button>
+        </div>
+
+        <!-- Descriptive Helper Text -->
+        <div class="form-text mt-2 small text-muted collection-search-hint">
             Search by Customer Mobile Number, Customer Code, Member ID, Customer Name, Loan Account Number, or Group Code.
         </div>
     </form>
 </x-ui.card>
+
+<!-- QR / Member Card Scanner Modal -->
+<div class="modal fade" id="scanCustomerQrModal" tabindex="-1" aria-labelledby="scanCustomerQrModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow-lg rounded-4">
+            <div class="modal-header bg-light border-bottom py-3 px-4">
+                <h6 class="modal-title fw-bold font-heading d-flex align-items-center gap-2" id="scanCustomerQrModalLabel">
+                    <i class="bi bi-qr-code-scan text-primary"></i> Scan Member Passbook / Card
+                </h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4 text-center">
+                <div class="p-4 bg-light rounded-4 border border-dashed mb-3 d-flex flex-column align-items-center justify-content-center" style="min-height: 180px;">
+                    <i class="bi bi-camera fs-1 text-primary opacity-75 mb-2"></i>
+                    <p class="small text-muted mb-0">Align member QR code or barcode within camera frame to scan instantly</p>
+                </div>
+                <div class="input-group">
+                    <input type="text" id="manualQrInput" class="form-control font-monospace" placeholder="Or enter scanned code manually...">
+                    <button type="button" class="btn btn-primary fw-semibold" onclick="applyScannedCode()">Apply</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function applyScannedCode() {
+    const val = document.getElementById('manualQrInput').value.trim();
+    if (val) {
+        const searchInput = document.getElementById('collectionSearchInput');
+        if (searchInput) {
+            searchInput.value = val;
+            const modalEl = document.getElementById('scanCustomerQrModal');
+            const modalInstance = bootstrap.Modal.getInstance(modalEl);
+            if (modalInstance) modalInstance.hide();
+            searchInput.form.submit();
+        }
+    }
+}
+</script>
 
 <!-- Search Results Section -->
 @if($searchTerm !== '')

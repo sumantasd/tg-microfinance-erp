@@ -92,6 +92,38 @@
                 <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Minimum 8 chars, uppercase, lowercase, number, special char.</small>
             </div>
 
+            <div class="col-12 mt-4 pt-3 border-top">
+                <h6 class="fw-bold text-dark mb-1">
+                    <i class="bi bi-person-badge text-primary me-1"></i> Employee Profile Association
+                </h6>
+                <p class="text-muted small mb-3">Link this staff login account with an active employee record for attendance, duty tracking, and payroll.</p>
+            </div>
+
+            <div class="col-md-6">
+                <label class="form-label small fw-bold text-secondary">Link to Existing Unlinked Employee</label>
+                <select name="employee_record_id" id="employeeRecordSelect" class="form-select bg-light">
+                    <option value="">-- No Existing Employee (Or Auto-Create Below) --</option>
+                    @foreach($unlinkedEmployees as $emp)
+                        <option value="{{ $emp->id }}" data-branch="{{ $emp->branch_id }}" {{ old('employee_record_id') == $emp->id ? 'selected' : '' }}>
+                            {{ $emp->full_name }} ({{ $emp->employee_code }}) - {{ $emp->branch?->name ?? 'No Branch' }}
+                        </option>
+                    @endforeach
+                </select>
+                <small class="text-muted d-block mt-1" style="font-size: 0.75rem;">Only active employees without an existing user account are shown.</small>
+            </div>
+
+            <div class="col-md-6 d-flex align-items-center">
+                <div class="form-check form-switch mt-3">
+                    <input class="form-check-input" type="checkbox" name="auto_create_employee" value="1" id="autoCreateEmployeeCheckbox" {{ old('auto_create_employee', true) ? 'checked' : '' }}>
+                    <label class="form-check-label small fw-bold text-dark" for="autoCreateEmployeeCheckbox">
+                        Auto-create Employee Profile if no record selected
+                    </label>
+                    <small class="text-muted d-block" style="font-size: 0.75rem;">
+                        Automatically provisions an Employee record matching this user's name, email, branch, and role. Recommended for Branch Managers.
+                    </small>
+                </div>
+            </div>
+
             <div class="col-12 pt-3 border-top d-flex gap-2">
                 <button type="submit" class="btn btn-primary rounded-pill px-4 py-2 fw-bold shadow-sm">
                     <i class="bi bi-check-circle me-1"></i> Save User Account

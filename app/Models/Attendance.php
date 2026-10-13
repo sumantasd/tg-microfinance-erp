@@ -17,6 +17,8 @@ class Attendance extends Model
         'attendance_date',
         'clock_in',
         'clock_out',
+        'working_duration_minutes',
+        'working_duration_hours',
         'status',
         'remarks',
         'created_by',
@@ -27,7 +29,49 @@ class Attendance extends Model
     {
         return [
             'attendance_date' => 'date',
+            'working_duration_minutes' => 'integer',
+            'working_duration_hours' => 'float',
         ];
+    }
+
+    /**
+     * Check if this attendance is currently active (checked in, not yet checked out).
+     */
+    public function isActive(): bool
+    {
+        return !empty($this->clock_in) && empty($this->clock_out);
+    }
+
+    /**
+     * Check if this attendance shift has completed (both clock in and clock out recorded).
+     */
+    public function isCompleted(): bool
+    {
+        return !empty($this->clock_in) && !empty($this->clock_out);
+    }
+
+    /**
+     * Formatted working duration (e.g., '8 hrs 24 mins').
+     */
+    public function getFormattedDurationAttribute(): ?string
+    {
+        if ($this->working_duration_minutes !== null) {
+            $hours = intdiv($this->working_duration_minutes, 60);
+            $mins = $this->working_duration_minutes % 60;
+            return "{$hours} hrs {$mins} mins";
+        }
+
+        if (!empty($this->clock_in) && !empty($this->clock_out)) {
+            $date = $this->attendance_date?->format('Y-m-d') ?? now()->toDateString();
+            $in = \Carbon\Carbon::parse("{$date} {$this->clock_in}");
+            $out = \Carbon\Carbon::parse("{$date} {$this->clock_out}");
+            $diffMins = max(0, $in->diffInMinutes($out));
+            $hours = intdiv($diffMins, 60);
+            $mins = $diffMins % 60;
+            return "{$hours} hrs {$mins} mins";
+        }
+
+        return null;
     }
 
     public function company(): BelongsTo

@@ -17,7 +17,7 @@ class AttendanceRepository implements AttendanceRepositoryInterface
 
         if ($user && !$user->isSuperAdmin()) {
             if ($user->hasRole('Branch Manager')) {
-                $empId = $user->employee?->id ?? \App\Models\Employee::where('user_id', $user->id)->orWhere('id', $user->employee_id)->value('id');
+                $empId = $user->resolveEmployeeProfile()?->id;
                 if ($empId) {
                     $query->where('employee_id', $empId);
                 } else {

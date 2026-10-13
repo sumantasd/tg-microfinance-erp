@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
+use App\Services\AttendanceService;
 use App\Services\DashboardService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -11,7 +12,8 @@ use Illuminate\View\View;
 class DashboardController extends Controller
 {
     public function __construct(
-        protected DashboardService $dashboardService
+        protected DashboardService $dashboardService,
+        protected AttendanceService $attendanceService
     ) {}
 
     /**
@@ -28,6 +30,8 @@ class DashboardController extends Controller
         $branchId = $user ? $user->resolveScopedBranchId($requestedBranch) : null;
 
         $data = $this->dashboardService->getDashboardData($companyId, $branchId);
+
+        $data['dutyInfo'] = $user ? $this->attendanceService->getDutyStatusForUser($user) : null;
 
         return view('admin.dashboard', $data);
     }

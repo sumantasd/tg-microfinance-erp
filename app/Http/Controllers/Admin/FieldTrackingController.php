@@ -159,9 +159,30 @@ class FieldTrackingController extends Controller
 
     /**
      * Return JSON route history for map playback & polyline.
+     * Enforces authentication, RBAC, and strict company/branch-level access restrictions.
      */
     public function routeHistory(Request $request, int $userId): JsonResponse
     {
+        $authUser = Auth::user();
+        $targetUser = User::findOrFail($userId);
+
+        // Enforce RBAC and Branch-level isolation
+        if (!$authUser->isSuperAdmin()) {
+            if ($authUser->isCompanyAdmin()) {
+                if ($targetUser->company_id !== $authUser->company_id) {
+                    return response()->json([
+                        'error' => 'Unauthorized: Staff member belongs to a different company.',
+                    ], 403);
+                }
+            } else {
+                if ($targetUser->branch_id !== $authUser->branch_id) {
+                    return response()->json([
+                        'error' => 'Unauthorized: Staff member belongs to a different branch.',
+                    ], 403);
+                }
+            }
+        }
+
         $date = $request->input('date', now()->toDateString());
         $routeData = $this->locationTrackingService->getDailyRoute($userId, $date);
 
