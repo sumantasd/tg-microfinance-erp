@@ -181,8 +181,15 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     Route::middleware('can:bank_deposit.view')->prefix('bank-deposits')->name('admin.bank-deposits.')->group(function () {
         Route::get('/', [\App\Http\Controllers\Admin\BankDepositController::class, 'index'])->name('index');
         Route::post('/', [\App\Http\Controllers\Admin\BankDepositController::class, 'store'])->name('store')->middleware('can:bank_deposit.create');
+        Route::get('/{id}/receipt', [\App\Http\Controllers\Admin\BankDepositController::class, 'showReceipt'])->name('receipt');
         Route::post('/{id}/approve', [\App\Http\Controllers\Admin\BankDepositController::class, 'approve'])->name('approve')->middleware('can:bank_deposit.approve');
         Route::post('/{id}/reject', [\App\Http\Controllers\Admin\BankDepositController::class, 'reject'])->name('reject')->middleware('can:bank_deposit.approve');
+
+        // Admin Bank Account Management Routes inside Bank Deposit Module
+        Route::post('/accounts', [\App\Http\Controllers\Admin\BankDepositController::class, 'storeAccount'])->name('accounts.store');
+        Route::put('/accounts/{id}', [\App\Http\Controllers\Admin\BankDepositController::class, 'updateAccount'])->name('accounts.update');
+        Route::post('/accounts/{id}/toggle-status', [\App\Http\Controllers\Admin\BankDepositController::class, 'toggleAccountStatus'])->name('accounts.toggle-status');
+        Route::delete('/accounts/{id}', [\App\Http\Controllers\Admin\BankDepositController::class, 'destroyAccount'])->name('accounts.destroy');
     });
 
     // System Modules - Real Functional RBAC Routes

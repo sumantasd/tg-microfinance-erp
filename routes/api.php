@@ -188,11 +188,14 @@ Route::prefix('v1')->group(function () {
 
         // Bank Deposits
         Route::middleware(['can:bank_deposit.view'])->group(function () {
+            Route::get('/bank-deposits/accounts', [BankDepositApiController::class, 'accounts']);
             Route::get('/bank-deposits', [BankDepositApiController::class, 'index']);
             Route::get('/bank-deposits/{id}', [BankDepositApiController::class, 'show']);
+            Route::get('/bank-deposits/{id}/receipt', [BankDepositApiController::class, 'receipt']);
         });
         Route::middleware(['can:bank_deposit.create'])->group(function () {
             Route::post('/bank-deposits', [BankDepositApiController::class, 'store']);
+            Route::post('/bank-deposits/{id}/resubmit', [BankDepositApiController::class, 'resubmit']);
         });
         Route::middleware(['can:bank_deposit.approve'])->group(function () {
             Route::post('/bank-deposits/{id}/approve', [BankDepositApiController::class, 'approve']);

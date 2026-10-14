@@ -15,17 +15,24 @@ class BankDeposit extends Model
     protected $fillable = [
         'company_id',
         'branch_id',
+        'bank_account_id',
         'deposit_date',
         'amount',
         'bank_name',
         'account_number',
         'reference_number',
         'description',
+        'receipt_path',
+        'receipt_original_name',
+        'receipt_mime_type',
+        'receipt_size',
         'status',
         'submitted_by',
         'submitted_at',
         'approved_by',
         'approved_at',
+        'rejected_by',
+        'rejected_at',
         'rejection_reason',
     ];
 
@@ -34,6 +41,8 @@ class BankDeposit extends Model
         'amount' => 'decimal:2',
         'submitted_at' => 'datetime',
         'approved_at' => 'datetime',
+        'rejected_at' => 'datetime',
+        'receipt_size' => 'integer',
     ];
 
     public function company(): BelongsTo
@@ -46,6 +55,11 @@ class BankDeposit extends Model
         return $this->belongsTo(Branch::class);
     }
 
+    public function bankAccount(): BelongsTo
+    {
+        return $this->belongsTo(BankAccount::class, 'bank_account_id');
+    }
+
     public function submittedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'submitted_by');
@@ -54,6 +68,32 @@ class BankDeposit extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
+    }
+
+    public function hasReceipt(): bool
+    {
+        return !empty($this->receipt_path);
+    }
+
+    public function getMaskedAccountNumberAttribute(): ?string
+    {
+        $num = $this->account_number ?: ($this->bankAccount ? $this->bankAccount->account_number : null);
+        if (!$num) {
+            return null;
+        }
+
+        $len = strlen($num);
+        return $len > 4 ? str_repeat('•', max(0, $len - 4)) . substr($num, -4) : $num;
+    }
+
+    public function getReceiptUrlAttribute(): string
+    {
+        return route('admin.bank-deposits.receipt', $this->id);
     }
 
     public function scopeForBranch(Builder $query, ?int $branchId): Builder
