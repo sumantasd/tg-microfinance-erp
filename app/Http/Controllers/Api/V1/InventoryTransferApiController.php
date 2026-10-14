@@ -190,13 +190,81 @@ class InventoryTransferApiController extends Controller
             }
         }
 
-        if ($transfer->status !== 'in_transit') {
+        if (!in_array($transfer->status, ['in_transit', 'partially_received'])) {
             return $this->errorResponse('Transfer is not in transit or has already been received.', 422);
         }
 
+        $validated = $request->validate([
+            'notes' => 'nullable|string|max:500',
+            'items' => 'nullable|array',
+            'items.*.transfer_item_id' => 'nullable|integer',
+            'items.*.product_id' => 'nullable|integer',
+            'items.*.good_quantity' => 'nullable|integer|min:0',
+            'items.*.damaged_quantity' => 'nullable|integer|min:0',
+            'items.*.shortage_quantity' => 'nullable|integer|min:0',
+            'items.*.remarks' => 'nullable|string|max:255',
+        ]);
+
         try {
-            $this->transferService->receiveTransfer($transfer);
-            return $this->successResponse($transfer->fresh(['sourceBranch', 'destinationBranch', 'items']), 'Transfer received and stock updated successfully');
+            $itemsPayload = $validated['items'] ?? [];
+            $receiptNotes = $validated['notes'] ?? null;
+            $updated = $this->transferService->receiveTransfer($transfer, $itemsPayload, null, $receiptNotes);
+            return $this->successResponse(
+                $updated->fresh(['sourceBranch', 'destinationBranch', 'items.product', 'receipts.receiver', 'receipts.items.product']),
+                'Transfer receipt processed and stock updated successfully'
+            );
+        } catch (\Throwable $e) {
+            return $this->errorResponse($e->getMessage(), 422);
+        }
+    }
+
+    /**
+     * Cancel remaining pending quantities for an item, category, or transfer.
+     */
+    public function cancelRemaining(Request $request, int $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (!$user->can('inventory.transfer.cancel')) {
+            return $this->errorResponse('Unauthorized to cancel stock transfer items.', 403);
+        }
+
+        $transfer = InventoryTransfer::find($id);
+
+        if (!$transfer) {
+            return $this->errorResponse('Inventory transfer not found', 404);
+        }
+
+        if (!in_array($transfer->status, ['in_transit', 'partially_received', 'discrepancy'])) {
+            return $this->errorResponse('Transfer is not in transit or partially received.', 422);
+        }
+
+        $validated = $request->validate([
+            'cancellation_reason' => 'required|string|min:3|max:500',
+            'scope' => 'required|in:item,category,all',
+            'item_id' => 'required_if:scope,item|nullable|integer',
+            'category_id' => 'required_if:scope,category|nullable|integer',
+            'quantity' => 'nullable|integer|min:1',
+        ]);
+
+        try {
+            $scope = $validated['scope'];
+            $reason = $validated['cancellation_reason'];
+            $userId = $user->id;
+
+            if ($scope === 'category') {
+                $updated = $this->transferService->cancelCategoryRemaining($transfer, (int)$validated['category_id'], $reason, $userId);
+            } elseif ($scope === 'item') {
+                $qty = $validated['quantity'] ?? null;
+                $updated = $this->transferService->cancelRemainingItems($transfer, [(int)$validated['item_id'] => $qty], $reason, $userId);
+            } else {
+                $updated = $this->transferService->cancelAllRemaining($transfer, $reason, $userId);
+            }
+
+            return $this->successResponse(
+                $updated->fresh(['items.product', 'cancellations.canceller', 'cancellations.items.product']),
+                'Transfer pending quantities cancelled successfully'
+            );
         } catch (\Throwable $e) {
             return $this->errorResponse($e->getMessage(), 422);
         }

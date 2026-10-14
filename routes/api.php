@@ -149,6 +149,9 @@ Route::prefix('v1')->group(function () {
         Route::middleware(['can:inventory.transfer.receive'])->group(function () {
             Route::post('/inventory/transfers/{id}/receive', [InventoryTransferApiController::class, 'receive']);
         });
+        Route::middleware(['can:inventory.transfer.cancel'])->group(function () {
+            Route::post('/inventory/transfers/{id}/cancel-remaining', [InventoryTransferApiController::class, 'cancelRemaining']);
+        });
 
         // HRM, Leave & Payroll
         Route::get('/hrm/leave-types', [HrmApiController::class, 'leaveTypes']);

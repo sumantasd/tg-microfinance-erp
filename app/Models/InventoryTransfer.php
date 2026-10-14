@@ -98,4 +98,41 @@ class InventoryTransfer extends Model
     {
         return $this->belongsTo(User::class, 'cancelled_by');
     }
+
+    public function receipts(): HasMany
+    {
+        return $this->hasMany(InventoryTransferReceipt::class, 'transfer_id')->orderBy('id', 'desc');
+    }
+
+    public function cancellations(): HasMany
+    {
+        return $this->hasMany(InventoryTransferCancellation::class, 'transfer_id')->orderBy('id', 'desc');
+    }
+
+    public function getTotalReceivedQuantityAttribute(): int
+    {
+        return (int) $this->items->sum('received_quantity');
+    }
+
+    public function getTotalDamagedQuantityAttribute(): int
+    {
+        return (int) $this->items->sum('damaged_quantity');
+    }
+
+    public function getTotalShortageQuantityAttribute(): int
+    {
+        return (int) $this->items->sum('shortage_quantity');
+    }
+
+    public function getTotalCancelledQuantityAttribute(): int
+    {
+        return (int) $this->items->sum('cancelled_quantity');
+    }
+
+    public function getTotalRemainingQuantityAttribute(): int
+    {
+        return (int) $this->items->sum(function ($item) {
+            return $item->remaining_quantity;
+        });
+    }
 }

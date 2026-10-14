@@ -424,6 +424,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::post('/inventory/transfers/{inventoryTransfer}/dispatch', [InventoryTransferController::class, 'dispatchTransfer'])->name('admin.inventory-transfer.dispatch')->middleware('can:inventory.transfer.dispatch');
         Route::post('/inventory/transfers/{inventoryTransfer}/receive', [InventoryTransferController::class, 'receive'])->name('admin.inventory-transfer.receive')->middleware('can:inventory.transfer.receive');
         Route::post('/inventory/transfers/{inventoryTransfer}/cancel', [InventoryTransferController::class, 'cancel'])->name('admin.inventory-transfer.cancel')->middleware('can:inventory.transfer.cancel');
+        Route::post('/inventory/transfers/{inventoryTransfer}/cancel-remaining', [InventoryTransferController::class, 'cancelRemaining'])->name('admin.inventory-transfer.cancel-remaining')->middleware('can:inventory.transfer.cancel');
     });
 
     // Product Purchase / Procurement Management Routes

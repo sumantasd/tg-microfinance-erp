@@ -70,7 +70,9 @@
                 <option value="requested" {{ ($filters['status'] ?? '') === 'requested' ? 'selected' : '' }}>Requested</option>
                 <option value="approved" {{ ($filters['status'] ?? '') === 'approved' ? 'selected' : '' }}>Approved</option>
                 <option value="in_transit" {{ ($filters['status'] ?? '') === 'in_transit' ? 'selected' : '' }}>In Transit</option>
+                <option value="partially_received" {{ ($filters['status'] ?? '') === 'partially_received' ? 'selected' : '' }}>Partially Received</option>
                 <option value="received" {{ ($filters['status'] ?? '') === 'received' ? 'selected' : '' }}>Received</option>
+                <option value="discrepancy" {{ ($filters['status'] ?? '') === 'discrepancy' ? 'selected' : '' }}>Discrepancy</option>
                 <option value="rejected" {{ ($filters['status'] ?? '') === 'rejected' ? 'selected' : '' }}>Rejected</option>
                 <option value="cancelled" {{ ($filters['status'] ?? '') === 'cancelled' ? 'selected' : '' }}>Cancelled</option>
             </select>
@@ -108,6 +110,11 @@
                 <td class="px-3 py-3 small">
                     <span class="badge bg-light text-dark border">{{ $t->total_items }} Products</span>
                     <span class="badge bg-info-subtle text-info border border-info-subtle ms-1 fw-bold">{{ $t->total_quantity }} Units</span>
+                    @if(in_array($t->status, ['partially_received', 'received']))
+                        <div class="small text-success mt-1 fw-bold">
+                            <i class="bi bi-check2-circle"></i> Recv: {{ $t->total_received_quantity }} / {{ $t->total_quantity }}
+                        </div>
+                    @endif
                 </td>
                 <td class="px-3 py-3 small font-monospace fw-bold text-dark">
                     ₹{{ number_format($t->total_value, 2) }}
@@ -119,7 +126,9 @@
                             'requested' => 'bg-info-subtle text-info border-info-subtle',
                             'approved' => 'bg-primary-subtle text-primary border-primary-subtle',
                             'in_transit' => 'bg-warning-subtle text-dark border-warning-subtle',
+                            'partially_received' => 'bg-warning text-dark fw-bold border-warning',
                             'received' => 'bg-success-subtle text-success border-success-subtle',
+                            'discrepancy' => 'bg-danger-subtle text-danger border-danger-subtle',
                             'rejected', 'cancelled' => 'bg-danger-subtle text-danger border-danger-subtle',
                             default => 'bg-light text-dark'
                         };

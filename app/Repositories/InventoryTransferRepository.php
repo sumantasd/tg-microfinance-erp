@@ -57,7 +57,9 @@ class InventoryTransferRepository implements InventoryTransferRepositoryInterfac
     {
         return InventoryTransfer::with([
             'sourceCompany', 'sourceBranch', 'destinationCompany', 'destinationBranch',
-            'requester', 'approver', 'dispatcher', 'receiver', 'canceller', 'items.product'
+            'requester', 'approver', 'dispatcher', 'receiver', 'canceller',
+            'items.product.categoryRel', 'receipts.receiver', 'receipts.items.product',
+            'cancellations.canceller', 'cancellations.category', 'cancellations.items.product'
         ])->find($id);
     }
 
@@ -84,6 +86,10 @@ class InventoryTransferRepository implements InventoryTransferRepositoryInterfac
                     'transfer_id' => $transfer->id,
                     'product_id' => $item['product_id'],
                     'quantity' => $qty,
+                    'received_quantity' => 0,
+                    'damaged_quantity' => 0,
+                    'shortage_quantity' => 0,
+                    'cancelled_quantity' => 0,
                     'unit_price' => $price,
                     'total_value' => $val,
                 ]);

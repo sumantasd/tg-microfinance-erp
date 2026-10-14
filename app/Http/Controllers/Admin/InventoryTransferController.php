@@ -75,6 +75,11 @@ class InventoryTransferController extends Controller
             abort(403, 'Unauthorized access to stock transfer record belonging to another branch.');
         }
 
+        $inventoryTransfer->load([
+            'sourceBranch', 'destinationBranch', 'requester', 'approver', 'dispatcher', 'receiver', 'canceller',
+            'items.product.categoryRel', 'receipts.receiver', 'receipts.items.product'
+        ]);
+
         return view('admin.inventory.transfers.show', ['transfer' => $inventoryTransfer]);
     }
 
@@ -126,7 +131,7 @@ class InventoryTransferController extends Controller
         return redirect()->back()->with('success', "Transfer '{$inventoryTransfer->transfer_number}' dispatched cleanly. Source stock deducted.");
     }
 
-    public function receive(InventoryTransfer $inventoryTransfer): RedirectResponse
+    public function receive(Request $request, InventoryTransfer $inventoryTransfer): RedirectResponse
     {
         $user = auth()->user();
         if (!$user->isSuperAdmin() && !$user->isCompanyAdmin()) {
@@ -135,12 +140,15 @@ class InventoryTransferController extends Controller
             }
         }
 
-        if ($inventoryTransfer->status !== 'in_transit') {
+        if (!in_array($inventoryTransfer->status, ['in_transit', 'partially_received'])) {
             abort(403, 'Transfer is not in transit or has already been received.');
         }
 
-        $this->transferService->receiveTransfer($inventoryTransfer);
-        return redirect()->back()->with('success', "Transfer '{$inventoryTransfer->transfer_number}' received at destination branch. Stock updated.");
+        $itemsPayload = $request->input('items', []);
+        $receiptNotes = $request->input('notes') ?? $request->input('receipt_notes');
+
+        $this->transferService->receiveTransfer($inventoryTransfer, $itemsPayload, null, $receiptNotes);
+        return redirect()->back()->with('success', "Transfer '{$inventoryTransfer->transfer_number}' receipt processed successfully. Stock updated.");
     }
 
     public function cancel(InventoryTransfer $inventoryTransfer): RedirectResponse
@@ -151,5 +159,54 @@ class InventoryTransferController extends Controller
 
         $this->transferService->cancelTransfer($inventoryTransfer);
         return redirect()->back()->with('success', "Transfer '{$inventoryTransfer->transfer_number}' cancelled.");
+    }
+
+    public function cancelRemaining(Request $request, InventoryTransfer $inventoryTransfer): RedirectResponse
+    {
+        $user = auth()->user();
+        if ($user->hasRole('Branch Manager') && !$user->can('inventory.transfer.cancel')) {
+            abort(403, 'Unauthorized. You do not have permission to cancel transfer items.');
+        }
+
+        $request->validate([
+            'cancellation_reason' => 'required|string|min:3|max:500',
+            'scope' => 'required|in:item,category,all',
+            'item_id' => 'required_if:scope,item|nullable|integer',
+            'category_id' => 'required_if:scope,category|nullable|integer',
+            'quantity' => 'nullable|integer|min:1',
+        ]);
+
+        $scope = $request->input('scope');
+        $reason = $request->input('cancellation_reason');
+        $userId = auth()->id();
+
+        if ($scope === 'category') {
+            $this->transferService->cancelCategoryRemaining(
+                $inventoryTransfer,
+                (int) $request->input('category_id'),
+                $reason,
+                $userId
+            );
+            $msg = "Remaining quantities for the selected category in transfer '{$inventoryTransfer->transfer_number}' were cancelled.";
+        } elseif ($scope === 'item') {
+            $itemId = (int) $request->input('item_id');
+            $qty = $request->filled('quantity') ? (int) $request->input('quantity') : null;
+            $this->transferService->cancelRemainingItems(
+                $inventoryTransfer,
+                [$itemId => $qty],
+                $reason,
+                $userId
+            );
+            $msg = "Remaining quantity for the selected item in transfer '{$inventoryTransfer->transfer_number}' was cancelled.";
+        } else {
+            $this->transferService->cancelAllRemaining(
+                $inventoryTransfer,
+                $reason,
+                $userId
+            );
+            $msg = "All remaining quantities for transfer '{$inventoryTransfer->transfer_number}' were cancelled.";
+        }
+
+        return redirect()->back()->with('success', $msg);
     }
 }
