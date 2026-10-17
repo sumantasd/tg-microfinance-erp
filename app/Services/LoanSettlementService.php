@@ -19,17 +19,20 @@ class LoanSettlementService
     protected PenaltyService $penaltyService;
     protected AccountingService $accountingService;
     protected ActivityLogService $activityLogService;
+    protected ?ProfitLossService $profitLossService;
 
     public function __construct(
         OverdueService $overdueService,
         PenaltyService $penaltyService,
         AccountingService $accountingService,
-        ActivityLogService $activityLogService
+        ActivityLogService $activityLogService,
+        ?ProfitLossService $profitLossService = null
     ) {
         $this->overdueService = $overdueService;
         $this->penaltyService = $penaltyService;
         $this->accountingService = $accountingService;
         $this->activityLogService = $activityLogService;
+        $this->profitLossService = $profitLossService ?? app(ProfitLossService::class);
     }
 
     /**
@@ -568,6 +571,10 @@ class LoanSettlementService
                 'updated_by' => $user->id,
             ]);
 
+            if ($loan->loan_type === 'product') {
+                $this->profitLossService->finalizeProductLoanMargin($loan, $user->id);
+            }
+
             // 4. Post Double-Entry General Ledger Voucher
             $voucher = $this->accountingService->postLoanForeclosure(
                 $repayment,
@@ -693,6 +700,10 @@ class LoanSettlementService
                 'updated_by' => $user->id,
             ]);
 
+            if ($loan->loan_type === 'product') {
+                $this->profitLossService->finalizeProductLoanMargin($loan, $user->id);
+            }
+
             // 4. Post Double-Entry GL Voucher
             $voucher = $this->accountingService->postLoanSettlement($repayment, $loan, $request, $alloc);
 
@@ -758,6 +769,10 @@ class LoanSettlementService
                 'total_outstanding' => 0.00,
                 'updated_by' => $user->id,
             ]);
+
+            if ($loan->loan_type === 'product') {
+                $this->profitLossService->reverseProductLoanMargin($loan, $user->id, 'Bad Debt Principal Write-Off');
+            }
 
             // 3. Post Loss Voucher to GL
             $voucher = $this->accountingService->postLoanWriteOff($loan, $request);

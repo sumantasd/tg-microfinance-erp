@@ -234,7 +234,7 @@
     @endcan
 
     <!-- 9. ACCOUNTING & FINANCE -->
-    @canany(['accounting.view', 'expense.view', 'reports.view'])
+    @canany(['accounting.view', 'expense.view', 'reports.view', 'profit_loss.view'])
     @php
         $isAccountingActive = request()->is('admin/accounting*') || request()->is('admin/expenses*') || request()->is('admin/reports*');
         $accTarget = '#' . $p . 'sidebarAccountingFinanceCollapse';
@@ -247,6 +247,14 @@
     </a>
 
     <div class="collapse sidebar-submenu {{ $isAccountingActive ? 'show' : '' }}" id="{{ $accId }}">
+        @if(!$isBranchManager)
+            @can('profit_loss.view')
+            <a class="sidebar-nav-link {{ request()->is('admin/accounting/profit-loss*') ? 'active' : '' }}" href="{{ route('admin.accounting.profit-loss.index') }}">
+                <i class="bi bi-graph-up-arrow nav-icon text-success"></i>
+                <span>Profit & Loss</span>
+            </a>
+            @endcan
+        @endif
         @can('expense.view')
         <a class="sidebar-nav-link {{ request()->is('admin/expenses*') ? 'active' : '' }}" href="{{ route('admin.expenses.index') }}">
             <i class="bi bi-receipt nav-icon text-danger"></i>
@@ -254,7 +262,7 @@
         </a>
         @endcan
         @can('accounting.view')
-        <a class="sidebar-nav-link {{ request()->is('admin/accounting*') ? 'active' : '' }}" href="{{ route('admin.accounting.dashboard') }}">
+        <a class="sidebar-nav-link {{ request()->is('admin/accounting*') && !request()->is('admin/accounting/profit-loss*') ? 'active' : '' }}" href="{{ route('admin.accounting.dashboard') }}">
             <i class="bi bi-journal-text nav-icon text-primary"></i>
             <span>Accounting</span>
         </a>

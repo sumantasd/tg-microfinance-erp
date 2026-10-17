@@ -332,12 +332,12 @@
                     <form action="{{ route('login') }}" method="POST" id="adminLoginForm">
                         @csrf
 
-                        <!-- Username / Email Field -->
+                        <!-- Email / Mobile Field -->
                         <div class="mb-3.5 mb-md-4">
-                            <label class="form-label text-dark fw-semibold small mb-1.5">Email Address / Username</label>
+                            <label class="form-label text-dark fw-semibold small mb-1.5">Email Address or Mobile Number</label>
                             <div class="input-group custom-input-group">
-                                <span class="input-group-text border-end-0"><i class="bi bi-envelope"></i></span>
-                                <input type="text" name="email" value="{{ old('email') }}" class="form-control border-start-0" placeholder="Enter your email or username" required autofocus autocomplete="username">
+                                <span class="input-group-text border-end-0"><i class="bi bi-person-badge"></i></span>
+                                <input type="text" name="email" value="{{ old('email') }}" class="form-control border-start-0" placeholder="Enter your email or registered mobile" required autofocus autocomplete="username">
                             </div>
                         </div>
 

@@ -19,12 +19,17 @@ use Illuminate\Validation\ValidationException;
 
 class LoanAccountService
 {
+    protected ?ProfitLossService $profitLossService;
+
     public function __construct(
         protected LoanAccountRepositoryInterface $accountRepository,
         protected InventoryRepositoryInterface $inventoryRepository,
         protected ActivityLogService $activityLogService,
-        protected AccountingService $accountingService
-    ) {}
+        protected AccountingService $accountingService,
+        ?ProfitLossService $profitLossService = null
+    ) {
+        $this->profitLossService = $profitLossService ?? app(ProfitLossService::class);
+    }
 
     public function getPaginatedAccounts(array $filters = [], int $perPage = 10): LengthAwarePaginator
     {
@@ -142,6 +147,10 @@ class LoanAccountService
                     $this->activityLogService->log('loan_sanctioned', $memberAccount);
                     $this->activityLogService->log('emi_schedule_generated', $memberAccount);
 
+                    if ($memberAccount->loan_type === 'product') {
+                        $this->profitLossService->recordPendingMargin($memberAccount);
+                    }
+
                     $createdAccounts->push($memberAccount);
                 }
 
@@ -235,6 +244,10 @@ class LoanAccountService
 
             $this->activityLogService->log('loan_sanctioned', $loanAccount);
             $this->activityLogService->log('emi_schedule_generated', $loanAccount);
+
+            if ($loanAccount->loan_type === 'product') {
+                $this->profitLossService->recordPendingMargin($loanAccount);
+            }
 
             return $loanAccount;
         });
@@ -841,7 +854,13 @@ class LoanAccountService
                 'penalty_outstanding' => $newPenaltyOut,
                 'total_outstanding' => $newTotalOut,
                 'status' => $newStatus,
+                'closed_at' => ($newStatus === 'closed' && !$loanAccount->closed_at) ? $pDate : $loanAccount->closed_at,
+                'closure_type' => ($newStatus === 'closed' && !$loanAccount->closure_type) ? 'normal' : $loanAccount->closure_type,
             ]);
+
+            if ($newStatus === 'closed' && $loanAccount->loan_type === 'product') {
+                $this->profitLossService->finalizeProductLoanMargin($loanAccount, Auth::id());
+            }
 
             // Recalculate Future Schedule ONLY if explicitly requested prepayment mode and principal was paid and loan is still active
             if ($newStatus !== 'closed' && $principalPaid > 0 && in_array($adjustmentMode, ['reduce_tenure', 'reduce_emi'])) {

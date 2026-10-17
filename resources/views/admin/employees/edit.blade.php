@@ -55,9 +55,19 @@
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label fw-semibold text-dark">Employee ID (Code) <span class="text-danger">*</span></label>
-                                <input type="text" name="employee_code" value="{{ old('employee_code', $employee->employee_code) }}" class="form-control font-monospace @error('employee_code') is-invalid @enderror" required>
-                                @error('employee_code') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                <label class="form-label fw-semibold text-dark">Employee Code</label>
+                                <div class="input-group">
+                                    <span class="input-group-text bg-light-subtle text-secondary border-secondary-subtle">
+                                        <i class="bi bi-person-vcard"></i>
+                                    </span>
+                                    <input type="text" class="form-control font-monospace bg-light fw-bold text-dark border-secondary-subtle" value="{{ $employee->employee_code }}" readonly tabindex="-1">
+                                    <span class="input-group-text bg-light text-muted small border-start-0">
+                                        <span class="badge bg-secondary text-white font-monospace">LOCKED</span>
+                                    </span>
+                                </div>
+                                <small class="text-muted d-block mt-1">
+                                    <i class="bi bi-lock me-1"></i>Permanent unique system identifier. Cannot be modified.
+                                </small>
                             </div>
 
                             <div class="col-md-6">
@@ -160,6 +170,35 @@
                     <div class="col-md-6">
                         <label class="form-label fw-semibold text-dark">Passport Number</label>
                         <input type="text" name="passport_number" value="{{ old('passport_number', $employee->passport_number) }}" class="form-control font-monospace">
+                    </div>
+
+                    <!-- Residential Address -->
+                    <div class="col-12 mt-2 pt-2 border-top">
+                        <span class="small fw-bold text-secondary text-uppercase"><i class="bi bi-geo-alt me-1"></i>Residential Address</span>
+                    </div>
+
+                    <div class="col-12">
+                        <label class="form-label fw-semibold text-dark">Address / Street</label>
+                        <textarea name="address" rows="2" class="form-control @error('address') is-invalid @enderror" placeholder="Complete residential address...">{{ old('address', $employee->address) }}</textarea>
+                        @error('address') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-dark">City</label>
+                        <input type="text" name="city" value="{{ old('city', $employee->city) }}" class="form-control @error('city') is-invalid @enderror" placeholder="City">
+                        @error('city') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-dark">State</label>
+                        <input type="text" name="state" value="{{ old('state', $employee->state) }}" class="form-control @error('state') is-invalid @enderror" placeholder="State">
+                        @error('state') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label fw-semibold text-dark">PIN Code</label>
+                        <input type="text" name="pincode" value="{{ old('pincode', $employee->pincode) }}" class="form-control font-monospace @error('pincode') is-invalid @enderror" placeholder="6-digit PIN">
+                        @error('pincode') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
                 </div>
             </x-ui.card>
@@ -302,44 +341,129 @@
             </x-ui.card>
 
             <!-- SECTION 5: USER ACCOUNT & STATUS -->
+            <!-- SECTION 5: USER ACCOUNT & STATUS -->
             <x-ui.card class="p-4 shadow-sm mb-4">
-                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3"><i class="bi bi-shield-lock text-danger me-2"></i>5. User Account & Status</h6>
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                    <h6 class="fw-bold text-dark mb-0"><i class="bi bi-shield-lock text-danger me-2"></i>5. User Account & Status</h6>
+                    <div class="form-check form-switch mb-0">
+                        <input class="form-check-input" type="checkbox" name="login_enabled" id="login_enabled" value="1" {{ old('login_enabled', $employee->login_enabled) ? 'checked' : '' }} onchange="toggleLoginSection()">
+                        <label class="form-check-label fw-semibold text-dark small" for="login_enabled">Login Enabled</label>
+                    </div>
+                </div>
                 
                 <div class="row g-2">
-                    <div class="col-12">
-                        <label class="form-label fw-semibold text-dark">Employment Status</label>
-                        <select name="status" class="form-select fw-bold">
+                    <div class="col-12 mb-2">
+                        <label class="form-label fw-semibold text-dark small">Employment Status</label>
+                        <select name="status" class="form-select form-select-sm fw-bold @error('status') is-invalid @enderror">
                             <option value="active" {{ old('status', $employee->status) === 'active' ? 'selected' : '' }}>Active</option>
                             <option value="on_leave" {{ old('status', $employee->status) === 'on_leave' ? 'selected' : '' }}>On Leave</option>
                             <option value="resigned" {{ old('status', $employee->status) === 'resigned' ? 'selected' : '' }}>Resigned</option>
                             <option value="terminated" {{ old('status', $employee->status) === 'terminated' ? 'selected' : '' }}>Terminated</option>
                         </select>
+                        @error('status') <div class="invalid-feedback">{{ $message }}</div> @enderror
                     </div>
 
-                    <div class="col-12 mt-2">
-                        <label class="form-label fw-semibold text-dark">Link User Account</label>
-                        <select name="user_id" class="form-select">
-                            <option value="">None (No System Login)</option>
-                            @foreach($users as $u)
-                                <option value="{{ $u->id }}" {{ old('user_id', $employee->user_id) == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ $u->email }})</option>
-                            @endforeach
-                        </select>
+                    <div id="loginDetailsContainer" class="col-12" style="{{ old('login_enabled', $employee->login_enabled) ? '' : 'display: none;' }}">
+                        @if($employee->user)
+                            <div class="p-2.5 rounded bg-light border mb-2">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small fw-bold text-dark"><i class="bi bi-person-check-fill text-success me-1"></i> Linked User</span>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle">Active</span>
+                                </div>
+                                <div class="small text-muted mt-1">
+                                    <div><strong>Name:</strong> {{ $employee->user->name }}</div>
+                                    <div><strong>Email:</strong> {{ $employee->user->email }}</div>
+                                    <div><strong>Current Role:</strong> {{ $employee->user->roles->first()?->name ?? 'None' }}</div>
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold text-dark small">Update RBAC Role</label>
+                                <select name="role" class="form-select form-select-sm @error('role') is-invalid @enderror">
+                                    <option value="">Select Role...</option>
+                                    @foreach($roles as $r)
+                                        <option value="{{ $r->name }}" {{ ($employee->user && $employee->user->hasRole($r->name)) ? 'selected' : '' }}>{{ $r->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+
+                            <div class="col-12 mt-2">
+                                <label class="form-label fw-semibold text-dark small">Reassign User Account</label>
+                                <select name="user_id" class="form-select form-select-sm @error('user_id') is-invalid @enderror">
+                                    <option value="{{ $employee->user->id }}" selected>Current: {{ $employee->user->name }} ({{ $employee->user->email }})</option>
+                                    <option value="">-- Unlink User Account (No System Login) --</option>
+                                    @foreach($users as $u)
+                                        @if($u->id !== $employee->user_id)
+                                            <option value="{{ $u->id }}" {{ old('user_id') == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ $u->email }})</option>
+                                        @endif
+                                    @endforeach
+                                </select>
+                                @error('user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        @else
+                            <div class="alert alert-info py-2 px-3 small mb-2">
+                                <i class="bi bi-exclamation-circle me-1"></i> No User account is currently linked.
+                            </div>
+
+                            <div class="mb-2">
+                                <label class="form-label fw-semibold text-dark small d-block">Account Action</label>
+                                <div class="btn-group w-100" role="group">
+                                    <input type="radio" class="btn-check" name="user_mode" id="mode_link" value="link" {{ old('user_mode', 'link') === 'link' ? 'checked' : '' }} onchange="toggleUserMode()">
+                                    <label class="btn btn-outline-secondary btn-sm fw-semibold" for="mode_link">
+                                        <i class="bi bi-link-45deg me-1"></i> Link Existing User
+                                    </label>
+
+                                    <input type="radio" class="btn-check" name="user_mode" id="mode_create" value="create" {{ old('user_mode') === 'create' ? 'checked' : '' }} onchange="toggleUserMode()">
+                                    <label class="btn btn-outline-primary btn-sm fw-semibold" for="mode_create">
+                                        <i class="bi bi-person-plus me-1"></i> New User
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div id="newUserFields" class="row g-2 mb-2" style="{{ old('user_mode') === 'create' ? '' : 'display: none;' }}">
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold text-dark small">Login Email Address</label>
+                                    <input type="email" name="user_email" value="{{ old('user_email', $employee->email) }}" class="form-control form-control-sm @error('user_email') is-invalid @enderror" placeholder="Defaults to Employee Email">
+                                    @error('user_email') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold text-dark small">Temporary Password <span class="text-danger">*</span></label>
+                                    <input type="password" name="user_password" id="user_password" class="form-control form-control-sm @error('user_password') is-invalid @enderror" placeholder="Min 8 chars, mixed case, number, symbol" autocomplete="new-password">
+                                    @error('user_password') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            </div>
+
+                            <div id="linkUserFields" class="row g-2 mb-2" style="{{ old('user_mode', 'link') === 'link' ? '' : 'display: none;' }}">
+                                <div class="col-12">
+                                    <label class="form-label fw-semibold text-dark small">Select Unlinked User Account</label>
+                                    <select name="user_id" id="user_id_select" class="form-select form-select-sm @error('user_id') is-invalid @enderror">
+                                        <option value="">-- No User Account --</option>
+                                        @foreach($users as $u)
+                                            <option value="{{ $u->id }}" {{ old('user_id') == $u->id ? 'selected' : '' }}>{{ $u->name }} ({{ $u->email }})</option>
+                                        @endforeach
+                                    </select>
+                                    @error('user_id') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                                </div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label fw-semibold text-dark small">Assign RBAC Role</label>
+                                <select name="role" class="form-select form-select-sm @error('role') is-invalid @enderror">
+                                    <option value="">Select Role...</option>
+                                    @foreach($roles as $r)
+                                        <option value="{{ $r->name }}" {{ old('role') === $r->name ? 'selected' : '' }}>{{ $r->name }}</option>
+                                    @endforeach
+                                </select>
+                                @error('role') <div class="invalid-feedback">{{ $message }}</div> @enderror
+                            </div>
+                        @endif
                     </div>
 
-                    <div class="col-12 mt-2">
-                        <label class="form-label fw-semibold text-dark">Assign Role</label>
-                        <select name="role" class="form-select">
-                            <option value="">Select Role...</option>
-                            @foreach($roles as $r)
-                                <option value="{{ $r->name }}" {{ ($employee->user && $employee->user->hasRole($r->name)) ? 'selected' : '' }}>{{ $r->name }}</option>
-                            @endforeach
-                        </select>
-                    </div>
-
-                    <div class="col-12 mt-3">
-                        <div class="form-check form-switch">
-                            <input class="form-check-input" type="checkbox" name="login_enabled" id="login_enabled" value="1" {{ old('login_enabled', $employee->login_enabled) ? 'checked' : '' }}>
-                            <label class="form-check-label fw-semibold text-dark" for="login_enabled">System Login Enabled</label>
+                    <div id="loginDisabledNotice" class="col-12" style="{{ old('login_enabled', $employee->login_enabled) ? 'display: none;' : '' }}">
+                        <div class="alert alert-light border small text-muted mb-0 py-2 px-3">
+                            <i class="bi bi-info-circle me-1"></i> System login is disabled for this employee.
                         </div>
                     </div>
                 </div>
@@ -386,4 +510,24 @@
         </div>
     </div>
 </form>
+
+<script>
+function toggleLoginSection() {
+    const isChecked = document.getElementById('login_enabled').checked;
+    const container = document.getElementById('loginDetailsContainer');
+    const notice = document.getElementById('loginDisabledNotice');
+    if (container) container.style.display = isChecked ? '' : 'none';
+    if (notice) notice.style.display = isChecked ? 'none' : '';
+}
+
+function toggleUserMode() {
+    const createRadio = document.getElementById('mode_create');
+    if (!createRadio) return;
+    const isCreate = createRadio.checked;
+    const newFields = document.getElementById('newUserFields');
+    const linkFields = document.getElementById('linkUserFields');
+    if (newFields) newFields.style.display = isCreate ? '' : 'none';
+    if (linkFields) linkFields.style.display = isCreate ? 'none' : '';
+}
+</script>
 @endsection

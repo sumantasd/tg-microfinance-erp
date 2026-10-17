@@ -46,15 +46,76 @@ class EmployeeController extends Controller
     {
         $this->authorize('create', Employee::class);
 
-        $companies = Company::where('is_active', true)->get();
-        $branches = Branch::where('is_active', true)->get();
-        $departments = Department::where('is_active', true)->get();
-        $designations = Designation::where('is_active', true)->get();
-        $managers = Employee::where('status', 'active')->get();
-        $users = User::whereDoesntHave('employee')->where('status', 'active')->orderBy('name')->get();
-        $roles = \Spatie\Permission\Models\Role::all();
+        $user = auth()->user();
+        $companyId = $user?->isSuperAdmin() ? null : $user?->company_id;
 
-        return view('admin.employees.create', compact('companies', 'branches', 'departments', 'designations', 'managers', 'users', 'roles'));
+        $companies = Company::where('is_active', true)->get();
+
+        $branchesQuery = Branch::where('is_active', true);
+        if ($companyId) {
+            $branchesQuery->where('company_id', $companyId);
+        }
+        $branches = $branchesQuery->orderBy('name')->get();
+
+        $departmentsQuery = Department::where('is_active', true);
+        if ($companyId) {
+            $departmentsQuery->where('company_id', $companyId);
+        }
+        $departments = $departmentsQuery->orderBy('name')->get();
+
+        $designationsQuery = Designation::where('is_active', true);
+        if ($companyId) {
+            $designationsQuery->where('company_id', $companyId);
+        }
+        $designations = $designationsQuery->orderBy('title')->get();
+
+        $managersQuery = Employee::where('status', 'active');
+        if ($companyId) {
+            $managersQuery->where('company_id', $companyId);
+        }
+        $managers = $managersQuery->orderBy('first_name')->get();
+
+        $usersQuery = User::whereDoesntHave('employee')->where('status', 'active');
+        if ($companyId) {
+            $usersQuery->where('company_id', $companyId);
+        }
+        $users = $usersQuery->orderBy('name')->get();
+
+        $rolesQuery = \Spatie\Permission\Models\Role::query();
+        if (!$user?->isSuperAdmin()) {
+            $rolesQuery->where('name', '!=', 'Super Admin');
+        }
+        $roles = $rolesQuery->orderBy('name')->get();
+
+        $selectedCompanyId = old('company_id', $companyId ?: ($companies->first()?->id ?? 1));
+        $previewCode = $this->employeeService->generateEmployeeCode((int) $selectedCompanyId);
+
+        $companyCodePreviews = [];
+        foreach ($companies as $comp) {
+            $companyCodePreviews[$comp->id] = $this->employeeService->generateEmployeeCode((int) $comp->id);
+        }
+
+        return view('admin.employees.create', compact('companies', 'branches', 'departments', 'designations', 'managers', 'users', 'roles', 'previewCode', 'companyCodePreviews'));
+    }
+
+    public function previewCode(Request $request)
+    {
+        $this->authorize('create', Employee::class);
+
+        $user = auth()->user();
+        $companyId = $request->get('company_id');
+
+        if (!$user?->isSuperAdmin() || empty($companyId)) {
+            $companyId = $user?->company_id ?? 1;
+        }
+
+        $code = $this->employeeService->generateEmployeeCode((int) $companyId);
+
+        return response()->json([
+            'success' => true,
+            'company_id' => (int) $companyId,
+            'code' => $code,
+        ]);
     }
 
     public function store(StoreEmployeeRequest $request)
@@ -64,9 +125,12 @@ class EmployeeController extends Controller
         $photo = $request->file('profile_photo');
         $documents = $request->documents ?? [];
 
-        $this->employeeService->createEmployee($request->validated(), $photo, $documents);
+        $employee = $this->employeeService->createEmployee($request->validated(), $photo, $documents);
 
-        return redirect()->route('admin.employee.index')->with('success', 'Enterprise Employee Profile created successfully.');
+        return redirect()->route('admin.employee.index')
+            ->with('success', "Enterprise Employee [{$employee->full_name}] created successfully with Employee Code: {$employee->employee_code}.")
+            ->with('assigned_employee_code', $employee->employee_code)
+            ->with('created_employee_name', $employee->full_name);
     }
 
     public function show(int $id)
@@ -87,17 +151,52 @@ class EmployeeController extends Controller
         $this->authorize('update', $employee);
         $employee->load('documents');
 
+        $user = auth()->user();
+        $companyId = $user?->isSuperAdmin() ? $employee->company_id : $user?->company_id;
+
         $companies = Company::where('is_active', true)->get();
-        $branches = Branch::where('is_active', true)->get();
-        $departments = Department::where('is_active', true)->get();
-        $designations = Designation::where('is_active', true)->get();
-        $users = User::where(function ($q) use ($employee) {
+
+        $branchesQuery = Branch::where('is_active', true);
+        if ($companyId) {
+            $branchesQuery->where('company_id', $companyId);
+        }
+        $branches = $branchesQuery->orderBy('name')->get();
+
+        $departmentsQuery = Department::where('is_active', true);
+        if ($companyId) {
+            $departmentsQuery->where('company_id', $companyId);
+        }
+        $departments = $departmentsQuery->orderBy('name')->get();
+
+        $designationsQuery = Designation::where('is_active', true);
+        if ($companyId) {
+            $designationsQuery->where('company_id', $companyId);
+        }
+        $designations = $designationsQuery->orderBy('title')->get();
+
+        // Properly define $managers scoped to company and excluding current employee
+        $managersQuery = Employee::where('status', 'active')->where('id', '!=', $employee->id);
+        if ($companyId) {
+            $managersQuery->where('company_id', $companyId);
+        }
+        $managers = $managersQuery->orderBy('first_name')->get();
+
+        $usersQuery = User::where('status', 'active')->where(function ($q) use ($employee) {
             $q->whereDoesntHave('employee');
             if ($employee->user_id) {
                 $q->orWhere('id', $employee->user_id);
             }
-        })->where('status', 'active')->orderBy('name')->get();
-        $roles = \Spatie\Permission\Models\Role::all();
+        });
+        if ($companyId) {
+            $usersQuery->where('company_id', $companyId);
+        }
+        $users = $usersQuery->orderBy('name')->get();
+
+        $rolesQuery = \Spatie\Permission\Models\Role::query();
+        if (!$user?->isSuperAdmin()) {
+            $rolesQuery->where('name', '!=', 'Super Admin');
+        }
+        $roles = $rolesQuery->orderBy('name')->get();
 
         return view('admin.employees.edit', compact('employee', 'companies', 'branches', 'departments', 'designations', 'managers', 'users', 'roles'));
     }

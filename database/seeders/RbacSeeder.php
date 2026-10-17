@@ -65,6 +65,7 @@ class RbacSeeder extends Seeder
 
             // 13. General Ledger & Double-Entry Accounting
             'accounting.view', 'accounting.dashboard',
+            'profit_loss.view', 'profit_loss.export',
             'chart_of_accounts.view', 'chart_of_accounts.create', 'chart_of_accounts.edit',
             'bank_accounts.view', 'bank_accounts.create', 'bank_accounts.edit',
             'voucher.view', 'voucher.create', 'voucher.post', 'voucher.reverse',
@@ -154,7 +155,7 @@ class RbacSeeder extends Seeder
             'inventory.view', 'inventory.manage', 'inventory.adjust', 'inventory.restock',
             'inventory.transfer.view', 'inventory.transfer.create', 'inventory.transfer.approve', 'inventory.transfer.reject', 'inventory.transfer.dispatch', 'inventory.transfer.receive', 'inventory.transfer.cancel',
             'purchase.view', 'purchase.create', 'purchase.edit', 'purchase.confirm', 'purchase.receive', 'purchase.cancel',
-            'accounting.view', 'accounting.dashboard', 'chart_of_accounts.view', 'chart_of_accounts.create', 'chart_of_accounts.edit', 'bank_accounts.view', 'bank_accounts.create', 'bank_accounts.edit', 'voucher.view', 'voucher.create', 'voucher.post', 'voucher.reverse',
+            'accounting.view', 'accounting.dashboard', 'profit_loss.view', 'profit_loss.export', 'chart_of_accounts.view', 'chart_of_accounts.create', 'chart_of_accounts.edit', 'bank_accounts.view', 'bank_accounts.create', 'bank_accounts.edit', 'voucher.view', 'voucher.create', 'voucher.post', 'voucher.reverse',
             'department.view', 'department.create', 'department.edit', 'department.toggle_status',
             'designation.view', 'designation.create', 'designation.edit', 'designation.toggle_status',
             'employee.view', 'employee.create', 'employee.edit', 'employee.toggle_status',

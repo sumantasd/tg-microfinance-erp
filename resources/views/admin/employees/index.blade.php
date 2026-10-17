@@ -17,8 +17,24 @@
 
 @if(session('success'))
     <div class="alert alert-success alert-dismissible fade show rounded-3 shadow-sm mb-4" role="alert">
-        <i class="bi bi-check-circle-fill me-2"></i> {{ session('success') }}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        <div class="d-flex align-items-start justify-content-between gap-2">
+            <div>
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-check-circle-fill fs-5 text-success"></i>
+                    <span class="fw-semibold">{{ session('success') }}</span>
+                </div>
+                @if(session('assigned_employee_code'))
+                    <div class="mt-2 pt-2 border-top border-success-subtle d-flex align-items-center gap-2 flex-wrap">
+                        <span class="small text-muted fw-semibold">Assigned Employee Code:</span>
+                        <span class="badge bg-white text-dark font-monospace border px-2.5 py-1 fs-6 shadow-xs" id="assignedEmployeeCodeBadge">{{ session('assigned_employee_code') }}</span>
+                        <button type="button" class="btn btn-sm btn-outline-success rounded-pill px-2.5 py-0.5 d-inline-flex align-items-center gap-1" onclick="navigator.clipboard.writeText('{{ session('assigned_employee_code') }}'); this.innerHTML = '<i class=\'bi bi-check2\'></i> Copied!'; setTimeout(() => this.innerHTML = '<i class=\'bi bi-clipboard\'></i> Copy Code', 2000);">
+                            <i class="bi bi-clipboard"></i> Copy Code
+                        </button>
+                    </div>
+                @endif
+            </div>
+            <button type="button" class="btn-close ms-auto" data-bs-dismiss="alert" aria-label="Close"></button>
+        </div>
     </div>
 @endif
 

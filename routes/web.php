@@ -23,6 +23,7 @@ use App\Http\Controllers\Admin\ExpenseReportController;
 use App\Http\Controllers\Admin\DashboardController;
 use App\Http\Controllers\Admin\GlobalSearchController;
 use App\Http\Controllers\Admin\AccountingDashboardController;
+use App\Http\Controllers\Admin\ProfitLossController;
 use App\Http\Controllers\Admin\BankAccountController;
 use App\Http\Controllers\Admin\ChartOfAccountController;
 use App\Http\Controllers\Admin\VoucherController;
@@ -310,6 +311,7 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
     Route::middleware('can:employee.view')->group(function () {
         Route::get('/employee', [EmployeeController::class, 'index'])->name('admin.employee.index');
         Route::get('/employee/create', [EmployeeController::class, 'create'])->name('admin.employee.create')->middleware('can:employee.create');
+        Route::get('/employee/preview-code', [EmployeeController::class, 'previewCode'])->name('admin.employee.preview-code')->middleware('can:employee.create');
         Route::post('/employee', [EmployeeController::class, 'store'])->name('admin.employee.store')->middleware('can:employee.create');
         Route::get('/employee/{employee}', [EmployeeController::class, 'show'])->name('admin.employee.show');
         Route::get('/employee/{employee}/edit', [EmployeeController::class, 'edit'])->name('admin.employee.edit')->middleware('can:employee.edit');
@@ -514,6 +516,12 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
         Route::resource('bank-accounts', BankAccountController::class);
         Route::resource('vouchers', VoucherController::class)->except(['edit', 'update', 'destroy']);
         Route::post('vouchers/{voucher}/reverse', [VoucherController::class, 'reverse'])->name('vouchers.reverse');
+
+        // Admin-Only Profit & Loss Reporting Module
+        Route::prefix('profit-loss')->name('profit-loss.')->middleware('can:profit_loss.view')->group(function () {
+            Route::get('/', [ProfitLossController::class, 'index'])->name('index');
+            Route::get('/export', [ProfitLossController::class, 'export'])->name('export')->middleware('can:profit_loss.export');
+        });
     });
 
     // Enterprise Expense Management Module Routes

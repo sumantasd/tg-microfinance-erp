@@ -103,6 +103,11 @@ class LoanAccount extends Model
         return $this->morphOne(Invoice::class, 'invoiceable');
     }
 
+    public function productLoanMargin(): \Illuminate\Database\Eloquent\Relations\HasOne
+    {
+        return $this->hasOne(ProductLoanMargin::class, 'loan_account_id');
+    }
+
     public function customer(): BelongsTo
     {
         return $this->belongsTo(Customer::class);

@@ -21,9 +21,16 @@
     </div>
 
     <!-- Chart Canvas Container -->
-    <div class="chart-placeholder-box" style="height: {{ $height }};">
-        <i class="bi bi-bar-chart-line fs-2 text-primary opacity-50 mb-2"></i>
-        <span class="small fw-semibold text-secondary">{{ $title }} Visualizer</span>
-        <small class="text-muted font-monospace opacity-75 mt-1" style="font-size: 0.7rem;">Backend Chart Integration Ready</small>
-    </div>
+    @if(trim($slot) !== '')
+        <div class="chart-content-box" style="min-height: {{ $height }};">
+            {{ $slot }}
+        </div>
+    @else
+        <div class="chart-canvas-box d-flex align-items-center justify-content-center text-muted" style="min-height: {{ $height }};">
+            <div class="text-center">
+                <i class="bi bi-bar-chart-line fs-2 text-primary opacity-50 mb-1 d-block"></i>
+                <span class="small fw-semibold text-secondary">{{ $title }} Analytics</span>
+            </div>
+        </div>
+    @endif
 </div>

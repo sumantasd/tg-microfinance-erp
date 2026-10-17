@@ -231,10 +231,8 @@ class UserService
             $firstName = $nameParts[0] ?: 'Staff';
             $lastName = !empty($nameParts[1]) ? $nameParts[1] : 'Manager';
 
-            // Generate next employee code
-            $year = date('Y');
-            $nextId = (Employee::max('id') ?? 0) + 1;
-            $employeeCode = 'EMP-' . $year . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+            // Generate next employee code using centralized generator
+            $employeeCode = EmployeeService::generateEmployeeCode($companyId);
 
             $employee = Employee::create([
                 'company_id' => $companyId,

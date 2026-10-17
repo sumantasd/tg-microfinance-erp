@@ -41,7 +41,7 @@
 
             <div class="col-md-6">
                 <label class="form-label small fw-bold text-secondary">Employee ID</label>
-                <input type="text" name="employee_id" value="{{ old('employee_id') }}" class="form-control bg-light" placeholder="EMP-2025-001">
+                <input type="text" name="employee_id" value="{{ old('employee_id') }}" class="form-control bg-light" placeholder="GLF-EMP-2026-0001">
             </div>
 
             <div class="col-md-6">

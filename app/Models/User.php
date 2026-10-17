@@ -86,6 +86,14 @@ class User extends Authenticatable
     }
 
     /**
+     * Check if user is Branch Manager.
+     */
+    public function isBranchManager(): bool
+    {
+        return $this->hasRole('Branch Manager');
+    }
+
+    /**
      * Relationship to Company.
      */
     public function company()
@@ -204,6 +212,7 @@ class User extends Authenticatable
 
     /**
      * Check if user can access a specific branch.
+     * Consolidated all-branches access (!branchId) is strictly reserved for Head Office Admins.
      */
     public function canAccessBranch(?int $branchId): bool
     {
@@ -212,7 +221,7 @@ class User extends Authenticatable
         }
 
         if (!$branchId) {
-            return true;
+            return false;
         }
 
         return $this->branch_id && (int) $this->branch_id === (int) $branchId;

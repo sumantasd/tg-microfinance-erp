@@ -83,9 +83,8 @@ class Employee extends Model
             }
 
             if (empty($employee->employee_code)) {
-                $year = date('Y');
-                $nextId = (static::max('id') ?? 0) + 1;
-                $employee->employee_code = 'EMP-' . $year . '-' . str_pad($nextId, 4, '0', STR_PAD_LEFT);
+                $companyId = (int) ($employee->company_id ?: 1);
+                $employee->employee_code = \App\Services\EmployeeService::generateEmployeeCode($companyId);
             }
         });
     }

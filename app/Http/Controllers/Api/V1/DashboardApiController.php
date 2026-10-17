@@ -22,14 +22,21 @@ class DashboardApiController extends Controller
     public function stats(Request $request): JsonResponse
     {
         $user = $request->user();
-        $scopedBranchId = $user->resolveScopedBranchId($request->query('branch_id'));
+        $isHeadOfficeAdmin = $user && ($user->isSuperAdmin() || $user->isCompanyAdmin()) && !$user->isBranchManager();
+        $companyId = $user ? $user->resolveScopedCompanyId() : 1;
 
-        $customerQuery = Customer::query();
-        $groupQuery = CustomerGroup::query();
-        $loanQuery = LoanAccount::query()->where('status', 'active');
-        $cashBookQuery = CashBook::query()->where('date', now()->toDateString());
+        if ($isHeadOfficeAdmin) {
+            $scopedBranchId = $request->filled('branch_id') ? (int) $request->query('branch_id') : null;
+        } else {
+            $scopedBranchId = $user->branch_id ? (int) $user->branch_id : -1;
+        }
 
-        if ($scopedBranchId) {
+        $customerQuery = Customer::where('company_id', $companyId);
+        $groupQuery = CustomerGroup::where('company_id', $companyId);
+        $loanQuery = LoanAccount::where('company_id', $companyId)->where('status', 'active');
+        $cashBookQuery = CashBook::where('company_id', $companyId)->where('date', now(config('app.business_timezone', 'Asia/Kolkata'))->toDateString());
+
+        if ($scopedBranchId !== null) {
             $customerQuery->where('branch_id', $scopedBranchId);
             $groupQuery->where('branch_id', $scopedBranchId);
             $loanQuery->where('branch_id', $scopedBranchId);
