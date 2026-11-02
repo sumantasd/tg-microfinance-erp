@@ -14,6 +14,7 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         $middleware->alias([
             'idempotent' => \App\Http\Middleware\EnsureIdempotentRequest::class,
+            'developer.auth' => \App\Http\Middleware\EnsureDeveloperAuthorized::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {

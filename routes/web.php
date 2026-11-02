@@ -243,6 +243,19 @@ Route::middleware([EnsureAdminAuthenticated::class])->prefix('admin')->group(fun
                 Route::delete('/{filename}', [\App\Http\Controllers\Admin\System\DatabaseBackupController::class, 'destroy'])->name('destroy')->middleware('can:backup.delete');
             });
         });
+
+        // Data Management (Super Admin only, protected actions require deletion password)
+        Route::prefix('developer-data')->name('admin.system.developer-data.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'index'])->name('index');
+            Route::post('/backup', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'createBackup'])->name('backup');
+            Route::get('/backup/download/{filename}', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'downloadBackup'])->name('backup.download');
+            Route::post('/backup/delete/{filename}', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'destroyBackup'])->name('backup.destroy');
+            Route::post('/restore', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'restore'])->name('restore');
+            Route::post('/preview', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'preview'])->name('preview');
+            Route::post('/execute', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'execute'])->name('execute');
+            Route::post('/authorize', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'authorizeDeveloper'])->name('authorize');
+            Route::post('/revoke', [\App\Http\Controllers\Admin\System\DeveloperDataController::class, 'revokeAuthorization'])->name('revoke');
+        });
     });
 
     // Billing & Invoice System Routes

@@ -527,6 +527,12 @@
             <i class="bi bi-fuel-pump nav-icon text-warning"></i>
             <span>Travel Allowance / TA Settings</span>
         </a>
+        @if(auth()->user()?->hasRole('Super Admin'))
+        <a class="sidebar-nav-link {{ request()->is('admin/system/developer-data*') ? 'active' : '' }}" href="{{ route('admin.system.developer-data.index') }}">
+            <i class="bi bi-database-gear nav-icon text-danger"></i>
+            <span>Data Management</span>
+        </a>
+        @endif
         @endcan
     </div>
 </nav>

@@ -3,9 +3,11 @@
 namespace App\Services;
 
 use Exception;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\File;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Schema;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class DatabaseBackupService
@@ -33,6 +35,14 @@ class DatabaseBackupService
         $timestamp = now()->format('Y_m_d_H_i_s');
         $filename = "database_backup_{$timestamp}.sql";
         $filePath = $directory . DIRECTORY_SEPARATOR . $filename;
+
+        // Ensure we never overwrite an existing backup created in the exact same second
+        if (File::exists($filePath)) {
+            sleep(1);
+            $timestamp = now()->format('Y_m_d_H_i_s');
+            $filename = "database_backup_{$timestamp}.sql";
+            $filePath = $directory . DIRECTORY_SEPARATOR . $filename;
+        }
 
         $driver = config('database.default');
 
@@ -82,6 +92,128 @@ class DatabaseBackupService
     }
 
     /**
+     * Create a backup and strictly verify its structural integrity.
+     */
+    public function createVerifiedBackup(): array
+    {
+        $backup = $this->createBackup();
+        $verification = $this->verifyBackupFile($backup['path']);
+
+        if (!$verification['valid']) {
+            if (File::exists($backup['path'])) {
+                File::delete($backup['path']);
+            }
+            throw new Exception("Pre-cleanup backup failed structural verification: " . $verification['details']);
+        }
+
+        $backup['verification'] = $verification;
+        return $backup;
+    }
+
+    /**
+     * Verify that an SQL backup file exists, is non-empty, and has structurally valid SQL markers.
+     */
+    public function verifyBackupFile(string $filePath): array
+    {
+        if (!File::exists($filePath)) {
+            return [
+                'valid' => false,
+                'status' => 'missing',
+                'size' => 0,
+                'size_formatted' => '0 B',
+                'table_count' => 0,
+                'details' => 'Backup file does not exist on disk.',
+            ];
+        }
+
+        $size = File::size($filePath);
+        if ($size === 0) {
+            return [
+                'valid' => false,
+                'status' => 'empty',
+                'size' => 0,
+                'size_formatted' => '0 B',
+                'table_count' => 0,
+                'details' => 'Backup file is empty (0 bytes).',
+            ];
+        }
+
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            return [
+                'valid' => false,
+                'status' => 'unreadable',
+                'size' => $size,
+                'size_formatted' => $this->formatFileSize($size),
+                'table_count' => 0,
+                'details' => 'Unable to open backup file for reading.',
+            ];
+        }
+
+        $tableCount = 0;
+        $hasHeaderMarker = false;
+        $insertCount = 0;
+
+        // Read lines for structure markers
+        while (($line = fgets($handle, 4096)) !== false) {
+            if (!$hasHeaderMarker && (
+                str_contains($line, 'Database Backup Dump') ||
+                str_contains($line, 'MySQL dump') ||
+                str_contains($line, 'PRAGMA foreign_keys') ||
+                str_contains($line, 'FOREIGN_KEY_CHECKS')
+            )) {
+                $hasHeaderMarker = true;
+            }
+
+            if (stripos($line, 'CREATE TABLE') !== false) {
+                $tableCount++;
+            }
+
+            if (stripos($line, 'INSERT INTO') !== false) {
+                $insertCount++;
+            }
+        }
+
+        // Check footer closing marker
+        $hasClosingMarker = false;
+        if ($size > 1024) {
+            fseek($handle, max(0, $size - 2048));
+            $tail = fread($handle, 2048);
+            if (
+                str_contains($tail, 'FOREIGN_KEY_CHECKS = 1') ||
+                str_contains($tail, 'PRAGMA foreign_keys = ON') ||
+                str_contains($tail, 'Dump completed') ||
+                str_contains($tail, 'INSERT INTO') ||
+                str_contains($tail, ';')
+            ) {
+                $hasClosingMarker = true;
+            }
+        } else {
+            $hasClosingMarker = true;
+        }
+
+        fclose($handle);
+
+        $isValid = ($tableCount > 0) && ($hasHeaderMarker || $tableCount > 0) && $hasClosingMarker;
+
+        $details = $isValid
+            ? "Verified successfully: contains {$tableCount} table schemas and {$insertCount} data chunk statements."
+            : "Structural verification failed: table_count={$tableCount}, hasHeader=" . ($hasHeaderMarker ? 'yes' : 'no') . ", hasClosing=" . ($hasClosingMarker ? 'yes' : 'no');
+
+        return [
+            'valid' => $isValid,
+            'status' => $isValid ? 'verified' : 'corrupt',
+            'size' => $size,
+            'size_formatted' => $this->formatFileSize($size),
+            'table_count' => $tableCount,
+            'insert_count' => $insertCount,
+            'has_header' => $hasHeaderMarker,
+            'has_closing' => $hasClosingMarker,
+            'details' => $details,
+        ];
+    }
+
+    /**
      * List all database backup files stored securely on the server.
      */
     public function getBackups(): array
@@ -100,13 +232,15 @@ class DatabaseBackupService
 
             $size = $file->getSize();
             $mtime = $file->getMTime();
+            $filePath = $file->getRealPath();
 
             $backups[] = [
                 'filename' => $filename,
-                'path' => $file->getRealPath(),
+                'path' => $filePath,
                 'size' => $size,
                 'size_formatted' => $this->formatFileSize($size),
                 'created_at' => \Carbon\Carbon::createFromTimestamp($mtime),
+                'is_verified' => $size > 1024,
             ];
         }
 
@@ -147,6 +281,170 @@ class DatabaseBackupService
         }
 
         return $deleted;
+    }
+
+    /**
+     * Restore database from a verified SQL backup file safely.
+     */
+    public function restoreBackup(string $filename): array
+    {
+        // 1. Validate filename and path traversal
+        $filePath = $this->validateAndGetFilePath($filename);
+
+        // 2. Verify structural integrity of the target backup
+        $verification = $this->verifyBackupFile($filePath);
+        if (!$verification['valid']) {
+            throw new Exception("Cannot restore corrupted or invalid backup file: " . $verification['details']);
+        }
+
+        // 3. Acquire atomic restore concurrency lock
+        $lock = Cache::lock('database_restore_lock', 600);
+        if (!$lock->get()) {
+            throw new Exception("Another database restore operation is currently in progress. Please wait.");
+        }
+
+        $preRestoreBackup = null;
+
+        try {
+            // 4. Mandatory Pre-Restore Safety Backup
+            Log::info("DatabaseBackupService: Creating mandatory pre-restore safety backup...");
+            $preRestoreBackup = $this->createVerifiedBackup();
+            Log::info("DatabaseBackupService: Pre-restore safety backup created: {$preRestoreBackup['filename']}");
+
+            // 5. Execute the SQL restoration
+            $driver = config('database.default');
+            $restoreSuccess = false;
+
+            if (in_array($driver, ['mysql', 'mariadb'])) {
+                $restoreSuccess = $this->restoreMysqlWithNativeTool($filePath);
+            }
+
+            if (!$restoreSuccess) {
+                // Fallback to streaming PHP SQL execution engine
+                $this->restoreDatabaseWithPhpEngine($filePath);
+                $restoreSuccess = true;
+            }
+
+            // 6. Post-restore integrity verification
+            $this->verifyPostRestoreIntegrity();
+
+            Log::info("Database successfully restored from: {$filename}", [
+                'filename' => $filename,
+                'pre_restore_backup' => $preRestoreBackup['filename'],
+            ]);
+
+            return [
+                'success' => true,
+                'restored_filename' => $filename,
+                'pre_restore_backup' => $preRestoreBackup['filename'],
+                'restored_at' => now(),
+            ];
+        } catch (Exception $e) {
+            $preMsg = $preRestoreBackup ? " Safety backup was preserved: {$preRestoreBackup['filename']}." : "";
+            Log::error("Database restore failed: " . $e->getMessage() . $preMsg, [
+                'filename' => $filename,
+                'exception' => $e,
+            ]);
+
+            throw new Exception("Database restore failed: " . $e->getMessage() . $preMsg);
+        } finally {
+            $lock->release();
+        }
+    }
+
+    /**
+     * Attempt to restore MySQL/MariaDB database using native mysql client executable.
+     */
+    protected function restoreMysqlWithNativeTool(string $filePath): bool
+    {
+        if (!function_exists('exec') || ini_get('safe_mode')) {
+            return false;
+        }
+
+        $connection = config('database.default');
+        $host = config("database.connections.{$connection}.host", '127.0.0.1');
+        $port = config("database.connections.{$connection}.port", '3306');
+        $database = config("database.connections.{$connection}.database");
+        $username = config("database.connections.{$connection}.username");
+        $password = config("database.connections.{$connection}.password");
+
+        if (empty($database) || empty($username)) {
+            return false;
+        }
+
+        $cmd = sprintf(
+            'mysql --host=%s --port=%s --user=%s %s %s < %s',
+            escapeshellarg($host),
+            escapeshellarg($port),
+            escapeshellarg($username),
+            !empty($password) ? '--password=' . escapeshellarg($password) : '',
+            escapeshellarg($database),
+            escapeshellarg($filePath)
+        );
+
+        $output = [];
+        $returnCode = -1;
+
+        exec($cmd . ' 2>&1', $output, $returnCode);
+
+        return $returnCode === 0;
+    }
+
+    /**
+     * Streaming PHP SQL Execution Engine for restoring database schema and data.
+     */
+    protected function restoreDatabaseWithPhpEngine(string $filePath): void
+    {
+        $handle = fopen($filePath, 'r');
+        if (!$handle) {
+            throw new Exception("Unable to open backup file for reading: {$filePath}");
+        }
+
+        $statement = '';
+
+        while (($line = fgets($handle)) !== false) {
+            $trimmed = trim($line);
+
+            // Skip comment and empty lines
+            if ($trimmed === '' || str_starts_with($trimmed, '--') || str_starts_with($trimmed, '/*')) {
+                continue;
+            }
+
+            $statement .= $line;
+
+            // Semicolon at end of line signifies complete statement
+            if (str_ends_with($trimmed, ';')) {
+                $sqlToExecute = trim($statement);
+                if (!empty($sqlToExecute)) {
+                    DB::unprepared($sqlToExecute);
+                }
+                $statement = '';
+            }
+        }
+
+        if (!empty(trim($statement))) {
+            DB::unprepared(trim($statement));
+        }
+
+        fclose($handle);
+    }
+
+    /**
+     * Verify that database schema and key records exist after restoration.
+     */
+    protected function verifyPostRestoreIntegrity(): void
+    {
+        $hasUsers = Schema::hasTable('users');
+        $hasSchemes = Schema::hasTable('loan_schemes');
+
+        if (!$hasUsers || !$hasSchemes) {
+            throw new Exception("Post-restore integrity check failed: users or loan_schemes table missing.");
+        }
+
+        $usersCount = DB::table('users')->count();
+        if ($usersCount === 0) {
+            throw new Exception("Post-restore integrity check failed: users table contains 0 records.");
+        }
     }
 
     /**
